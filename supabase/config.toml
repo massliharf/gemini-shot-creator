@@ -1,1 +1,10 @@
 project_id = "eoxqvhipwpuiznxqenoe"
+
+[functions.generate-pack]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false
+
+[functions.delete-generated-folders]
+verify_jwt = false
