@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { User } from "@supabase/supabase-js";
-import { PackFile, SceneWithStatus, SceneStatus, getPackId, getPackName, isV1Pack, isV2Pack, hasScenes, getSceneCount, shotToPrompt, getFacePolicy, getRenderSettings } from "@/types/pack";
+import { PackFile, SceneWithStatus, SceneStatus, getPackId, getPackName, hasScenes, getScenes } from "@/types/pack";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -31,32 +31,15 @@ export const normalizeSceneId = (id: string | number | undefined): number => {
   return typeof id === 'string' ? parseInt(id, 10) : id;
 };
 
-// Convert scenes/shots to SceneWithStatus array with full prompts
-const scenesToArray = (packFile: PackFile): { id: string; prompt: string; title?: string }[] => {
-  // V2 format: shots array with detailed structure
-  if (isV2Pack(packFile)) {
-    const facePolicy = getFacePolicy(packFile);
-    const renderSettings = getRenderSettings(packFile);
-    
-    return packFile.shots.map(shot => ({
-      id: String(shot.shot_id),
-      prompt: shotToPrompt(shot, facePolicy, renderSettings),
-      title: shot.title
-    }));
-  }
+// Convert scenes to SceneWithStatus array
+const scenesToArray = (packFile: PackFile): { id: string; prompt: string }[] => {
+  const scenes = getScenes(packFile);
+  if (!scenes || !Array.isArray(scenes)) return [];
   
-  // V1 format: scenes array with simple prompts
-  if (isV1Pack(packFile)) {
-    const scenes = packFile.scenes;
-    if (!scenes || !Array.isArray(scenes)) return [];
-    
-    return scenes.map(scene => ({
-      id: String(scene.id),
-      prompt: scene.prompt || ""
-    }));
-  }
-  
-  return [];
+  return scenes.map(scene => ({
+    id: String(scene.id),
+    prompt: scene.prompt || ""
+  }));
 };
 
 export const usePacks = (user: User | null) => {
@@ -162,7 +145,6 @@ export const usePacks = (user: User | null) => {
 
     const validPacks = newPacks
       .map((pack, index) => {
-        // New nested schema: meta.pack_id and meta.pack_name
         const packId = getPackId(pack);
         const displayName = getPackName(pack);
         
@@ -172,7 +154,7 @@ export const usePacks = (user: User | null) => {
         }
 
         if (!hasScenes(pack)) {
-          toast.error('Invalid JSON: missing or empty scenes/shots array');
+          toast.error('Invalid JSON: missing or empty scenes array');
           return null;
         }
 

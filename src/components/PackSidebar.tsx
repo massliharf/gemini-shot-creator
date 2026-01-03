@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getPackTags, isV1Pack, isV2Pack, hasScenes, getSceneCount } from "@/types/pack";
+import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getPackTags, hasScenes, getSceneCount } from "@/types/pack";
 import { 
   Briefcase, Palette, Wand2, Film, Clock, Shirt, Plane, Sun, Globe2, GraduationCap,
   Users, User, Sparkles, Upload, Loader2, Trash2, Play, Download, HardDrive, Bomb,

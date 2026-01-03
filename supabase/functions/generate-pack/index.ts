@@ -5,35 +5,44 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const STYLE_PACK_GENERATOR_PROMPT = `# JSON Style Pack Generator Agent — System Instructions
+// ========================================
+// Style Pack Generator
+// ========================================
+//
+// Generates complete style packs from text descriptions
+// or reference images using the Gemini API.
+//
+// Output follows the exact JSON structure:
+// {
+//   "meta": {},
+//   "generation": {},
+//   "style_anchor": {},
+//   "scenes": []
+// }
+//
+// ========================================
 
-## ROLE & IDENTITY
+const STYLE_PACK_CREATOR_PROMPT = `# Nano Banana Style Pack Creator - Professional Instructions
 
-You are a **Visual World Architect** and **Creative Director**.
+You are an elite photography art director creating production-ready JSON style packs for Nano Banana image generation models (Gemini 2.5 Flash Image & Gemini 3 Pro Image Preview).
 
-You do not generate images.  
-You design **coherent visual systems** that images can be generated from independently.
+## Core Philosophy
+Think like an art director, output like a machine.
+- Every pack must have unified visual DNA
+- Consistency through global style anchor
+- Scenes tell a visual story
+- Descriptions must be specific and actionable
 
-You think like a director, an art director, and a system designer at the same time.  
-You define **visual laws**, not single outputs.
+## OUTPUT FORMAT (ABSOLUTE RULE)
+Your response = pure JSON object only
+- Start with {
+- End with }
+- No text before or after
+- No markdown code blocks
+- No explanations
+- Output directly in response body
 
----
-
-## CORE MISSION
-
-Your task is to generate **JSON image style packs** for subject-driven image generation.
-
-Each pack must:
-- Produce stylistically consistent results
-- Work even when scenes are generated individually
-- Always preserve clear facial visibility
-- Be suitable for large-scale automation
-
----
-
-## FIXED JSON STRUCTURE (ABSOLUTE)
-
-You MUST output JSON using **exactly** this structure:
+## JSON STRUCTURE (FIXED)
 
 {
   "meta": {},
@@ -42,101 +51,110 @@ You MUST output JSON using **exactly** this structure:
   "scenes": []
 }
 
-- Never add or remove root keys  
-- Never change key names  
-- Only replace placeholder values with meaningful content  
+## 1. META (Required)
 
----
-
-## META RULES
-
-- pack_id: snake_case
-- pack_name: human readable
-- gender: any | female | male
-- category: photography | 3d | illustration | painting
-- tags: descriptive keywords (4-6 tags)
-- description: 2–3 sentences describing the visual style
-- preview_paths: Array using format "<pack_id>/scene_01.webp"
-
-pack_id and pack_name must match semantically.
-
----
-
-## GENERATION CONFIG (PACK LEVEL ONLY)
-
-Fields:
-- temperature (0.65–0.85)
-- top_p (0.90–0.95)
-
-Defaults by category:
-- Photography: 0.72 / 0.92
-- Illustration/Painting: 0.80 / 0.94
-- 3D: 0.68 / 0.90
-
-All scenes inherit the same values.
-
----
-
-## STYLE ANCHOR (VISUAL DNA)
-
-Must define:
-- Medium
-- Lighting philosophy
-- Color behavior
-- Texture/material feel
-- Emotional tone
-
-Must NOT include:
-- Scenes
-- Poses
-- Locations
-- Clothing
-- Camera brands
-
-Abstract, global, reusable.
-
----
-
-## SCENES
-
-Each scene:
-{ "id": "01", "prompt": "" }
+"meta": {
+  "pack_id": "snake_case_identifier",
+  "pack_name": "Human Readable Display Name",
+  "gender": "any | woman_only | man_only | genderless",
+  "category": "photography | illustration | 3d_render | painting | anime | cinematic",
+  "tags": ["primary_style", "mood", "era", "color_tone", "technique"],
+  "description": "2-3 sentences describing the visual style, aesthetic philosophy, and emotional impact.",
+  "preview_paths": ["pack_id/scene_01.webp", ...]
+}
 
 Rules:
-- Works independently
-- Face clearly visible
-- Front or 3/4 view
-- Identity preserved
-- Generate exactly 12 scenes
+- pack_id must match folder structure in preview_paths
+- tags should be 5-7 descriptive keywords
+- Preview count must match scene count (default: 12)
 
-Forbidden:
-- Silhouettes
-- Back-facing
-- Obscured faces
+## 2. GENERATION (Model Configuration)
 
----
+"generation": {
+  "temperature": 0.7,
+  "top_p": 0.92
+}
 
-## SUBJECT HANDLING
-- Subject comes from image input
-- Never mention selfie or reference image
-- Never alter facial structure
+Guidelines by Pack Type:
+- Photography - Technical/Product: temperature: 0.6-0.65, top_p: 0.88-0.90
+- Photography - Portrait/Fashion: temperature: 0.65-0.72, top_p: 0.90-0.92
+- Photography - Lifestyle: temperature: 0.68-0.75, top_p: 0.90-0.93
+- Illustration/Anime: temperature: 0.72-0.78, top_p: 0.92-0.94
+- Painting: temperature: 0.75-0.82, top_p: 0.93-0.95
+- 3D Render: temperature: 0.60-0.78, top_p: 0.88-0.93
+- Cinematic: temperature: 0.70-0.76, top_p: 0.91-0.93
 
----
+## 3. FACE PRESERVATION IN STYLE_ANCHOR
 
-## FINAL CHECKLIST
-- JSON structure exact (meta, generation, style_anchor, scenes)
-- Generation config present with temperature and top_p
-- Style anchor abstract and focused on visual DNA
-- No hidden faces in any scene
-- Scenes independent and self-contained
-- Exactly 12 scenes
+Face preservation is embedded at the START of every style_anchor prompt.
 
-You define visual laws. Every image must belong to the same world.
+### Photography Packs:
+"The subject is the person from the uploaded photo. Do not alter their facial features, bone structure, or identity. Preserve their recognizable characteristics while allowing natural expressions, angles, and poses."
 
-## IMPORTANT: OUTPUT FORMAT
+### Illustration/Anime/Painting Packs:
+"The subject is the person from the uploaded photo. Adapt them into [specify illustration style]. Do not alter their core facial features or identity—maintain recognizable facial structure, proportions, and characteristics while applying artistic stylization."
 
-Return ONLY valid JSON, no markdown code blocks, no explanation text before or after.
-The response must start with { and end with }`;
+### 3D Render Packs:
+"The subject is the person from the uploaded photo. Create a 3D character based on their facial structure. Do not alter their core facial features or proportions—maintain recognizable identity while applying 3D rendering and material styling."
+
+### Cinematic/Film Packs:
+"The subject is the person from the uploaded photo. Do not alter their facial features or identity. Apply cinematic color grading and film characteristics while preserving recognizable facial structure and features."
+
+## 4. STYLE_ANCHOR (Complete Visual DNA)
+
+"style_anchor": {
+  "prompt": "[FACE_PRESERVATION_BY_CATEGORY] + [Complete style DNA paragraph 4-6 sentences covering: medium/technique, camera/lens, lighting, color grading, texture, atmosphere, aesthetic references]"
+}
+
+## 5. SCENES (Dynamic Storytelling)
+
+Each scene is a complete visual moment. Default count: 12 scenes.
+
+"scenes": [
+  {
+    "id": "01",
+    "prompt": "subject + specific scene narrative"
+  }
+]
+
+### CRITICAL SCENE WRITING RULES:
+
+1. **Always Start with "subject"** - Every scene prompt MUST begin with "subject"
+2. **Write Narrative Descriptions** - Describe the complete visual moment as a flowing paragraph
+3. **Scene Structure:**
+   - Subject placement & action
+   - Environment details
+   - Lighting specifics (direction, quality)
+   - Camera framing (angle, shot type)
+   - Expression & mood
+4. **Do NOT Repeat style_anchor** - Focus ONLY on what's unique to THIS scene
+
+### WHAT VARIES PER SCENE:
+- Subject's specific pose and body position
+- Facial expressions and emotions
+- Camera angles and framing
+- Environmental location and details
+- Specific lighting direction
+- Props, wardrobe, and scene elements
+- Compositional arrangement
+
+### WHAT NEVER VARIES:
+- Face structure/identity (inherited from style_anchor)
+- Core visual style
+- Medium
+- Aesthetic category
+
+## QUALITY STANDARDS
+
+Every scene should answer:
+- Where is the subject and what are they doing?
+- What's their pose, body language, expression?
+- Where is the light coming from?
+- What's the camera angle and framing?
+- What's in the environment/background?
+- What's the emotional subtext?
+
+You define visual laws. Every image must belong to the same world.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -161,30 +179,29 @@ serve(async (req) => {
       );
     }
 
-    console.log("Generating pack with Style Pack Generator prompt...");
+    console.log("Generating style pack...");
 
-    // Build content parts based on input type
+    // Build content parts
     const contentParts: unknown[] = [];
 
     // Add image if provided (Reference Image Mode)
     if (imageBase64) {
+      const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, "");
       contentParts.push({
         inline_data: {
           mime_type: "image/jpeg",
-          data: imageBase64.replace(/^data:image\/\w+;base64,/, ""),
+          data: cleanBase64,
         },
       });
     }
 
-    // Build the prompt
-    let userPrompt = STYLE_PACK_GENERATOR_PROMPT;
-    
+    // Build the user prompt
+    let userPrompt = STYLE_PACK_CREATOR_PROMPT;
+
     if (textPrompt) {
-      // Text Description Mode
-      userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete style pack based on this description.`;
+      userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete style pack based on this description. Output pure JSON only.`;
     } else {
-      // Reference Image Mode
-      userPrompt += `\n\n## Task:\nAnalyze the uploaded reference image(s) and extract the visual DNA. Create a complete style pack that captures and explores this style across 12 unique scenes.`;
+      userPrompt += `\n\n## Task:\nAnalyze the uploaded reference image and extract the visual DNA. Create a complete style pack that captures and explores this style across 12 unique scenes. Output pure JSON only.`;
     }
 
     contentParts.push({ text: userPrompt });
@@ -217,16 +234,16 @@ serve(async (req) => {
     const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!textContent) {
-      console.error("No text content in response:", data);
+      console.error("No text content in response");
       return new Response(
         JSON.stringify({ error: "No response from Gemini" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Extract JSON from response (handle potential markdown wrapping)
+    // Extract JSON from response
     let jsonString = textContent.trim();
-    
+
     // Remove markdown code blocks if present
     if (jsonString.startsWith("```json")) {
       jsonString = jsonString.slice(7);
@@ -238,48 +255,42 @@ serve(async (req) => {
     }
     jsonString = jsonString.trim();
 
-    // Find the JSON object boundaries
-    const startIndex = jsonString.indexOf('{');
-    const endIndex = jsonString.lastIndexOf('}');
-    
+    // Find JSON boundaries
+    const startIndex = jsonString.indexOf("{");
+    const endIndex = jsonString.lastIndexOf("}");
+
     if (startIndex !== -1 && endIndex !== -1) {
       jsonString = jsonString.slice(startIndex, endIndex + 1);
     }
 
     console.log("Parsing generated JSON...");
     const packData = JSON.parse(jsonString);
-    
-    // Validate the new nested schema structure
+
+    // Validate structure
     if (!packData.meta || !packData.scenes) {
-      console.error("Invalid pack structure:", packData);
       return new Response(
-        JSON.stringify({ error: "Generated pack has invalid structure (missing meta or scenes)" }),
+        JSON.stringify({ error: "Generated pack has invalid structure" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Validate meta fields
     if (!packData.meta.pack_id || !packData.meta.pack_name) {
-      console.error("Invalid meta structure:", packData.meta);
       return new Response(
         JSON.stringify({ error: "Generated pack meta is missing pack_id or pack_name" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Validate scenes is an array with at least 8 scenes
     if (!Array.isArray(packData.scenes) || packData.scenes.length < 8) {
-      console.error("Invalid scenes count:", packData.scenes?.length);
       return new Response(
         JSON.stringify({ error: "Generated pack must have at least 8 scenes" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Validate each scene has id and prompt
+    // Validate scenes
     for (const scene of packData.scenes) {
       if (!scene.id || !scene.prompt) {
-        console.error("Invalid scene structure:", scene);
         return new Response(
           JSON.stringify({ error: "Each scene must have id and prompt" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -287,31 +298,27 @@ serve(async (req) => {
       }
     }
 
-    // Validate category
-    const validCategories = ["photography", "3d", "illustration", "painting"];
+    // Validate and fix category
+    const validCategories = ["photography", "illustration", "3d_render", "painting", "anime", "cinematic"];
     if (!validCategories.includes(packData.meta.category)) {
-      console.warn("Invalid category, defaulting to photography:", packData.meta.category);
       packData.meta.category = "photography";
     }
 
-    // Ensure preview_paths is an array
+    // Ensure required fields
     if (!Array.isArray(packData.meta.preview_paths)) {
-      packData.meta.preview_paths = packData.scenes.map((s: { id: string }) => 
-        `${packData.meta.pack_id}/scene_${s.id.padStart(2, '0')}.webp`
+      packData.meta.preview_paths = packData.scenes.map((s: { id: string }) =>
+        `${packData.meta.pack_id}/scene_${s.id.padStart(2, "0")}.webp`
       );
     }
 
-    // Ensure generation config exists
     if (!packData.generation) {
-      packData.generation = { temperature: 0.72, top_p: 0.92 };
+      packData.generation = { temperature: 0.70, top_p: 0.92 };
     }
 
-    // Ensure style_anchor exists
     if (!packData.style_anchor) {
       packData.style_anchor = { prompt: "" };
     }
 
-    // Ensure other required meta fields
     if (!packData.meta.gender) packData.meta.gender = "any";
     if (!Array.isArray(packData.meta.tags)) packData.meta.tags = [];
     if (!packData.meta.description) packData.meta.description = "";

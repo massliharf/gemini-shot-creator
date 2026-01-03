@@ -6,8 +6,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// All supported aspect ratios for both models
-const ALL_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
+// ========================================
+// Style Pack Image Generator
+// ========================================
+// 
+// This edge function generates images using the Gemini API
+// based on style packs with the following flow:
+//
+// 1. User uploads photo (base64 encoded)
+// 2. User selects a style pack and scene
+// 3. Final prompt = scene.prompt + style_anchor.prompt
+// 4. Request sent to Gemini with photo + prompt
+// 5. Generated image returned and stored
+//
+// ========================================
+
+// Supported aspect ratios
+const ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
 
 // Resolution mappings for Gemini 2.5 Flash Image (fixed per aspect ratio)
 const FLASH_RESOLUTIONS: Record<string, string> = {
@@ -23,7 +38,7 @@ const FLASH_RESOLUTIONS: Record<string, string> = {
   "21:9": "1536x672",
 };
 
-// Resolution mappings for Gemini 3 Pro Image Preview (1K, 2K, 4K per aspect ratio)
+// Resolution mappings for Gemini 3 Pro Image Preview (1K, 2K, 4K)
 const PRO_RESOLUTIONS: Record<string, Record<string, string>> = {
   "1:1": { "1K": "1024x1024", "2K": "2048x2048", "4K": "4096x4096" },
   "2:3": { "1K": "848x1264", "2K": "1696x2528", "4K": "3392x5056" },
@@ -37,27 +52,24 @@ const PRO_RESOLUTIONS: Record<string, Record<string, string>> = {
   "21:9": { "1K": "1584x672", "2K": "3168x1344", "4K": "6336x2688" },
 };
 
-// Correct model names from Google AI Studio examples
-const MODEL_TO_GEMINI: Record<string, string> = {
-  // Official model IDs
-  "gemini-2.5-flash-image": "gemini-2.5-flash-image",
-  "gemini-3-pro-image-preview": "gemini-3-pro-image-preview",
-};
+// Model endpoints
+const MODELS = {
+  flash: "gemini-2.5-flash-image",
+  pro: "gemini-3-pro-image-preview",
+} as const;
 
-const parseDataUrl = (dataUrl: string): { mimeType: string; base64: string } | null => {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match) return null;
-  return { mimeType: match[1], base64: match[2] };
-};
+type ModelType = keyof typeof MODELS;
 
-const base64ToBytes = (base64: string) => {
+const base64ToBytes = (base64: string): Uint8Array => {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
   return bytes;
 };
 
-const extFromMime = (mimeType: string) => {
+const extFromMime = (mimeType: string): string => {
   if (mimeType === "image/png") return "png";
   if (mimeType === "image/webp") return "webp";
   return "jpg";
@@ -72,16 +84,15 @@ serve(async (req) => {
     const {
       queueId,
       selfieBase64,
-      selfieMimeType,
+      selfieMimeType = "image/jpeg",
       selfie2Base64,
-      selfie2MimeType,
-      fullPrompt,
-      model = "gemini-2.5-flash-image",
-      temperature = 1.0,
-      topP = 0.95,
-      aspectRatio = "1:1",
+      selfie2MimeType = "image/jpeg",
+      finalPrompt,
+      model = "flash",
+      temperature = 0.70,
+      topP = 0.92,
+      aspectRatio = "2:3",
       resolution = "1K",
-      negativePrompt,
     } = await req.json();
 
     console.log("Request received:", {
@@ -91,11 +102,12 @@ serve(async (req) => {
       topP,
       aspectRatio,
       resolution,
-      hasPrompt: !!fullPrompt,
-      selfieMimeType,
-      selfie2MimeType,
+      hasPrompt: !!finalPrompt,
+      hasSelfie: !!selfieBase64,
+      hasSelfie2: !!selfie2Base64,
     });
 
+    // Validate API key
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) {
       return new Response(
@@ -104,88 +116,88 @@ serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
+    // Validate required inputs
     if (!selfieBase64) {
       return new Response(
-        JSON.stringify({ success: false, reason: "no_selfie", message: "Selfie image is required" }),
+        JSON.stringify({ success: false, reason: "no_selfie", message: "Reference photo is required" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!fullPrompt) {
+    if (!finalPrompt) {
       return new Response(
         JSON.stringify({ success: false, reason: "no_prompt", message: "Prompt is required" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const isCoupleMode = !!selfieBase64 && !!selfie2Base64;
-    const resolvedModel = MODEL_TO_GEMINI[model] || "gemini-2.5-flash-image";
-    const isProModel = resolvedModel === "gemini-3-pro-image-preview";
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const validAspectRatio = ALL_ASPECT_RATIOS.includes(aspectRatio) ? aspectRatio : "1:1";
+    // Determine model and resolution
+    const modelKey = model as ModelType;
+    const resolvedModel = MODELS[modelKey] || MODELS.flash;
+    const isProModel = resolvedModel === MODELS.pro;
 
-    let imageSize = "1024x1024";
+    const validAspectRatio = ASPECT_RATIOS.includes(aspectRatio) ? aspectRatio : "2:3";
+    
+    let imageSize: string;
     if (isProModel) {
       const validResolution = ["1K", "2K", "4K"].includes(resolution) ? resolution : "1K";
-      imageSize = PRO_RESOLUTIONS[validAspectRatio]?.[validResolution] || PRO_RESOLUTIONS["1:1"]["1K"];
+      imageSize = PRO_RESOLUTIONS[validAspectRatio]?.[validResolution] || PRO_RESOLUTIONS["2:3"]["1K"];
     } else {
-      imageSize = FLASH_RESOLUTIONS[validAspectRatio] || FLASH_RESOLUTIONS["1:1"];
+      imageSize = FLASH_RESOLUTIONS[validAspectRatio] || FLASH_RESOLUTIONS["2:3"];
     }
 
-    console.log("Computed size:", { validAspectRatio, resolution, imageSize, isProModel, modelRequested: model, modelResolved: resolvedModel });
+    console.log("Generation config:", {
+      model: resolvedModel,
+      aspectRatio: validAspectRatio,
+      imageSize,
+      temperature,
+      topP,
+    });
 
-    // Build final prompt (include negative prompt and explicit size spec)
-    let finalPrompt = fullPrompt;
-    if (negativePrompt) {
-      finalPrompt = `${fullPrompt}\n\nNEGATIVE PROMPT: ${negativePrompt}`;
-    }
+    // Build prompt with output spec
+    const promptWithSpec = `${finalPrompt}
 
-    // The gateway image models don't expose a strict size param; we enforce via prompt + mapping.
-    const promptWithSpec = `${finalPrompt}\n\nOUTPUT SPEC:\n- Aspect ratio: ${validAspectRatio}\n- Render size: ${imageSize} pixels (width×height).`;
+OUTPUT SPEC:
+- Aspect ratio: ${validAspectRatio}
+- Render size: ${imageSize} pixels (width×height).`;
 
-    // IMPORTANT: mime types must match actual bytes (e.g. PNG data must not be sent as image/jpeg)
-    const resolvedSelfieMimeType = typeof selfieMimeType === "string" && selfieMimeType.startsWith("image/")
-      ? selfieMimeType
-      : "image/jpeg";
-
-    const resolvedSelfie2MimeType = typeof selfie2MimeType === "string" && selfie2MimeType.startsWith("image/")
-      ? selfie2MimeType
-      : "image/jpeg";
-
-    // Build Gemini API request parts (images first, then text — matches AI Studio expectations)
-    const parts: any[] = [
-      { inline_data: { mime_type: resolvedSelfieMimeType, data: selfieBase64 } },
+    // Build request parts: images first, then text
+    const parts: unknown[] = [
+      { inline_data: { mime_type: selfieMimeType, data: selfieBase64 } },
     ];
 
-    if (isCoupleMode && selfie2Base64) {
-      parts.push({ inline_data: { mime_type: resolvedSelfie2MimeType, data: selfie2Base64 } });
+    if (selfie2Base64) {
+      parts.push({ inline_data: { mime_type: selfie2MimeType, data: selfie2Base64 } });
     }
 
     parts.push({ text: promptWithSpec });
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`;
-
-    // Build generationConfig based on model
+    // Build generation config
     const generationConfig: Record<string, unknown> = {
       response_modalities: ["IMAGE", "TEXT"],
+      temperature,
+      top_p: topP,
     };
 
-    // Pro model supports image_config with image_size
+    // Pro model supports image_config
     if (isProModel) {
       generationConfig.image_config = {
-        image_size: resolution, // "1K", "2K", "4K"
+        aspect_ratio: validAspectRatio,
+        image_size: resolution,
       };
     }
 
+    // Call Gemini API
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`;
+
     const aiResp = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts }],
         generationConfig,
@@ -193,17 +205,12 @@ serve(async (req) => {
     });
 
     if (!aiResp.ok) {
-      const t = await aiResp.text();
-      console.error("Gemini API error:", aiResp.status, t);
+      const errorText = await aiResp.text();
+      console.error("Gemini API error:", aiResp.status, errorText);
 
-      const reason = aiResp.status === 429
-        ? "rate_limited"
-        : aiResp.status === 402
-          ? "payment_required"
-          : "api_error";
-
-      const message = aiResp.status === 429
-        ? "Rate limits exceeded, please try again later."
+      const reason = aiResp.status === 429 ? "rate_limited" : aiResp.status === 402 ? "payment_required" : "api_error";
+      const message = aiResp.status === 429 
+        ? "Rate limits exceeded, please try again later." 
         : `Gemini API error: ${aiResp.status}`;
 
       return new Response(
@@ -212,8 +219,9 @@ serve(async (req) => {
       );
     }
 
-    const aiData: any = await aiResp.json();
+    const aiData = await aiResp.json();
 
+    // Extract token usage
     const usage = aiData.usageMetadata || {};
     const tokenUsage = {
       promptTokens: usage.promptTokenCount || 0,
@@ -221,21 +229,33 @@ serve(async (req) => {
       totalTokens: usage.totalTokenCount || 0,
     };
 
-    // Extract image from Gemini response format
-    const candidates = aiData.candidates || [];
-    const parts2 = candidates[0]?.content?.parts || [];
+    // Check finish reason
+    const finishReason = aiData.candidates?.[0]?.finishReason;
+    if (finishReason && !["STOP", "MAX_TOKENS"].includes(finishReason)) {
+      console.error("Generation blocked:", finishReason);
+      const isPolicy = finishReason.toLowerCase().includes("safety");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          reason: isPolicy ? "policy_block" : "generation_failed",
+          message: isPolicy ? "Content policy violation" : "Model could not generate this image",
+          tokenUsage,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    const getInline = (p: any) => p?.inlineData ?? p?.inline_data;
-    const imagePart = parts2.find((p: any) => {
-      const inline = getInline(p);
-      const mt = inline?.mimeType ?? inline?.mime_type;
+    // Extract image from response
+    const responseParts = aiData.candidates?.[0]?.content?.parts || [];
+    const imagePart = responseParts.find((p: Record<string, unknown>) => {
+      const inline = p.inlineData || p.inline_data;
+      const mt = (inline as Record<string, unknown>)?.mimeType || (inline as Record<string, unknown>)?.mime_type;
       return typeof mt === "string" && mt.startsWith("image/");
     });
 
-    const inline = imagePart ? getInline(imagePart) : null;
-
+    const inline = imagePart?.inlineData || imagePart?.inline_data;
     if (!inline?.data) {
-      console.error("No image in Gemini response", { candidates: JSON.stringify(candidates).slice(0, 500) });
+      console.error("No image in response");
       return new Response(
         JSON.stringify({ success: false, reason: "no_image_data", message: "No image data in response", tokenUsage }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -243,12 +263,10 @@ serve(async (req) => {
     }
 
     const imageBase64 = inline.data;
-    const mimeTypeFromResponse = (inline?.mimeType ?? inline?.mime_type ?? "image/png") as string;
-
+    const mimeType = inline.mimeType || inline.mime_type || "image/png";
     const imageBytes = base64ToBytes(imageBase64);
-    const mimeType = mimeTypeFromResponse;
 
-    // If queueId provided, update queue and upload to storage
+    // If queueId provided, upload to storage
     if (queueId) {
       const { data: queueItem, error: queueError } = await supabase
         .from("generation_queue")
@@ -257,14 +275,9 @@ serve(async (req) => {
         .single();
 
       if (queueError || !queueItem) {
-        console.error("Queue item not found", { queueId, queueError });
+        console.warn("Queue item not found, returning base64");
         return new Response(
-          JSON.stringify({
-            success: true,
-            imageBase64: imageBase64,
-            mimeType,
-            tokenUsage,
-          }),
+          JSON.stringify({ success: true, imageBase64, mimeType, tokenUsage }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -306,8 +319,9 @@ serve(async (req) => {
       );
     }
 
+    // Return base64 if no queueId
     return new Response(
-      JSON.stringify({ success: true, imageBase64: imageBase64, mimeType, tokenUsage }),
+      JSON.stringify({ success: true, imageBase64, mimeType, tokenUsage }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
