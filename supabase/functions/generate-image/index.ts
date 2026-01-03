@@ -159,14 +159,15 @@ serve(async (req) => {
       topP,
     });
 
-    // Build prompt with output spec
+    // Log the prompt for debugging
+    console.log("Final prompt (first 500 chars):", finalPrompt.substring(0, 500));
+
+    // Build prompt with output spec - keep it clean and focused
     const promptWithSpec = `${finalPrompt}
 
-OUTPUT SPEC:
-- Aspect ratio: ${validAspectRatio}
-- Render size: ${imageSize} pixels (width×height).`;
+Generate the image at ${validAspectRatio} aspect ratio.`;
 
-    // Build request parts: images first, then text
+    // Build request parts: images first, then text (per Gemini docs)
     const parts: unknown[] = [
       { inline_data: { mime_type: selfieMimeType, data: selfieBase64 } },
     ];
@@ -231,14 +232,31 @@ OUTPUT SPEC:
 
     // Check finish reason
     const finishReason = aiData.candidates?.[0]?.finishReason;
+    console.log("Finish reason:", finishReason);
+    
     if (finishReason && !["STOP", "MAX_TOKENS"].includes(finishReason)) {
-      console.error("Generation blocked:", finishReason);
-      const isPolicy = finishReason.toLowerCase().includes("safety");
+      console.error("Generation blocked:", finishReason, JSON.stringify(aiData.candidates?.[0]?.safetyRatings || []));
+      
+      // IMAGE_OTHER often means the model had trouble with the request
+      // Try to extract any helpful error info
+      const blockReason = aiData.candidates?.[0]?.blockReason;
+      const safetyRatings = aiData.candidates?.[0]?.safetyRatings || [];
+      
+      console.error("Block details:", { blockReason, safetyRatings });
+      
+      const isPolicy = finishReason.toLowerCase().includes("safety") || blockReason;
+      const errorMessage = isPolicy 
+        ? "Content policy violation" 
+        : finishReason === "IMAGE_OTHER" 
+          ? "Model could not generate this image. Try a different scene or check your reference photo."
+          : "Model could not generate this image";
+      
       return new Response(
         JSON.stringify({
           success: false,
           reason: isPolicy ? "policy_block" : "generation_failed",
-          message: isPolicy ? "Content policy violation" : "Model could not generate this image",
+          message: errorMessage,
+          finishReason,
           tokenUsage,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
