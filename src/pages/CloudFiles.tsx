@@ -1,0 +1,1240 @@
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  Download,
+  Trash2,
+  Folder,
+  Image,
+  Loader2,
+  RefreshCw,
+  FolderOpen,
+  X,
+  CheckCircle,
+  CheckCircle2,
+  Filter,
+  FilterX,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import JSZip from "jszip";
+import { AppLayout } from "@/components/AppLayout";
+
+interface PackInfo {
+  id: string;
+  pack_id: string;
+  pack_name: string;
+  pack_data?: Record<string, unknown>;
+}
+
+interface CloudFolder {
+  name: string;
+  files: CloudFile[];
+  pack?: PackInfo;
+}
+
+interface CloudFile {
+  name: string;
+  path: string;
+  size?: number;
+}
+
+// New state for batched export with confirmation
+interface BatchExportState {
+  isRunning: boolean;
+  phase: "idle" | "scanning" | "downloading" | "waiting_confirm" | "deleting" | "complete";
+  // Current batch info
+  currentBatchNumber: number;
+  currentBatchFolders: CloudFolder[];
+  // Progress
+  processedFoldersInBatch: number;
+  totalFoldersInBatch: number;
+  currentFolderName: string;
+  currentBatchSize: number; // Current batch size in bytes
+  // Overall
+  totalBatchesCompleted: number;
+  totalFoldersExported: number;
+  totalBytesExported: number;
+  // Download
+  downloadUrl: string | null;
+  downloadFilename: string;
+}
+
+// 2GB size limit per batch (browser array buffer limit is ~2GB)
+const BATCH_SIZE_LIMIT = 2 * 1024 * 1024 * 1024; // 2GB in bytes
+
+const CloudFiles = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [folders, setFolders] = useState<CloudFolder[]>([]);
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
+  const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [bulkAction, setBulkAction] = useState<"download" | "delete" | null>(null);
+
+  const [folderOffset, setFolderOffset] = useState(0);
+  const [hasMoreFolders, setHasMoreFolders] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Downloaded folders tracking (localStorage)
+  const [downloadedFolders, setDownloadedFolders] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('downloaded-folders');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+  const [hideDownloaded, setHideDownloaded] = useState(false);
+
+  // Batch export state
+  const [batchExport, setBatchExport] = useState<BatchExportState>({
+    isRunning: false,
+    phase: "idle",
+    currentBatchNumber: 0,
+    currentBatchFolders: [],
+    processedFoldersInBatch: 0,
+    totalFoldersInBatch: 0,
+    currentFolderName: "",
+    currentBatchSize: 0,
+    totalBatchesCompleted: 0,
+    totalFoldersExported: 0,
+    totalBytesExported: 0,
+    downloadUrl: null,
+    downloadFilename: "",
+  });
+
+  const cancelRef = useRef(false);
+  const packMapRef = useRef<Map<string, PackInfo>>(new Map());
+  const processedFolderNamesRef = useRef<Set<string>>(new Set());
+
+  const navigate = useNavigate();
+
+  // Check authentication
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  // Load cloud files and packs
+  useEffect(() => {
+    if (!user) return;
+    loadCloudData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const loadPackMap = async () => {
+    if (!user) return;
+    
+    const { data: packs } = await supabase
+      .from("packs")
+      .select("id, pack_id, pack_name, pack_data")
+      .eq("user_id", user.id);
+
+    const packMap = new Map<string, PackInfo>();
+    packs?.forEach((p) =>
+      packMap.set(p.pack_id, {
+        id: p.id,
+        pack_id: p.pack_id,
+        pack_name: p.pack_name,
+        pack_data: p.pack_data as Record<string, unknown>,
+      })
+    );
+    packMapRef.current = packMap;
+  };
+
+  const loadFolderBatch = async (offset: number, limit: number = 25) => {
+    const { data: list, error } = await supabase.storage
+      .from("generated-images")
+      .list("", {
+        limit,
+        offset,
+        sortBy: { column: "name", order: "asc" },
+      });
+
+    if (error) throw error;
+
+    const folderItems = (list || []).filter((i) => i.id === null);
+
+    const cloudFolders: CloudFolder[] = [];
+    for (const item of folderItems) {
+      const { data: files } = await supabase.storage
+        .from("generated-images")
+        .list(item.name, { limit: 1000, sortBy: { column: "name", order: "asc" } });
+
+      const cloudFiles: CloudFile[] = (files || [])
+        .filter((f) => f.id !== null)
+        .map((f) => ({
+          name: f.name,
+          path: `${item.name}/${f.name}`,
+          size: f.metadata?.size,
+        }));
+
+      if (cloudFiles.length > 0) {
+        cloudFolders.push({
+          name: item.name,
+          files: cloudFiles,
+          pack: packMapRef.current.get(item.name),
+        });
+      }
+    }
+
+    setHasMoreFolders((list || []).length === limit);
+    setFolderOffset(offset + (list || []).length);
+
+    return cloudFolders;
+  };
+
+  const loadCloudData = async () => {
+    if (!user) return;
+    setLoading(true);
+
+    try {
+      await loadPackMap();
+
+      setFolders([]);
+      setSelectedFolders(new Set());
+      setExpandedFolder(null);
+      setFolderOffset(0);
+
+      const firstBatch = await loadFolderBatch(0);
+
+      firstBatch.sort((a, b) => {
+        const nameA = a.pack?.pack_name || a.name;
+        const nameB = b.pack?.pack_name || b.name;
+        return nameA.localeCompare(nameB);
+      });
+
+      setFolders(firstBatch);
+    } catch (error) {
+      console.error("Error loading cloud data:", error);
+      toast.error("Cloud verisi yüklenemedi");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMoreFolders = async () => {
+    if (loadingMore || loading) return;
+    setLoadingMore(true);
+    try {
+      const next = await loadFolderBatch(folderOffset);
+
+      setFolders((prev) => {
+        const merged = [...prev, ...next];
+        merged.sort((a, b) => {
+          const nameA = a.pack?.pack_name || a.name;
+          const nameB = b.pack?.pack_name || b.name;
+          return nameA.localeCompare(nameB);
+        });
+        return merged;
+      });
+    } catch (error) {
+      console.error("Error loading more folders:", error);
+      toast.error("Daha fazla klasör yüklenemedi");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const toggleSelectFolder = (folderName: string) => {
+    const newSelected = new Set(selectedFolders);
+    if (newSelected.has(folderName)) {
+      newSelected.delete(folderName);
+    } else {
+      newSelected.add(folderName);
+    }
+    setSelectedFolders(newSelected);
+  };
+
+  const selectAll = () => {
+    if (selectedFolders.size === folders.length) {
+      setSelectedFolders(new Set());
+    } else {
+      setSelectedFolders(new Set(folders.map(f => f.name)));
+    }
+  };
+
+  const downloadFolder = async (folder: CloudFolder) => {
+    setDownloading(folder.name);
+    try {
+      const zip = new JSZip();
+      const folderZip = zip.folder(folder.name);
+
+      if (folderZip) {
+        if (folder.pack?.pack_data) {
+          const jsonContent = JSON.stringify(folder.pack.pack_data, null, 2);
+          folderZip.file(`${folder.pack.pack_name || folder.name}.json`, jsonContent);
+        } else {
+          // Create basic metadata if no pack found
+          const basicMeta = {
+            folder_name: folder.name,
+            file_count: folder.files.length,
+            files: folder.files.map(f => f.name),
+            exported_at: new Date().toISOString()
+          };
+          folderZip.file(`${folder.name}_metadata.json`, JSON.stringify(basicMeta, null, 2));
+        }
+      }
+
+      for (const file of folder.files) {
+        const { data, error } = await supabase.storage
+          .from("generated-images")
+          .download(file.path);
+
+        if (error) throw error;
+        if (data && folderZip) {
+          folderZip.file(file.name, data);
+        }
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${folder.pack?.pack_name || folder.name}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Mark as downloaded
+      markAsDownloaded(folder.name);
+
+      toast.success(`${folder.pack?.pack_name || folder.name} indirildi`);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("İndirme başarısız");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const markAsDownloaded = (folderName: string) => {
+    setDownloadedFolders(prev => {
+      const next = new Set(prev);
+      next.add(folderName);
+      localStorage.setItem('downloaded-folders', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const unmarkAsDownloaded = (folderName: string) => {
+    setDownloadedFolders(prev => {
+      const next = new Set(prev);
+      next.delete(folderName);
+      localStorage.setItem('downloaded-folders', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const clearDownloadedMarks = () => {
+    setDownloadedFolders(new Set());
+    localStorage.removeItem('downloaded-folders');
+    toast.success('İndirildi işaretleri temizlendi');
+  };
+
+  const deleteFolder = async (folder: CloudFolder) => {
+    if (!confirm(`"${folder.pack?.pack_name || folder.name}" klasörünü silmek istediğinizden emin misiniz?`)) {
+      return;
+    }
+
+    setDeleting(folder.name);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-generated-folders", {
+        body: { folderNames: [folder.name] },
+      });
+
+      if (error) throw error;
+
+      if (!data?.ok) {
+        const denied = Array.isArray(data?.denied) ? data.denied.join(", ") : "";
+        const errors = data?.deleted?.[folder.name]?.errors;
+        const errText = Array.isArray(errors) && errors.length ? errors.join(" | ") : "";
+        throw new Error(denied ? `Silme yetkisi yok: ${denied}` : (errText || "Silme başarısız"));
+      }
+
+      setFolders((prev) => prev.filter((f) => f.name !== folder.name));
+      setSelectedFolders((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(folder.name);
+        return newSet;
+      });
+
+      processedFolderNamesRef.current.add(folder.name);
+
+      toast.success(`${folder.pack?.pack_name || folder.name} silindi`);
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error(error instanceof Error ? error.message : "Silme başarısız");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    if (selectedFolders.size === 0) return;
+    setBulkAction('download');
+
+    try {
+      const zip = new JSZip();
+      const selectedFolderList = folders.filter(f => selectedFolders.has(f.name));
+
+      for (const folder of selectedFolderList) {
+        const folderZip = zip.folder(folder.pack?.pack_name || folder.name);
+
+        if (folder.pack?.pack_data && folderZip) {
+          const jsonContent = JSON.stringify(folder.pack.pack_data, null, 2);
+          folderZip.file(`${folder.pack.pack_name || folder.name}.json`, jsonContent);
+        }
+
+        for (const file of folder.files) {
+          const { data, error } = await supabase.storage
+            .from("generated-images")
+            .download(file.path);
+
+          if (error) {
+            console.warn(`Skipping file ${file.path}:`, error);
+            continue;
+          }
+          if (data && folderZip) {
+            folderZip.file(file.name, data);
+          }
+        }
+      }
+
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cloud-export-${selectedFolders.size}-folders.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Mark all downloaded folders
+      setDownloadedFolders(prev => {
+        const next = new Set(prev);
+        selectedFolderList.forEach(f => next.add(f.name));
+        localStorage.setItem('downloaded-folders', JSON.stringify([...next]));
+        return next;
+      });
+
+      toast.success(`${selectedFolders.size} klasör indirildi`);
+    } catch (error) {
+      console.error('Bulk download error:', error);
+      toast.error('Toplu indirme başarısız');
+    } finally {
+      setBulkAction(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedFolders.size === 0) return;
+
+    if (!confirm(`${selectedFolders.size} klasörü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!`)) {
+      return;
+    }
+
+    setBulkAction("delete");
+
+    try {
+      const selectedFolderList = folders.filter((f) => selectedFolders.has(f.name));
+      const folderNames = selectedFolderList.map((f) => f.name);
+
+      const { data, error } = await supabase.functions.invoke("delete-generated-folders", {
+        body: { folderNames },
+      });
+
+      if (error) throw error;
+
+      if (!data?.ok) {
+        const denied = Array.isArray(data?.denied) ? data.denied.join(", ") : "";
+        throw new Error(denied ? `Silme yetkisi yok: ${denied}` : "Toplu silme tamamlanamadı");
+      }
+
+      // Update UI
+      setFolders((prev) => prev.filter((f) => !selectedFolders.has(f.name)));
+      setSelectedFolders(new Set());
+
+      folderNames.forEach((n) => processedFolderNamesRef.current.add(n));
+
+      toast.success(`${selectedFolderList.length} klasör silindi`);
+    } catch (error) {
+      console.error("Bulk delete error:", error);
+      toast.error(error instanceof Error ? error.message : "Toplu silme başarısız");
+    } finally {
+      setBulkAction(null);
+    }
+  };
+
+  // ============================================
+  // NEW BATCH EXPORT: 25 folders -> ZIP -> Confirm -> Delete -> Next
+  // ============================================
+
+  const scanNextBatch = async (): Promise<{ folders: CloudFolder[]; totalSize: number }> => {
+    // Storage list results can lag after deletes; keep an in-memory set of processed folders
+    // so we never re-export the same folder again during this run.
+    const collected: CloudFolder[] = [];
+    let totalSize = 0;
+
+    const pageSize = 100;
+    let offset = 0;
+
+    while (totalSize < BATCH_SIZE_LIMIT) {
+      if (cancelRef.current) break;
+
+      const { data: list, error } = await supabase.storage
+        .from("generated-images")
+        .list("", {
+          limit: pageSize,
+          offset,
+          sortBy: { column: "name", order: "asc" },
+        });
+
+      if (error) throw error;
+
+      const folderItems = (list || []).filter((i) => i.id === null);
+
+      for (const item of folderItems) {
+        if (cancelRef.current) break;
+        if (processedFolderNamesRef.current.has(item.name)) continue;
+
+        const { data: files } = await supabase.storage
+          .from("generated-images")
+          .list(item.name, { limit: 1000, sortBy: { column: "name", order: "asc" } });
+
+        const cloudFiles: CloudFile[] = (files || [])
+          .filter((f) => f.id !== null)
+          .map((f) => ({
+            name: f.name,
+            path: `${item.name}/${f.name}`,
+            size: f.metadata?.size,
+          }));
+
+        if (cloudFiles.length > 0) {
+          // Calculate folder size
+          const folderSize = cloudFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+          
+          // Check if adding this folder would exceed the limit
+          if (totalSize + folderSize > BATCH_SIZE_LIMIT && collected.length > 0) {
+            // Don't add more folders, we've reached the size limit
+            return { folders: collected, totalSize };
+          }
+
+          collected.push({
+            name: item.name,
+            files: cloudFiles,
+            pack: packMapRef.current.get(item.name),
+          });
+          totalSize += folderSize;
+        } else {
+          // Folder exists but empty; consider it processed to avoid looping.
+          processedFolderNamesRef.current.add(item.name);
+        }
+
+        if (totalSize >= BATCH_SIZE_LIMIT) break;
+      }
+
+      // Next page
+      offset += (list || []).length;
+
+      // No more items
+      if (!list || list.length < pageSize) break;
+    }
+
+    return { folders: collected, totalSize };
+  };
+
+  const startBatchExport = async () => {
+    if (!user) {
+      toast.error("Kullanıcı oturumu bulunamadı");
+      return;
+    }
+
+    cancelRef.current = false;
+
+    // Load pack map first
+    await loadPackMap();
+
+    // Start the first batch
+    await processNextBatch(1, 0, 0);
+  };
+
+  const processNextBatch = async (batchNumber: number, totalExportedSoFar: number, totalBytesSoFar: number) => {
+    if (cancelRef.current) {
+      resetBatchExport();
+      return;
+    }
+
+    setBatchExport({
+      isRunning: true,
+      phase: "scanning",
+      currentBatchNumber: batchNumber,
+      currentBatchFolders: [],
+      processedFoldersInBatch: 0,
+      totalFoldersInBatch: 0,
+      currentFolderName: "Klasörler taranıyor...",
+      currentBatchSize: 0,
+      totalBatchesCompleted: batchNumber - 1,
+      totalFoldersExported: totalExportedSoFar,
+      totalBytesExported: totalBytesSoFar,
+      downloadUrl: null,
+      downloadFilename: "",
+    });
+
+    try {
+      // Scan for folders
+      const { folders: batchFolders, totalSize: batchSize } = await scanNextBatch();
+      
+      if (batchFolders.length === 0) {
+        // No more folders - we're done!
+        setBatchExport(prev => ({
+          ...prev,
+          phase: "complete",
+          currentFolderName: "Tüm veriler export edildi!",
+        }));
+        toast.success(`Toplam ${totalExportedSoFar} klasör (${formatFileSize(totalBytesSoFar)}) export edildi ve silindi!`);
+        return;
+      }
+
+      setBatchExport(prev => ({
+        ...prev,
+        currentBatchFolders: batchFolders,
+        totalFoldersInBatch: batchFolders.length,
+        currentBatchSize: batchSize,
+        phase: "downloading",
+      }));
+
+      // Create ZIP for this batch
+      const zip = new JSZip();
+
+      for (let i = 0; i < batchFolders.length; i++) {
+        if (cancelRef.current) {
+          resetBatchExport();
+          return;
+        }
+
+        const folder = batchFolders[i];
+        const folderName = folder.pack?.pack_name || folder.name;
+
+        setBatchExport(prev => ({
+          ...prev,
+          currentFolderName: folderName,
+          processedFoldersInBatch: i,
+        }));
+
+        const folderZip = zip.folder(folderName);
+
+        // Add pack JSON if available
+        if (folder.pack?.pack_data && folderZip) {
+          const jsonContent = JSON.stringify(folder.pack.pack_data, null, 2);
+          folderZip.file(`${folderName}.json`, jsonContent);
+        }
+
+        // Download all files
+        for (const file of folder.files) {
+          if (cancelRef.current) {
+            resetBatchExport();
+            return;
+          }
+
+          try {
+            const { data, error } = await supabase.storage
+              .from("generated-images")
+              .download(file.path);
+
+            if (!error && data && folderZip) {
+              folderZip.file(file.name, data);
+            }
+          } catch (e) {
+            console.warn(`Skipping file ${file.path}:`, e);
+          }
+        }
+      }
+
+      setBatchExport(prev => ({
+        ...prev,
+        processedFoldersInBatch: batchFolders.length,
+        currentFolderName: "ZIP oluşturuluyor...",
+      }));
+
+      // Generate ZIP
+      const blob = await zip.generateAsync({ 
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 }
+      });
+
+      const url = URL.createObjectURL(blob);
+      const sizeInGB = (batchSize / (1024 * 1024 * 1024)).toFixed(2);
+      const filename = `batch-${batchNumber}-${batchFolders.length}folders-${sizeInGB}GB.zip`;
+
+      // Trigger automatic download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+
+      // Wait for confirm phase
+      setBatchExport(prev => ({
+        ...prev,
+        phase: "waiting_confirm",
+        downloadUrl: url,
+        downloadFilename: filename,
+        currentFolderName: "",
+      }));
+
+    } catch (error) {
+      console.error("Batch export error:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast.error(`Export hatası: ${errorMessage}`);
+      resetBatchExport();
+    }
+  };
+
+  const confirmDownloadAndDelete = async () => {
+    const { currentBatchFolders, currentBatchNumber, totalFoldersExported, currentBatchSize, totalBytesExported } = batchExport;
+
+    // Revoke the old URL
+    if (batchExport.downloadUrl) {
+      URL.revokeObjectURL(batchExport.downloadUrl);
+    }
+
+    setBatchExport((prev) => ({
+      ...prev,
+      phase: "deleting",
+      currentFolderName: "Dosyalar siliniyor...",
+      downloadUrl: null,
+    }));
+
+    try {
+      // Delete via backend function (service role) so it *definitely* deletes even if client lacks delete permissions
+      const folderNames = currentBatchFolders.map((f) => f.name);
+
+      const { data, error } = await supabase.functions.invoke("delete-generated-folders", {
+        body: { folderNames },
+      });
+
+      if (error) throw error;
+
+      if (!data?.ok) {
+        const denied = Array.isArray(data?.denied) ? data.denied.join(", ") : "";
+        throw new Error(denied ? `Silme yetkisi yok: ${denied}` : "Silme işlemi tamamlanamadı");
+      }
+
+      const newTotalExported = totalFoldersExported + currentBatchFolders.length;
+      const newTotalBytes = totalBytesExported + currentBatchSize;
+
+      // Mark as processed immediately (storage list may lag after deletes)
+      currentBatchFolders.forEach((f) => processedFolderNamesRef.current.add(f.name));
+
+      // Reflect deletes in current UI list as well
+      setFolders((prev) => prev.filter((f) => !currentBatchFolders.some((b) => b.name === f.name)));
+      setSelectedFolders((prev) => {
+        const next = new Set(prev);
+        currentBatchFolders.forEach((f) => next.delete(f.name));
+        return next;
+      });
+
+      toast.success(`Batch ${currentBatchNumber}: ${currentBatchFolders.length} klasör (${formatFileSize(currentBatchSize)}) silindi`);
+
+      // Small delay then process next batch
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      // Process next batch
+      await processNextBatch(currentBatchNumber + 1, newTotalExported, newTotalBytes);
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error(error instanceof Error ? error.message : "Silme sırasında hata oluştu");
+      resetBatchExport();
+    }
+  };
+
+  const cancelBatchExport = () => {
+    cancelRef.current = true;
+    if (batchExport.downloadUrl) {
+      URL.revokeObjectURL(batchExport.downloadUrl);
+    }
+    resetBatchExport();
+    toast.info("Export iptal edildi");
+  };
+
+  const resetBatchExport = () => {
+    processedFolderNamesRef.current = new Set();
+
+    setBatchExport({
+      isRunning: false,
+      phase: "idle",
+      currentBatchNumber: 0,
+      currentBatchFolders: [],
+      processedFoldersInBatch: 0,
+      totalFoldersInBatch: 0,
+      currentFolderName: "",
+      currentBatchSize: 0,
+      totalBatchesCompleted: 0,
+      totalFoldersExported: 0,
+      totalBytesExported: 0,
+      downloadUrl: null,
+      downloadFilename: "",
+    });
+    // Refresh folder list
+    loadCloudData();
+  };
+
+  const closeBatchExport = () => {
+    if (batchExport.downloadUrl) {
+      URL.revokeObjectURL(batchExport.downloadUrl);
+    }
+    resetBatchExport();
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getPhaseText = () => {
+    switch (batchExport.phase) {
+      case "scanning": return "Taranıyor...";
+      case "downloading": return "İndiriliyor...";
+      case "waiting_confirm": return "İndirme tamamlandı - Onay bekleniyor";
+      case "deleting": return "Siliniyor...";
+      case "complete": return "Tamamlandı!";
+      default: return "";
+    }
+  };
+
+  const totalFiles = folders.reduce((sum, f) => sum + f.files.length, 0);
+  const selectedCount = selectedFolders.size;
+  const downloadedCount = [...downloadedFolders].filter(name => folders.some(f => f.name === name)).length;
+  
+  // Filtered folders based on hideDownloaded
+  const displayedFolders = hideDownloaded 
+    ? folders.filter(f => !downloadedFolders.has(f.name))
+    : folders;
+
+  if (loading && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <AppLayout userEmail={user?.email}>
+      <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b border-border/50 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h1 className="text-sm font-semibold">Cloud Dosya Yöneticisi</h1>
+            <p className="text-xs text-muted-foreground">
+              {folders.length} klasör, {totalFiles} dosya
+              {downloadedCount > 0 && (
+                <span className="ml-2 text-green-600">
+                  • {downloadedCount} indirildi
+                </span>
+              )}
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant={hideDownloaded ? "default" : "outline"}
+              size="sm"
+              onClick={() => setHideDownloaded(!hideDownloaded)}
+              className="gap-1 text-xs h-8"
+            >
+              {hideDownloaded ? <FilterX className="w-3.5 h-3.5" /> : <Filter className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{hideDownloaded ? 'Tümünü Göster' : 'Gizle'}</span>
+            </Button>
+            
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={startBatchExport}
+              disabled={loading || batchExport.isRunning}
+              className="text-xs h-8"
+            >
+              <Download className="w-3.5 h-3.5 mr-1" />
+              <span className="hidden sm:inline">Export & Sil</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={loadCloudData} disabled={loading} className="h-8 w-8 p-0">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
+
+        {/* Bulk actions bar */}
+        {selectedCount > 0 && (
+          <div className="border-b border-border/50 bg-primary/5 px-4 py-2 flex items-center justify-between flex-shrink-0">
+            <span className="text-xs font-medium">
+              {selectedCount} klasör seçildi
+            </span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleBulkDownload}
+                disabled={bulkAction !== null}
+                className="h-7 text-xs"
+              >
+                {bulkAction === 'download' ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 mr-1" />
+                )}
+                İndir
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleBulkDelete}
+                disabled={bulkAction !== null}
+                className="h-7 text-xs"
+              >
+                {bulkAction === 'delete' ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5 mr-1" />
+                )}
+                Sil
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Folder list */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : folders.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Folder className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Cloud'da dosya bulunamadı</p>
+            </div>
+          ) : displayedFolders.length === 0 && hideDownloaded ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+              <p>Tüm klasörler indirildi!</p>
+              <Button variant="link" onClick={() => setHideDownloaded(false)} className="mt-2">
+                Tümünü göster
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Select all */}
+              <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg">
+                <Checkbox
+                  checked={selectedFolders.size === displayedFolders.length && displayedFolders.length > 0}
+                  onCheckedChange={() => {
+                    if (selectedFolders.size === displayedFolders.length) {
+                      setSelectedFolders(new Set());
+                    } else {
+                      setSelectedFolders(new Set(displayedFolders.map(f => f.name)));
+                    }
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {selectedFolders.size === displayedFolders.length ? 'Tümünü kaldır' : 'Tümünü seç'}
+                </span>
+                {hideDownloaded && (
+                  <Badge variant="secondary" className="ml-auto text-[10px]">
+                    {folders.length - displayedFolders.length} gizli
+                  </Badge>
+                )}
+              </div>
+
+              {displayedFolders.map(folder => {
+                const isExpanded = expandedFolder === folder.name;
+                const isSelected = selectedFolders.has(folder.name);
+                const isDownloaded = downloadedFolders.has(folder.name);
+                const displayName = folder.pack?.pack_name || folder.name;
+
+                return (
+                  <div 
+                    key={folder.name} 
+                    className={`border rounded-xl bg-secondary/30 overflow-hidden ${
+                      isDownloaded ? 'border-green-500/50 bg-green-500/5' : 'border-border/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 p-3">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelectFolder(folder.name)}
+                      />
+                      
+                      {isDownloaded && (
+                        <button
+                          onClick={() => unmarkAsDownloaded(folder.name)}
+                          className="text-green-500 hover:text-green-600"
+                          title="İndirildi - tıkla kaldır"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      
+                      <button
+                        className="flex-1 flex items-center gap-3 text-left hover:bg-accent/50 rounded p-1 -m-1"
+                        onClick={() => setExpandedFolder(isExpanded ? null : folder.name)}
+                      >
+                        {isExpanded ? (
+                          <FolderOpen className="w-4 h-4 text-primary" />
+                        ) : (
+                          <Folder className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{displayName}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {folder.files.length} dosya
+                          </p>
+                        </div>
+                      </button>
+
+                      <div className="flex gap-1">
+                        {!isDownloaded && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => markAsDownloaded(folder.name)}
+                            title="İndirildi olarak işaretle"
+                            className="h-7 w-7 text-muted-foreground hover:text-green-500"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => downloadFolder(folder)}
+                          disabled={downloading === folder.name}
+                          className="h-7 w-7"
+                        >
+                          {downloading === folder.name ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteFolder(folder)}
+                          disabled={deleting === folder.name}
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                        >
+                          {deleting === folder.name ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="border-t border-border/50 bg-background/50 p-3">
+                        <ScrollArea className="max-h-48">
+                          <div className="space-y-1">
+                            {folder.files.map(file => (
+                              <div
+                                key={file.path}
+                                className="flex items-center gap-2 text-xs p-1.5 rounded hover:bg-accent/50"
+                              >
+                                <Image className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span className="flex-1 truncate">{file.name}</span>
+                                {file.size && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {formatFileSize(file.size)}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {hasMoreFolders && (
+                <div className="flex justify-center pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadMoreFolders}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Daha fazla yükle
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Batch Export Dialog */}
+      <Dialog open={batchExport.isRunning} onOpenChange={(open) => {
+        if (!open && batchExport.phase !== "waiting_confirm") {
+          cancelBatchExport();
+        }
+      }}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => {
+          if (batchExport.phase === "waiting_confirm") e.preventDefault();
+        }}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="w-5 h-5" />
+              Batch Export & Sil
+            </DialogTitle>
+            <DialogDescription>
+              Her 25 klasörde bir ZIP oluşturulur, indirmenizi bekler ve onayınız üzerine silinir.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-3">
+              {batchExport.phase === "complete" ? (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              ) : batchExport.phase === "waiting_confirm" ? (
+                <CheckCircle className="w-5 h-5 text-primary" />
+              ) : (
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              )}
+              <span className="text-sm font-medium">
+                Batch {batchExport.currentBatchNumber} - {getPhaseText()}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-secondary/50 rounded-lg p-2">
+                <p className="text-muted-foreground text-xs">Bu batch</p>
+                <p className="font-medium">{batchExport.totalFoldersInBatch} klasör</p>
+              </div>
+              <div className="bg-secondary/50 rounded-lg p-2">
+                <p className="text-muted-foreground text-xs">Toplam export</p>
+                <p className="font-medium">{batchExport.totalFoldersExported} klasör</p>
+              </div>
+            </div>
+
+            {(batchExport.phase === "scanning" || batchExport.phase === "downloading" || batchExport.phase === "deleting") && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span>{batchExport.processedFoldersInBatch} / {batchExport.totalFoldersInBatch}</span>
+                  <span>
+                    {batchExport.totalFoldersInBatch > 0 
+                      ? Math.round((batchExport.processedFoldersInBatch / batchExport.totalFoldersInBatch) * 100) 
+                      : 0}%
+                  </span>
+                </div>
+                <Progress 
+                  value={batchExport.totalFoldersInBatch > 0 
+                    ? (batchExport.processedFoldersInBatch / batchExport.totalFoldersInBatch) * 100 
+                    : 0} 
+                  className="h-2" 
+                />
+              </div>
+            )}
+
+            {batchExport.currentFolderName && batchExport.phase !== "waiting_confirm" && batchExport.phase !== "complete" && (
+              <div className="text-xs text-muted-foreground truncate bg-secondary/50 px-3 py-2 rounded-lg">
+                {batchExport.currentFolderName}
+              </div>
+            )}
+
+            {batchExport.phase === "waiting_confirm" && (
+              <div className="space-y-3">
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <p className="text-sm font-medium text-primary mb-2">
+                    ✅ {batchExport.totalFoldersInBatch} klasör indirildi
+                  </p>
+                  {batchExport.downloadUrl && (
+                    <Button asChild className="w-full" variant="outline" size="sm">
+                      <a href={batchExport.downloadUrl} download={batchExport.downloadFilename}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Tekrar İndir
+                      </a>
+                    </Button>
+                  )}
+                </div>
+
+                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                  <p className="text-xs text-destructive-foreground mb-2">
+                    ⚠️ ZIP'i indirdiğinizden emin olduktan sonra tıklayın.
+                  </p>
+                  <Button
+                    className="w-full"
+                    variant="destructive"
+                    size="sm"
+                    onClick={confirmDownloadAndDelete}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    İndirdim, Sil
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {batchExport.phase === "complete" && (
+              <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20 text-center">
+                <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                <p className="font-medium text-green-700 dark:text-green-300 text-sm">
+                  Tüm veriler başarıyla export edildi!
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Toplam {batchExport.totalFoldersExported} klasör işlendi.
+                </p>
+                <Button className="mt-3" size="sm" onClick={closeBatchExport}>
+                  Kapat
+                </Button>
+              </div>
+            )}
+
+            {batchExport.phase !== "complete" && batchExport.phase !== "waiting_confirm" && (
+              <Button variant="outline" className="w-full" size="sm" onClick={cancelBatchExport}>
+                <X className="w-4 h-4 mr-2" />
+                İptal Et
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </AppLayout>
+  );
+};
+
+export default CloudFiles;
