@@ -191,38 +191,78 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
       return;
     }
 
+    const extractJsonSlice = (raw: string) => {
+      let s = raw.trim();
+
+      // Strip markdown fences
+      if (s.startsWith("```json")) s = s.slice(7);
+      else if (s.startsWith("```")) s = s.slice(3);
+      if (s.endsWith("```")) s = s.slice(0, -3);
+      s = s.trim();
+
+      // Slice to first JSON bracket and last matching bracket
+      const firstCurly = s.indexOf("{");
+      const firstSquare = s.indexOf("[");
+      const start =
+        firstCurly === -1
+          ? firstSquare
+          : firstSquare === -1
+            ? firstCurly
+            : Math.min(firstCurly, firstSquare);
+
+      if (start === -1) return s;
+
+      const lastCurly = s.lastIndexOf("}");
+      const lastSquare = s.lastIndexOf("]");
+      const end = Math.max(lastCurly, lastSquare);
+
+      if (end === -1 || end <= start) return s.slice(start);
+      return s.slice(start, end + 1);
+    };
+
+    const normalizeToPacks = (parsed: any): PackFile[] => {
+      // Common wrapper: { success: true, pack: {...} }
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        if (parsed.pack && typeof parsed.pack === "object") return [parsed.pack as PackFile];
+        if (Array.isArray(parsed.packs)) return parsed.packs as PackFile[];
+        if (Array.isArray(parsed.data)) return parsed.data as PackFile[];
+        if (parsed.data && typeof parsed.data === "object") {
+          if (parsed.data.pack) return [parsed.data.pack as PackFile];
+          if (Array.isArray(parsed.data.packs)) return parsed.data.packs as PackFile[];
+        }
+      }
+
+      // Direct array or direct pack
+      if (Array.isArray(parsed)) return parsed as PackFile[];
+      return [parsed as PackFile];
+    };
+
     setIsUploading(true);
     setError(null);
 
     try {
-      let packs: PackFile[] = [];
-      const trimmed = jsonText.trim();
-      
-      if (trimmed.startsWith("[")) {
-        packs = JSON.parse(trimmed);
-      } else {
-        packs = [JSON.parse(trimmed)];
-      }
+      const slice = extractJsonSlice(jsonText);
+      const parsed = JSON.parse(slice);
+      const packs = normalizeToPacks(parsed);
 
       for (const pack of packs) {
-        // Validate pack structure - supports both V1 and V2 formats
         const packId = getPackId(pack);
         const packName = getPackName(pack);
-        
+
         if (!packId || !packName) {
-          setError("Invalid JSON: missing pack_id or pack_name");
+          setError("Invalid JSON: missing meta.pack_id or meta.pack_name");
           setIsUploading(false);
           return;
         }
         if (!hasScenes(pack)) {
-          setError("Invalid JSON: missing or empty scenes/shots array");
+          setError("Invalid JSON: missing or empty scenes array");
           setIsUploading(false);
           return;
         }
       }
 
       const result = await onPacksLoad(packs);
-      
+
       if (result.uploadedCount > 0) {
         setJsonText("");
         setIsOpen(false);
@@ -265,7 +305,7 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
               setJsonText(e.target.value);
               setError(null);
             }}
-            placeholder='{"meta": {...}, "generation": {...}, "style_anchor": {...}, "scenes": [...]}'
+            placeholder='{"meta": {...}, "config": {...}, "prompt_components": {...}, "scenes": [...]}'
             className="w-full h-48 p-3 text-sm font-mono bg-secondary border-0 rounded-lg focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
             disabled={isUploading}
           />
