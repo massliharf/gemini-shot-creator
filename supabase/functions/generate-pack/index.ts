@@ -8,19 +8,6 @@ const corsHeaders = {
 // ========================================
 // Visual Alchemist - Style Pack Generator
 // ========================================
-//
-// Generates production-ready Style Package JSONs
-// for the Gemini 3 Pro Image Generation model.
-//
-// New JSON Structure:
-// {
-//   "meta": { pack_id, pack_name, title, description, gender, category, tags, cover_image, preview_paths },
-//   "config": { temperature, top_p },
-//   "prompt_components": { identity, style, negative },
-//   "scenes": [{ id, title, prompt }]
-// }
-//
-// ========================================
 
 const VISUAL_ALCHEMIST_PROMPT = `### 1. IDENTITY & ROLE
 You are the **"Visual Alchemist"**, a supreme creative intelligence holding the combined knowledge of a master cinematographer, a senior 3D technical artist, a fine art curator, and a professional prompt engineer.
@@ -60,14 +47,15 @@ Output **ONLY** raw JSON. Do not add keys. Do not remove keys.
 
 **NOTE:** Do not include \`model\`, \`aspect_ratio\`, or \`image_size\` in the config. These are handled by the UI. Only define \`temperature\` and \`top_p\`.
 
+\`\`\`json
 {
   "meta": {
     "pack_id": "unique_snake_case_id",
     "pack_name": "Display Name",
     "title": "Marketing Title",
     "description": "Short user-facing description.",
-    "gender": "any",
-    "category": "string",
+    "gender": "any", 
+    "category": "string", 
     "tags": ["string", "string"],
     "cover_image": "https://path/to/cover.webp",
     "preview_paths": [
@@ -92,12 +80,13 @@ Output **ONLY** raw JSON. Do not add keys. Do not remove keys.
     }
   ]
 }
+\`\`\`
 
 ### 6. OUTPUT RULES
 - Response starts with {
 - Response ends with }
 - Zero text outside JSON
-- No markdown code blocks
+- No markdown code blocks around your output
 - All required sections present (meta, config, prompt_components, scenes)
 - Every scene has id, title, and prompt
 - Every scene prompt starts with "The subject is..."
@@ -126,7 +115,8 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating style pack with ${sceneCount} scenes...`);
+    console.log(`[generate-pack] Starting pack generation with ${sceneCount} scenes...`);
+    console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}`);
 
     // Build content parts
     const contentParts: unknown[] = [];
@@ -140,18 +130,21 @@ serve(async (req) => {
           data: cleanBase64,
         },
       });
+      console.log("[generate-pack] Added reference image to content");
     }
 
-    // Build the user prompt with dynamic scene count
+    // Build the user prompt
     let userPrompt = VISUAL_ALCHEMIST_PROMPT;
 
     if (textPrompt) {
-      userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete style pack with exactly ${sceneCount} scenes based on this description. Output pure JSON only.`;
+      userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete style pack with exactly ${sceneCount} scenes based on this description. Output pure JSON only, no markdown code blocks.`;
     } else {
-      userPrompt += `\n\n## Task:\nAnalyze the uploaded reference image and extract the visual DNA. Create a complete style pack with exactly ${sceneCount} unique scenes that captures and explores this style. Output pure JSON only.`;
+      userPrompt += `\n\n## Task:\nAnalyze the uploaded reference image and extract the visual DNA. Create a complete style pack with exactly ${sceneCount} unique scenes that captures and explores this style. Output pure JSON only, no markdown code blocks.`;
     }
 
     contentParts.push({ text: userPrompt });
+
+    console.log("[generate-pack] Calling Gemini API...");
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -170,23 +163,28 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", errorText);
+      console.error("[generate-pack] Gemini API error:", response.status, errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to generate pack" }),
+        JSON.stringify({ error: `Gemini API error: ${response.status}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
+    console.log("[generate-pack] Gemini API response received");
+
     const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!textContent) {
-      console.error("No text content in response");
+      console.error("[generate-pack] No text content in response:", JSON.stringify(data));
       return new Response(
         JSON.stringify({ error: "No response from Gemini" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("[generate-pack] Raw response length:", textContent.length);
+    console.log("[generate-pack] Raw response (first 500 chars):", textContent.substring(0, 500));
 
     // Extract JSON from response
     let jsonString = textContent.trim();
@@ -206,17 +204,42 @@ serve(async (req) => {
     const startIndex = jsonString.indexOf("{");
     const endIndex = jsonString.lastIndexOf("}");
 
-    if (startIndex !== -1 && endIndex !== -1) {
+    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
       jsonString = jsonString.slice(startIndex, endIndex + 1);
     }
 
-    console.log("Parsing generated JSON...");
-    const packData = JSON.parse(jsonString);
+    console.log("[generate-pack] Parsing JSON...");
+    
+    let packData;
+    try {
+      packData = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.error("[generate-pack] JSON parse error:", parseError);
+      console.error("[generate-pack] Failed JSON string (first 1000 chars):", jsonString.substring(0, 1000));
+      return new Response(
+        JSON.stringify({ error: "Failed to parse generated JSON" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Validate new structure
-    if (!packData.meta || !packData.scenes || !packData.prompt_components) {
+    if (!packData.meta) {
       return new Response(
-        JSON.stringify({ error: "Generated pack has invalid structure. Required: meta, config, prompt_components, scenes" }),
+        JSON.stringify({ error: "Generated pack missing 'meta' section" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!packData.prompt_components) {
+      return new Response(
+        JSON.stringify({ error: "Generated pack missing 'prompt_components' section" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!packData.scenes || !Array.isArray(packData.scenes)) {
+      return new Response(
+        JSON.stringify({ error: "Generated pack missing 'scenes' array" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -230,26 +253,35 @@ serve(async (req) => {
 
     // Validate prompt_components
     if (!packData.prompt_components.identity || !packData.prompt_components.style || !packData.prompt_components.negative) {
-      return new Response(
-        JSON.stringify({ error: "prompt_components must have identity, style, and negative" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.warn("[generate-pack] Missing prompt_components fields, adding defaults");
+      if (!packData.prompt_components.identity) {
+        packData.prompt_components.identity = "Generate a new image based on the provided reference image. STRICTLY PRESERVE the subject's facial features, bone structure, and identity characteristics.";
+      }
+      if (!packData.prompt_components.style) {
+        packData.prompt_components.style = "High quality photorealistic image with natural lighting.";
+      }
+      if (!packData.prompt_components.negative) {
+        packData.prompt_components.negative = "Ensure the output is high quality, avoiding blurriness or distortions.";
+      }
     }
 
     // Validate minimum scene count
     const minScenes = Math.max(4, Math.floor(sceneCount * 0.75));
-    if (!Array.isArray(packData.scenes) || packData.scenes.length < minScenes) {
+    if (packData.scenes.length < minScenes) {
       return new Response(
-        JSON.stringify({ error: `Generated pack must have at least ${minScenes} scenes` }),
+        JSON.stringify({ error: `Generated pack must have at least ${minScenes} scenes, got ${packData.scenes.length}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Validate scenes have required fields
-    for (const scene of packData.scenes) {
-      if (!scene.id || !scene.title || !scene.prompt) {
+    for (let i = 0; i < packData.scenes.length; i++) {
+      const scene = packData.scenes[i];
+      if (!scene.id) scene.id = String(i + 1).padStart(2, "0");
+      if (!scene.title) scene.title = `Scene ${scene.id}`;
+      if (!scene.prompt) {
         return new Response(
-          JSON.stringify({ error: "Each scene must have id, title, and prompt" }),
+          JSON.stringify({ error: `Scene ${scene.id} is missing prompt` }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -257,7 +289,7 @@ serve(async (req) => {
 
     // Validate category
     const validCategories = ["photography", "illustration", "3d_render", "painting", "anime", "cinematic", "art"];
-    if (!validCategories.includes(packData.meta.category)) {
+    if (!packData.meta.category || !validCategories.includes(packData.meta.category)) {
       packData.meta.category = "photography";
     }
 
@@ -283,15 +315,16 @@ serve(async (req) => {
       );
     }
 
-    console.log("Pack generated successfully:", packData.meta.pack_name);
-    console.log("Number of scenes:", packData.scenes.length);
+    console.log("[generate-pack] Pack generated successfully:", packData.meta.pack_name);
+    console.log("[generate-pack] Number of scenes:", packData.scenes.length);
+    console.log("[generate-pack] Category:", packData.meta.category);
 
     return new Response(
       JSON.stringify({ success: true, pack: packData }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error:", error);
+    console.error("[generate-pack] Unexpected error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
