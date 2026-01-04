@@ -70,26 +70,27 @@ export interface TokenUsage {
 }
 
 // ========== Cost Calculation ==========
-// Gemini pricing per 1M tokens (as of 2024)
-export const GEMINI_PRICING = {
+// Gemini IMAGE GENERATION pricing (per Google official docs Jan 2025)
+// These are IMAGE models, not text models - pricing is per image, not per token
+export const GEMINI_IMAGE_PRICING = {
   "gemini-2.5-flash-image": {
-    inputPer1M: 0.10,   // $0.10 per 1M input tokens
-    outputPer1M: 0.40,  // $0.40 per 1M output tokens
-    imagePer1K: 0.02,   // $0.02 per 1K images generated
+    inputPer1M: 0.30,        // $0.30 per 1M input tokens (text/image)
+    outputPerImage: 0.039,   // $0.039 per output image (up to 1024x1024)
+    name: "Flash Image",
   },
   "gemini-3-pro-image-preview": {
-    inputPer1M: 1.25,   // $1.25 per 1M input tokens
-    outputPer1M: 5.00,  // $5.00 per 1M output tokens
-    imagePer1K: 0.03,   // $0.03 per 1K images generated
+    inputPer1M: 2.00,        // $2.00 per 1M input tokens
+    outputPerImage1K2K: 0.134, // $0.134 per 1K/2K image
+    outputPerImage4K: 0.24,    // $0.24 per 4K image
+    name: "Pro Image Preview",
   },
 } as const;
 
-export type GeminiModel = keyof typeof GEMINI_PRICING;
+export type GeminiModel = keyof typeof GEMINI_IMAGE_PRICING;
 
 export interface CostBreakdown {
-  inputCost: number;
-  outputCost: number;
-  imageCost: number;
+  inputCost: number;      // Token-based input cost
+  imageCost: number;      // Per-image output cost
   totalCost: number;
   currency: "USD";
 }
@@ -103,37 +104,53 @@ export interface PackGenerationStats {
   imagesGenerated: number;
   scenesGenerated: number;
   model: GeminiModel;
+  resolution: "1K" | "2K" | "4K";
   cost: CostBreakdown;
   timestamp: string;
 }
 
-// Calculate cost from token usage
-export const calculateCost = (
-  tokenUsage: TokenUsage,
+// Calculate cost from token usage and image count
+export const calculateImageCost = (
+  promptTokens: number,
   model: GeminiModel = "gemini-2.5-flash-image",
-  imageCount: number = 1
+  imageCount: number = 1,
+  resolution: "1K" | "2K" | "4K" = "1K"
 ): CostBreakdown => {
-  const pricing = GEMINI_PRICING[model] || GEMINI_PRICING["gemini-2.5-flash-image"];
+  const pricing = GEMINI_IMAGE_PRICING[model];
   
-  const inputCost = (tokenUsage.promptTokens / 1_000_000) * pricing.inputPer1M;
-  const outputCost = (tokenUsage.candidatesTokens / 1_000_000) * pricing.outputPer1M;
-  const imageCost = (imageCount / 1000) * pricing.imagePer1K;
+  // Input cost based on prompt tokens
+  const inputCost = (promptTokens / 1_000_000) * pricing.inputPer1M;
+  
+  // Image cost based on model and resolution
+  let imageCost: number;
+  if (model === "gemini-3-pro-image-preview") {
+    const proPrice = GEMINI_IMAGE_PRICING["gemini-3-pro-image-preview"];
+    const perImage = resolution === "4K" 
+      ? proPrice.outputPerImage4K 
+      : proPrice.outputPerImage1K2K;
+    imageCost = imageCount * perImage;
+  } else {
+    const flashPrice = GEMINI_IMAGE_PRICING["gemini-2.5-flash-image"];
+    imageCost = imageCount * flashPrice.outputPerImage;
+  }
   
   return {
     inputCost,
-    outputCost,
     imageCost,
-    totalCost: inputCost + outputCost + imageCost,
+    totalCost: inputCost + imageCost,
     currency: "USD",
   };
 };
 
 // Format cost for display
 export const formatCost = (cost: number): string => {
-  if (cost < 0.01) {
-    return `$${(cost * 100).toFixed(4)}¢`;
+  if (cost < 0.001) {
+    return `$${(cost * 1000).toFixed(3)}m`; // millicents
   }
-  return `$${cost.toFixed(4)}`;
+  if (cost < 0.01) {
+    return `$${cost.toFixed(4)}`;
+  }
+  return `$${cost.toFixed(3)}`;
 };
 
 // ========== Helper Functions ==========

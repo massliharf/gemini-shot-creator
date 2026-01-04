@@ -3,18 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { getPackName, getPackDescription } from "@/types/pack";
+import { getPackName, getPackDescription, formatCost } from "@/types/pack";
 
 // Components
 import { ImageGrid } from "@/components/ImageGrid";
 import { PackSidebar } from "@/components/PackSidebar";
 import { ControlsBar } from "@/components/ControlsBar";
 import { CloudOperationProgress } from "@/components/CloudOperationProgress";
+import { CostDisplay } from "@/components/CostDisplay";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Sparkles, Wand2, Menu, HelpCircle, Settings, Cloud, Home, FolderOpen, LogOut, Coins } from "lucide-react";
+import { Sparkles, Wand2, Menu, HelpCircle, Settings, Cloud, Home, DollarSign, LogOut } from "lucide-react";
 
 // Hooks
 import { usePacks } from "@/hooks/usePacks";
@@ -319,11 +320,12 @@ const Index = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
-                      {/* Token Usage Display */}
-                      {currentPackTokenStats && currentPackTokenStats.totalTokensUsed > 0 && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">
-                          <Coins className="w-3.5 h-3.5" />
-                          <span>{currentPackTokenStats.totalTokensUsed.toLocaleString()} token</span>
+                      {/* Real-time Cost Display */}
+                      {currentPackTokenStats && currentPackTokenStats.imagesGenerated > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-3 py-1.5 rounded-lg border border-green-500/20">
+                          <DollarSign className="w-3.5 h-3.5" />
+                          <span className="font-medium">{formatCost(currentPackTokenStats.cost.totalCost)}</span>
+                          <span className="text-muted-foreground">({currentPackTokenStats.imagesGenerated} img)</span>
                         </div>
                       )}
                       {getPackDescription(selectedPack.pack) && (
@@ -335,13 +337,26 @@ const Index = () => {
                   </div>
                 </div>
                 
-                {/* Image Grid */}
-                <div className="flex-1 overflow-y-auto">
-                  <ImageGrid
-                    shots={selectedPack.scenes}
-                    onGenerateShot={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
-                    onDownloadShot={downloadScene}
-                  />
+                {/* Content with optional cost sidebar */}
+                <div className="flex-1 flex overflow-hidden">
+                  {/* Image Grid */}
+                  <div className="flex-1 overflow-y-auto">
+                    <ImageGrid
+                      shots={selectedPack.scenes}
+                      onGenerateShot={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
+                      onDownloadShot={downloadScene}
+                    />
+                  </div>
+                  
+                  {/* Cost Panel - shows during generation or after */}
+                  {currentPackTokenStats && currentPackTokenStats.imagesGenerated > 0 && (
+                    <div className="hidden xl:block w-64 border-l border-border/50 p-4 overflow-y-auto">
+                      <CostDisplay 
+                        stats={currentPackTokenStats} 
+                        isGenerating={selectedPack.isGenerating}
+                      />
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
