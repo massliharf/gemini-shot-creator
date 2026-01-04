@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { 
   SceneStatus, TokenUsage, PackGenerationStats, 
-  getPackName, buildFinalPrompt, getGenerationConfig,
+  getPackName, buildFinalPrompt, getConfig,
   calculateImageCost, GeminiModel, formatCost
 } from "@/types/pack";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,7 +120,7 @@ export const useGeneration = ({
 
         // Build final prompt: scene.prompt + style_anchor.prompt
         const finalPrompt = buildFinalPrompt(packData.pack, String(sceneId).padStart(2, "0"));
-        const config = getGenerationConfig(packData.pack);
+        const config = getConfig(packData.pack);
 
         const { data, error } = await supabase.functions.invoke('generate-image', {
           body: { 
@@ -336,7 +336,7 @@ export const useGeneration = ({
       return updated;
     });
 
-    const config = getGenerationConfig(currentPack.pack);
+    const config = getConfig(currentPack.pack);
 
     for (let i = 0; i < insertedItems.length; i++) {
       const queueItem = insertedItems[i];
