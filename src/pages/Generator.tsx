@@ -12,6 +12,8 @@ import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
+import { ModelSelector } from "@/components/ModelSelector";
+import { useGenerationSettings } from "@/hooks/useGenerationSettings";
 
 interface UploadedImage {
   id: string;
@@ -35,6 +37,15 @@ export default function Generator() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
+  
+  const {
+    selectedModel,
+    setSelectedModel,
+    aspectRatio,
+    setAspectRatio,
+    resolution,
+    setResolution,
+  } = useGenerationSettings();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -240,8 +251,8 @@ export default function Generator() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Scene Count Selector */}
-          <Card className="p-4 border-border/50">
+          {/* Generation Settings */}
+          <Card className="p-4 border-border/50 space-y-4">
             <div className="flex items-center gap-4">
               <Label className="text-xs font-medium whitespace-nowrap">Sahne Sayısı:</Label>
               <Select
@@ -264,6 +275,16 @@ export default function Generator() {
                 Her pack için oluşturulacak sahne sayısı
               </span>
             </div>
+            
+            {/* Model, Aspect Ratio, Resolution Selector */}
+            <ModelSelector
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+              aspectRatio={aspectRatio}
+              onAspectRatioChange={setAspectRatio}
+              resolution={resolution}
+              onResolutionChange={setResolution}
+            />
           </Card>
 
           {/* Upload Area */}

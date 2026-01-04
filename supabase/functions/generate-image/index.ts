@@ -138,8 +138,15 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Determine model and resolution
-    const modelKey = model as ModelType;
-    const resolvedModel = MODELS[modelKey] || MODELS.flash;
+    // Accept both short keys ("flash", "pro") and full model names
+    let resolvedModel: string;
+    if (model === "flash" || model === "gemini-2.5-flash-image") {
+      resolvedModel = MODELS.flash;
+    } else if (model === "pro" || model === "gemini-3-pro-image-preview") {
+      resolvedModel = MODELS.pro;
+    } else {
+      resolvedModel = MODELS.flash;
+    }
     const isProModel = resolvedModel === MODELS.pro;
 
     const validAspectRatio = ASPECT_RATIOS.includes(aspectRatio) ? aspectRatio : "4:5";
