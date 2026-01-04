@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SceneWithStatus, ShotWithStatus } from "@/types/pack";
+import { SceneWithStatus } from "@/types/pack";
 import { Button } from "@/components/ui/button";
 import { Download, RefreshCw, Play, Image as ImageIcon, Expand } from "lucide-react";
 import { Loader2 } from "lucide-react";

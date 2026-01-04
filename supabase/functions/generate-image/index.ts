@@ -11,14 +11,15 @@ const corsHeaders = {
 // ========================================
 // 
 // This edge function generates images using the Gemini API
-// based on style packs with the following flow:
+// based on style packs with the "Prompt Fusion" pattern:
 //
 // 1. User uploads photo (base64 encoded)
 // 2. User selects a style pack and scene
-// 3. Final prompt = scene.prompt + style_anchor.prompt
+// 3. Final prompt = global_style_anchor + scene.prompt
 // 4. Request sent to Gemini with photo + prompt
 // 5. Generated image returned and stored
 //
+// Supports both Gemini 2.5 Flash and Gemini 3 Pro models
 // ========================================
 
 // Supported aspect ratios
@@ -91,7 +92,7 @@ serve(async (req) => {
       model = "flash",
       temperature = 0.70,
       topP = 0.92,
-      aspectRatio = "2:3",
+      aspectRatio = "4:5",
       resolution = "1K",
     } = await req.json();
 
@@ -141,14 +142,14 @@ serve(async (req) => {
     const resolvedModel = MODELS[modelKey] || MODELS.flash;
     const isProModel = resolvedModel === MODELS.pro;
 
-    const validAspectRatio = ASPECT_RATIOS.includes(aspectRatio) ? aspectRatio : "2:3";
+    const validAspectRatio = ASPECT_RATIOS.includes(aspectRatio) ? aspectRatio : "4:5";
     
     let imageSize: string;
     if (isProModel) {
       const validResolution = ["1K", "2K", "4K"].includes(resolution) ? resolution : "1K";
-      imageSize = PRO_RESOLUTIONS[validAspectRatio]?.[validResolution] || PRO_RESOLUTIONS["2:3"]["1K"];
+      imageSize = PRO_RESOLUTIONS[validAspectRatio]?.[validResolution] || PRO_RESOLUTIONS["4:5"]["1K"];
     } else {
-      imageSize = FLASH_RESOLUTIONS[validAspectRatio] || FLASH_RESOLUTIONS["2:3"];
+      imageSize = FLASH_RESOLUTIONS[validAspectRatio] || FLASH_RESOLUTIONS["4:5"];
     }
 
     console.log("Generation config:", {
@@ -162,7 +163,7 @@ serve(async (req) => {
     // Log the prompt for debugging
     console.log("Final prompt (first 500 chars):", finalPrompt.substring(0, 500));
 
-    // Build prompt with output spec - keep it clean and focused
+    // Build prompt with output spec
     const promptWithSpec = `${finalPrompt}
 
 Generate the image at ${validAspectRatio} aspect ratio.`;
@@ -239,8 +240,6 @@ Generate the image at ${validAspectRatio} aspect ratio.`;
     if (finishReason && !["STOP", "MAX_TOKENS"].includes(finishReason)) {
       console.error("Generation blocked:", finishReason, JSON.stringify(aiData.candidates?.[0]?.safetyRatings || []));
       
-      // IMAGE_OTHER often means the model had trouble with the request
-      // Try to extract any helpful error info
       const blockReason = aiData.candidates?.[0]?.blockReason;
       const safetyRatings = aiData.candidates?.[0]?.safetyRatings || [];
       

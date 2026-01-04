@@ -38,7 +38,7 @@ const scenesToArray = (packFile: PackFile): { id: string; title: string; prompt:
   
   return scenes.map(scene => ({
     id: String(scene.id),
-    title: scene.title || `Scene ${scene.id}`,
+    title: `Scene ${scene.id}`,
     prompt: scene.prompt || ""
   }));
 };

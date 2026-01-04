@@ -6,89 +6,83 @@ const corsHeaders = {
 };
 
 // ========================================
-// Universal Visual Architect
+// Universal Visual Architect Prompt
 // ========================================
 
 const VISUAL_ARCHITECT_PROMPT = `# Role: Universal Visual Architect
 
-**Identity:** You are the expert Director of Photography, 3D Technical Artist, and Art Director. You understand the nuance of every visual medium (from Daguerreotype to Unreal Engine 5).
+**Identity:** You are an expert Visual Director. You construct style packs using the "Ultimate Technical Breakdown" logic (Geometry, Light, Material, Camera, Atmosphere).
 
-**Objective:** Receive a short concept from the user (e.g., "Christmas Studio", "Cyberpunk", "Claymation") and expand it into a "Style Pack" JSON. This pack is used to generate images by anchoring a user's uploaded selfie (Reference Image) into 12 consistent scenes.
+**Objective:** Receive a short concept (e.g., "Christmas Studio") and expand it into a "Style Pack" JSON. This pack anchors a user's uploaded selfie (Reference Image) into 12 consistent, high-fidelity scenes.
 
-## 1. The "Deep Fill" Protocol (Creative Expansion)
+## 1. The "Ultimate Breakdown" Protocol (Global Style)
 
-You must autonomously invent the details that the user didn't provide.
+You must generate the \`global_style_anchor\` by strictly integrating these 5 dimensions. Do not list them, weave them into a dense paragraph:
 
-* **If the style is Realistic:** You decide the specific Camera (e.g., Leica M6), Lens (e.g., 50mm Summilux), Film Stock (e.g., Cinestill 800T), and Lighting Rig (e.g., Butterfly lighting).
+1. **GEOMETRY:** Lens choice (e.g., 85mm), Perspective, Distortion.
+2. **LIGHT:** Physics of light (Softbox, Ray-tracing), Kelvin temperature, Falloff.
+3. **MATERIAL:** Surface details (Skin pores, PBR textures, Fabric weave, Brushstroke impasto).
+4. **CAMERA:** Sensor/Medium characteristics (Film grain, ISO noise, Glare, Bokeh).
+5. **ATMOSPHERE:** Volumetrics (Fog, Haze, Air particles).
 
-* **If the style is 3D/Art:** You decide the Engine (e.g., Octane, Redshift), Texture quality (e.g., SSS, PBR), and Brush style (e.g., Impasto, Watercolor bleed).
-
-* **Constraint:** Never ask the user for details. You are the expert.
-
-## 2. The "Complementary Logic" (Crucial)
-
-The \`global_style_anchor\` and the \`scene.prompt\` must fit together like a lock and key.
-
-* **Global Style Anchor (THE HOW):** Defines the technical visual DNA. Medium, Lighting Physics, Color Palette, Texture, Rendering Engine, Camera Specs.
-
-* **Scene Prompt (THE WHAT):** Defines the Subject's Pose, specific Wardrobe/Outfit, Expression, Props, Action, and the Immediate Environment.
-
-* **The Rule:** Do not repeat the global technical specs in the scene prompt unnecessarily. Instead, describe how the global style *interacts* with the scene (e.g., "The global soft lighting highlights the texture of the velvet dress").
-
-## 3. The "Subject Anchor" Protocol
+## 2. The "Subject Anchor" Protocol (Consistency)
 
 The subject is **ALWAYS** the user's uploaded image.
 
-* **Strict Prohibition:** NEVER describe physical facial features (hair color, eye shape, race) because the reference image dictates this.
+* **Mandatory Phrase:** Every scene prompt MUST contain the phrase: **"featuring the subject from the provided reference image"**.
+* **Prohibition:** NEVER describe physical features (hair, eyes, race) as the reference image provides these.
+* **Focus:** Describe Wardrobe, Pose, Expression, and Action.
 
-* **Mandatory Phrase:** Every scene prompt MUST contain the exact phrase: **"featuring the subject from the provided reference image"**.
+## 3. The "Smart Variety" Logic (No Silhouette Rule)
 
-* **Focus:** Focus entirely on **Wardrobe**, **Pose**, **Emotion**, and **Activity**.
+You have full creative freedom to generate 12 unique scenes, BUT you must obey these framing constraints:
 
-## 4. Scene Variety (The 12-Shot Architecture)
+* **FACE VISIBILITY:** The subject's face must ALWAYS be illuminated and clearly visible. **NO silhouettes**, **NO backlighting that hides the face**, **NO extreme long shots** where the face is unrecognizable.
+* **DYNAMIC POSING:** Avoid repetitive standing poses. Generate a rich mix of sitting, leaning, walking, interacting with props, and expressive close-ups.
+* **FRAMING MIX:** Autonomously ensure a balanced mix of Close-ups, Medium Shots (Waist-up), and Knee-up shots.
 
-Even though the JSON doesn't label them, you must internally ensure the 12 scenes follow this flow for a complete social media package:
+## 4. Output Format
 
-* **01-04 (The Face):** Close-ups/Portraits. Focus on expression and how the light hits the face.
-
-* **05-08 (The Look):** Waist-up/Medium shots. Focus heavily on detailed Wardrobe and styling.
-
-* **09-12 (The Vibe):** Full-body, Environmental, or Candid Motion shots. Focus on the setting and dynamic angles.
-
-## 5. Output Format
-
-Output **ONLY** strict, raw JSON using the template below. No markdown code blocks, no intro text.
+Output **ONLY** strict, raw JSON using the template below. No markdown, no intro text.
 
 {
-  "package_meta": {
-    "pack_id": "snake_case_id",
-    "package_name": "Human Readable Name",
-    "gender": "woman_only | man_only | genderless | mixed",
-    "description": "3-5 detailed sentences about aesthetic, mood, color palette, medium (photo/3d/paint), and emotional tone",
-    "style_category": "Photography | 3D Render | Digital Illustration | Oil Painting | Watercolor | Anime | Vector Art"
+  "meta": {
+    "pack_id": "{{GENERATE: snake_case_style_name}}",
+    "pack_name": "{{GENERATE: Title Case Display Name}}",
+    "description": "{{GENERATE: A concise description of the visual mood.}}",
+    "category": "{{SELECT ONE: Photography | 3D | Art | Illustration}}",
+    "gender": "unisex",
+    "featured": false,
+    "tags": ["{{Tag 1}}", "{{Tag 2}}", "{{Tag 3}}", "{{Tag 4}}", "{{Tag 5}}"],
+    "preview_paths": [
+      "/{{pack_id}}/01.webp",
+      "/{{pack_id}}/02.webp",
+      "/{{pack_id}}/03.webp",
+      "/{{pack_id}}/04.webp",
+      "/{{pack_id}}/05.webp",
+      "/{{pack_id}}/06.webp",
+      "/{{pack_id}}/07.webp",
+      "/{{pack_id}}/08.webp",
+      "/{{pack_id}}/09.webp",
+      "/{{pack_id}}/10.webp",
+      "/{{pack_id}}/11.webp",
+      "/{{pack_id}}/12.webp"
+    ]
   },
-  "global_style_anchor": {
-    "medium": "e.g., 'Cinematic Photography', 'Octane 3D Render', 'Gouache Illustration'",
-    "camera_or_engine": "e.g., 'Leica M6 with 50mm Summilux' OR 'Unreal Engine 5 with Lumen GI'",
-    "lighting": "Detailed lighting setup description",
-    "color_palette": "Specific color mood and tones",
-    "texture": "Film grain, canvas, PBR materials, etc.",
-    "post_processing": "Color grading, effects, finish style"
-  },
-  "global_face_policy": {
-    "face_source": "uploaded_photo",
-    "face_reference_image": "uploaded_photo",
-    "keep_face_structure": true,
-    "allow_style_adaptation": true,
-    "distortion_protection_level": "maximum"
-  },
-  "shots": [
-    {
-      "shot_id": 1,
-      "title": "Shot Title",
-      "shot_type": "close-up | medium | full-body | environmental",
-      "prompt": "Detailed scene description featuring the subject from the provided reference image. Focus on wardrobe, pose, emotion, activity, and environment."
-    }
+  "global_style_anchor": "{{GENERATE: The MASTER PROMPT based on the 5-point Checklist (Geometry, Light, Material, Camera, Atmosphere). Define 'THE HOW'.}}",
+  "scenes": [
+    {"id": "01", "prompt": "{{GENERATE: Unique scene. Wardrobe, Pose, Setting. MUST include 'featuring the subject from the provided reference image'.}}"},
+    {"id": "02", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "03", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "04", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "05", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "06", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "07", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "08", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "09", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "10", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "11", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"},
+    {"id": "12", "prompt": "{{GENERATE: Different angle/pose/outfit. MUST include anchor phrase.}}"}
   ]
 }
 
@@ -97,8 +91,8 @@ Output **ONLY** strict, raw JSON using the template below. No markdown code bloc
 1. **Output pure JSON only** - No markdown, no explanations, no code blocks
 2. **Every prompt MUST include** "featuring the subject from the provided reference image"
 3. **NEVER describe facial features** - the reference image dictates this
-4. **12 shots minimum** following the Face/Look/Vibe architecture
-5. **Be specific** - No generic descriptions. Expert-level detail for the chosen medium.`;
+4. **12 scenes minimum** with Face/Look/Vibe architecture
+5. **Be specific** - Expert-level detail for the chosen medium`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -106,7 +100,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, textPrompt, shotCount = 12 } = await req.json();
+    const { imageBase64, textPrompt, sceneCount = 12 } = await req.json();
 
     if (!imageBase64 && !textPrompt) {
       return new Response(
@@ -123,7 +117,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[generate-pack] Starting pack generation with ${shotCount} shots...`);
+    console.log(`[generate-pack] Starting pack generation with ${sceneCount} scenes...`);
     console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}`);
 
     // Build content parts
@@ -145,9 +139,9 @@ serve(async (req) => {
     let userPrompt = VISUAL_ARCHITECT_PROMPT;
 
     if (textPrompt) {
-      userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete visual asset pack with exactly ${shotCount} shots based on this description. Output pure JSON only.`;
+      userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete style pack with exactly ${sceneCount} scenes based on this description. Output pure JSON only.`;
     } else {
-      userPrompt += `\n\n## Task:\nAnalyze the uploaded reference image and extract the visual DNA. Create a complete visual asset pack with exactly ${shotCount} unique shots that captures and explores this style. Output pure JSON only.`;
+      userPrompt += `\n\n## Task:\nAnalyze the uploaded reference image and extract the visual DNA. Create a complete style pack with exactly ${sceneCount} unique scenes that captures and explores this style. Output pure JSON only.`;
     }
 
     contentParts.push({ text: userPrompt });
@@ -230,115 +224,68 @@ serve(async (req) => {
       );
     }
 
-    // Validate new V2 structure
-    if (!packData.package_meta) {
+    // Validate V3 structure: meta, global_style_anchor, scenes
+    if (!packData.meta) {
       return new Response(
-        JSON.stringify({ error: "Generated pack missing 'package_meta' section" }),
+        JSON.stringify({ error: "Generated pack missing 'meta' section" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!packData.shots || !Array.isArray(packData.shots)) {
+    if (!packData.scenes || !Array.isArray(packData.scenes)) {
       return new Response(
-        JSON.stringify({ error: "Generated pack missing 'shots' array" }),
+        JSON.stringify({ error: "Generated pack missing 'scenes' array" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!packData.package_meta.pack_id || !packData.package_meta.package_name) {
+    if (!packData.meta.pack_id || !packData.meta.pack_name) {
       return new Response(
-        JSON.stringify({ error: "Generated pack package_meta is missing pack_id or package_name" }),
+        JSON.stringify({ error: "Generated pack meta is missing pack_id or pack_name" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Ensure global_face_policy is fixed
-    packData.global_face_policy = {
-      face_source: "uploaded_photo",
-      face_reference_image: "uploaded_photo",
-      keep_face_structure: true,
-      allow_style_adaptation: true,
-      allow_genderless_variation: true,
-      distortion_protection_level: "maximum",
-    };
-
-    // Validate global_render_settings
-    if (!packData.global_render_settings) {
-      packData.global_render_settings = {
-        resolution: "4k",
-        orientation: "portrait",
-        aspect_ratio: "2:3",
-        visual_style: "Cinematic Photo",
-        color_profile: "Natural balanced colors",
-        sharpness: "high",
-        texture_overlay: "none",
-        dynamic_range: "wide",
-        rendering_engine: "85mm f/1.4",
-        post_process: {
-          exposure: "0",
-          contrast: "medium",
-          saturation: "natural",
-          finish: "matte",
-          line_quality: "none",
-          lighting_style: "natural",
-          extra_notes: "",
-        },
-      };
+    if (!packData.global_style_anchor || typeof packData.global_style_anchor !== "string") {
+      // Try to build from legacy format
+      if (typeof packData.global_style_anchor === "object") {
+        packData.global_style_anchor = Object.values(packData.global_style_anchor).filter(Boolean).join(", ");
+      } else {
+        packData.global_style_anchor = "";
+      }
     }
 
-    // Ensure post_process exists
-    if (!packData.global_render_settings.post_process) {
-      packData.global_render_settings.post_process = {
-        exposure: "0",
-        contrast: "medium",
-        saturation: "natural",
-        finish: "matte",
-        line_quality: "none",
-        lighting_style: "natural",
-        extra_notes: "",
-      };
-    }
-
-    // Validate minimum shot count
-    const minShots = Math.max(4, Math.floor(shotCount * 0.75));
-    if (packData.shots.length < minShots) {
+    // Validate minimum scene count
+    const minScenes = Math.max(4, Math.floor(sceneCount * 0.75));
+    if (packData.scenes.length < minScenes) {
       return new Response(
-        JSON.stringify({ error: `Generated pack must have at least ${minShots} shots, got ${packData.shots.length}` }),
+        JSON.stringify({ error: `Generated pack must have at least ${minScenes} scenes, got ${packData.scenes.length}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Validate shots have required fields
-    for (let i = 0; i < packData.shots.length; i++) {
-      const shot = packData.shots[i];
-      if (shot.shot_id === undefined) shot.shot_id = i + 1;
-      if (!shot.title) shot.title = `Shot ${shot.shot_id}`;
+    // Validate scenes have required fields (id, prompt)
+    for (let i = 0; i < packData.scenes.length; i++) {
+      const scene = packData.scenes[i];
+      if (!scene.id) scene.id = String(i + 1).padStart(2, "0");
+      if (!scene.prompt) scene.prompt = `Scene ${scene.id}`;
     }
 
-    // Generate preview_images if missing
-    if (!Array.isArray(packData.preview_images) || packData.preview_images.length === 0) {
-      packData.preview_images = packData.shots.map((s: { shot_id: number }) =>
-        `/previews/${packData.package_meta.pack_id}/shot-${String(s.shot_id).padStart(2, "0")}.jpg`
+    // Ensure meta fields with defaults
+    if (!packData.meta.description) packData.meta.description = "";
+    if (!packData.meta.category) packData.meta.category = "Photography";
+    if (!packData.meta.gender) packData.meta.gender = "unisex";
+    if (!packData.meta.tags) packData.meta.tags = [];
+    if (!packData.meta.preview_paths) {
+      packData.meta.preview_paths = packData.scenes.map((_: unknown, i: number) =>
+        `/${packData.meta.pack_id}/${String(i + 1).padStart(2, "0")}.webp`
       );
     }
 
-    // Validate gender
-    const validGenders = ["woman_only", "man_only", "genderless", "mixed"];
-    if (!packData.package_meta.gender || !validGenders.includes(packData.package_meta.gender)) {
-      packData.package_meta.gender = "mixed";
-    }
-
-    // Ensure required fields with defaults
-    if (!packData.package_meta.description) {
-      packData.package_meta.description = "";
-    }
-    if (!packData.package_meta.style_category) {
-      packData.package_meta.style_category = "Photography";
-    }
-
-    console.log("[generate-pack] Pack generated successfully:", packData.package_meta.package_name);
-    console.log("[generate-pack] Number of shots:", packData.shots.length);
-    console.log("[generate-pack] Style category:", packData.package_meta.style_category);
+    console.log("[generate-pack] Pack generated successfully:", packData.meta.pack_name);
+    console.log("[generate-pack] Number of scenes:", packData.scenes.length);
+    console.log("[generate-pack] Category:", packData.meta.category);
+    console.log("[generate-pack] Global style anchor length:", packData.global_style_anchor.length);
 
     return new Response(
       JSON.stringify({ success: true, pack: packData }),
