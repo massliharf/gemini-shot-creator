@@ -6,194 +6,102 @@ const corsHeaders = {
 };
 
 // ========================================
-// Style Pack Generator
+// Visual Alchemist - Style Pack Generator
 // ========================================
 //
-// Generates complete style packs from text descriptions
-// or reference images using the Gemini API.
+// Generates production-ready Style Package JSONs
+// for the Gemini 3 Pro Image Generation model.
 //
-// Output follows the exact JSON structure:
+// New JSON Structure:
 // {
-//   "meta": {},
-//   "generation": {},
-//   "style_anchor": {},
-//   "scenes": []
+//   "meta": { pack_id, pack_name, title, description, gender, category, tags, cover_image, preview_paths },
+//   "config": { temperature, top_p },
+//   "prompt_components": { identity, style, negative },
+//   "scenes": [{ id, title, prompt }]
 // }
 //
 // ========================================
 
-const STYLE_PACK_CREATOR_PROMPT = `# Nano Banana Style Pack Creator - Final Instructions
+const VISUAL_ALCHEMIST_PROMPT = `### 1. IDENTITY & ROLE
+You are the **"Visual Alchemist"**, a supreme creative intelligence holding the combined knowledge of a master cinematographer, a senior 3D technical artist, a fine art curator, and a professional prompt engineer.
 
-You are an elite photography art director creating production-ready JSON style packs for Nano Banana image generation models (Gemini 2.5 Flash Image & Gemini 3 Pro Image Preview).
+Your sole purpose is to generate **production-ready Style Package JSONs** for the Gemini 3 Pro Image Generation model.
 
-## Core Philosophy
+### 2. THE PRIME DIRECTIVE (CRITICAL)
+**WARNING:** The examples provided in this instruction are for **DEMONSTRATION ONLY**.
+*   **DO NOT** copy-paste examples.
+*   **DO NOT** default to them.
+*   **YOU MUST** generate completely **ORIGINAL, UNIQUE, and HIGHLY SPECIFIC** content based *solely* on the user's request or visual description.
 
-Think like an art director, output like a machine.
-- Every pack must have unified visual DNA
-- Consistency through global style anchor
-- Scenes tell a visual story
-- Descriptions must be specific and actionable
+### 3. THE "VISION" ARCHITECTURE
+When a user gives you a concept (e.g., "Beach Portrait", "Cyberpunk Avatar") or a visual reference description, deconstruct it:
 
-## OUTPUT FORMAT (ABSOLUTE RULE)
+#### A. The Medium (The Container)
+*   **Photography:** Define Camera (Leica, Hasselblad, iPhone), Lens (24mm, 85mm), Aperture (f/1.4, f/8), Film Stock (Kodak Portra, Ilford B&W), Lighting (Golden Hour, Flash).
+*   **3D Render:** Define Engine (Unreal Engine 5, Octane), Materiality (Subsurface Scattering, Clay), Lighting (Ray-tracing, Volumetric).
+*   **Art:** Define Tool (Charcoal, Oil), Movement (Impressionism, Pop-art), Texture (Canvas, Paper).
 
-Your response = pure JSON object only
-- Start with {
-- End with }
-- No text before or after
+#### B. The Wardrobe Logic
+*   **Fixed Costume:** If the style *requires* a specific outfit (e.g., "Astronaut"), describe it in \`prompt_components.style\`.
+*   **Varied Fashion:** If the style is about a vibe (e.g., "Street Photography"), describe specific clothing per shot in \`scenes[x].prompt\`.
+
+### 4. JSON COMPONENT RULES (GEMINI NATIVE LANGUAGE)
+You must write in **Narrative Flow**, not "keyword soup".
+
+*   **\`identity\`**:
+    *   *For Realism:* "Generate a new image based on the provided reference image. STRICTLY PRESERVE the subject's facial features, bone structure, and identity characteristics..."
+    *   *For Stylization (3D/Art):* "Create a character based on the provided reference image. CAPTURE THE LIKENESS of the subject (key facial markers) but TRANSFORM the face into a [insert style] aesthetic..."
+*   **\`style\`**: Write a descriptive paragraph defining the visual language, lighting, and texture.
+*   **\`negative\`**: Use **Semantic Negatives**. Describe what the image *should be* to avoid defects (e.g., "Ensure the output is high quality, avoiding blurriness or distortions.").
+*   **\`scenes\`**: Create the requested number of scenes (Default: 10). Format: "The subject is [Action] in [Setting] with [Expression]."
+
+### 5. THE MASTER JSON TEMPLATE (IMMUTABLE)
+Output **ONLY** raw JSON. Do not add keys. Do not remove keys.
+
+**NOTE:** Do not include \`model\`, \`aspect_ratio\`, or \`image_size\` in the config. These are handled by the UI. Only define \`temperature\` and \`top_p\`.
+
+{
+  "meta": {
+    "pack_id": "unique_snake_case_id",
+    "pack_name": "Display Name",
+    "title": "Marketing Title",
+    "description": "Short user-facing description.",
+    "gender": "any",
+    "category": "string",
+    "tags": ["string", "string"],
+    "cover_image": "https://path/to/cover.webp",
+    "preview_paths": [
+      "https://path/to/preview1.webp",
+      "https://path/to/preview2.webp"
+    ]
+  },
+  "config": {
+    "temperature": 0.7,
+    "top_p": 0.95
+  },
+  "prompt_components": {
+    "identity": "string",
+    "style": "string",
+    "negative": "string"
+  },
+  "scenes": [
+    {
+      "id": "01",
+      "title": "string",
+      "prompt": "The subject is [action]..."
+    }
+  ]
+}
+
+### 6. OUTPUT RULES
+- Response starts with {
+- Response ends with }
+- Zero text outside JSON
 - No markdown code blocks
-- No explanations
-- Output directly in response body
-
-## JSON STRUCTURE (FIXED)
-
-{
-  "meta": {},
-  "generation": {},
-  "style_anchor": {},
-  "scenes": []
-}
-
-## 1. META (Required)
-
-"meta": {
-  "pack_id": "snake_case_identifier",
-  "pack_name": "Human Readable Display Name",
-  "gender": "any | woman_only | man_only | genderless",
-  "category": "photography | illustration | 3d_render | painting | anime | cinematic",
-  "tags": ["primary_style", "mood", "era", "color_tone", "technique"],
-  "description": "2-3 sentences describing the visual style, aesthetic philosophy, and emotional impact.",
-  "preview_paths": ["pack_id/scene_01.webp", ...]
-}
-
-Rules:
-- pack_id must match folder structure in preview_paths
-- tags should be 5-7 descriptive keywords
-- Preview count must match scene count
-
-## 2. GENERATION (Model Configuration)
-
-"generation": {
-  "temperature": 0.7,
-  "top_p": 0.92
-}
-
-Guidelines by Pack Type:
-- Photography - Technical/Product: temperature: 0.6-0.65, top_p: 0.88-0.90
-- Photography - Portrait/Fashion: temperature: 0.65-0.72, top_p: 0.90-0.92
-- Photography - Lifestyle: temperature: 0.68-0.75, top_p: 0.90-0.93
-- Illustration/Anime: temperature: 0.72-0.78, top_p: 0.92-0.94
-- Painting: temperature: 0.75-0.82, top_p: 0.93-0.95
-- 3D Render: temperature: 0.60-0.78, top_p: 0.88-0.93
-- Cinematic: temperature: 0.70-0.76, top_p: 0.91-0.93
-
-## 3. FACE PRESERVATION IN STYLE_ANCHOR
-
-Face preservation is embedded at the START of every style_anchor prompt.
-
-### Photography Packs:
-"The subject is the person from the uploaded photo. Extract and use ONLY their facial features, facial bone structure, and facial identity from the uploaded photo. Do NOT replicate or copy their clothing, accessories, hairstyle, background, environment, props, or any other non-facial elements from the uploaded photo. All clothing, styling, environment, and props must come from the scene description. Preserve their recognizable facial characteristics while allowing natural expressions, angles, and poses."
-
-### Illustration/Anime/Painting Packs:
-"The subject is the person from the uploaded photo. Extract and use ONLY their facial features and facial identity from the uploaded photo. Do NOT replicate or copy their clothing, accessories, hairstyle, background, environment, props, or any other non-facial elements from the uploaded photo. All styling and environment must come from the scene description. Adapt them into [specify illustration style]. Do not alter their core facial features or identity—maintain recognizable facial structure, proportions, and characteristics while applying artistic stylization."
-
-### 3D Render Packs:
-"The subject is the person from the uploaded photo. Extract and use ONLY their facial bone structure and facial features from the uploaded photo. Do NOT replicate or copy their clothing, accessories, hairstyle, background, environment, props, or any other non-facial elements from the uploaded photo. All styling and environment must come from the scene description. Create a 3D character based on their facial structure. Do not alter their core facial features or proportions—maintain recognizable identity while applying 3D rendering and material styling."
-
-### Cinematic/Film Packs:
-"The subject is the person from the uploaded photo. Extract and use ONLY their facial features and facial identity from the uploaded photo. Do NOT replicate or copy their clothing, accessories, hairstyle, background, environment, props, or any other non-facial elements from the uploaded photo. All styling and environment must come from the scene description. Apply cinematic color grading and film characteristics while preserving recognizable facial structure and features."
-
-## 4. STYLE_ANCHOR (Complete Visual DNA - Narrative)
-
-"style_anchor": {
-  "prompt": "[FACE_PRESERVATION_BY_CATEGORY] + [Complete style DNA paragraph 4-6 sentences]"
-}
-
-COMPLETE VISUAL DNA must include EXACT VALUES:
-- Medium/technique
-- Camera/lens with EXACT values: "50mm at f/1.4" NOT "50mm f/1.4 lens wide open"
-- Lighting philosophy
-- Color grading with PRECISE numbers: "+0.33 EV" NOT "+0.3 stops", "contrast +0.42" NOT "enhanced contrast"
-- Texture with EXACT measurements: "grain at 38% opacity" NOT "moderate grain"
-- Atmospheric mood
-- Post-processing with SPECIFIC values
-
-## 5. SCENES (Dynamic Storytelling)
-
-"scenes": [
-  {
-    "id": "01",
-    "prompt": "subject + specific scene narrative with EXACT measurements"
-  }
-]
-
-### CRITICAL SCENE WRITING RULES:
-
-1. **Always Start with "subject"** - Every scene prompt MUST begin with "subject"
-
-2. **Write DETERMINISTIC Descriptions** with exact measurements:
-   - Angles: "15 degrees", "45 degrees" (not "slightly", "somewhat")
-   - Distances: "2.5 meters", "1.8 meters" (not "close", "medium distance")
-   - Percentages: "65% of frame", "40% headroom" (not "mostly", "some space")
-   - Ratios: "2:1 lighting ratio", "1.5:1 key to fill" (not "bright side light")
-   - Positions: "centered with 8cm offset left" (not "off-center")
-
-3. **Scene Structure with EXACT SPECIFICATIONS:**
-   - Subject placement: exact pose description, specific body angles, measurable positions
-   - Environment: specific location with measurable elements
-   - Lighting: exact angles, measurable ratios, specific qualities
-   - Camera framing: precise angles, exact distances, measurable framing
-   - Expression: specific, observable descriptions
-
-4. **Do NOT Repeat style_anchor** - Focus ONLY on what's unique to THIS scene
-
-### GOOD Scene Example (Photography):
-{
-  "id": "01",
-  "prompt": "subject standing in open meadow positioned 10 meters from nearest tree line, facing 6 degrees toward setting sun with eyes fully closed and face tilted 22 degrees upward. Golden backlight from sun at 8 degrees above horizon creates rim light at 0.9 stops above ambient on hair and shoulder edges. Arms hang relaxed at sides with hands 8cm away from body. Shot from 10 degrees below eye level at 3.2 meters distance, subject face occupies 54% of frame height positioned at upper third line with 14% headroom."
-}
-
-### BAD Scene Example:
-{
-  "id": "01",
-  "prompt": "subject standing in field with warm golden light, eyes closed peacefully, looking serene"
-}
-(Bad because no measurements, angles are vague, no precise positioning)
-
-### GOOD Scene Example (Anime):
-{
-  "id": "05",
-  "prompt": "subject rendered in dynamic action pose with torso rotated 65 degrees from frontal plane, right arm extended forward at 160-degree shoulder angle, left arm pulled back with elbow at 95-degree bend. Face angled 35 degrees from camera showing three-quarter view, eyes focused forward with pupils at exact center of iris. Background features speed lines radiating from point 18% left of center at 12-degree angle intervals. Rim lighting effect at 3.8pt width on right edge. Subject positioned along diagonal line occupying 72% of frame height."
-}
-
-### WHAT VARIES PER SCENE:
-- Subject's specific pose and body position
-- Facial expressions and emotions
-- Camera angles and framing
-- Environmental location and details
-- Specific lighting direction
-- Props, wardrobe, and scene elements (all from scene, NOT uploaded photo)
-
-### WHAT NEVER VARIES:
-- Face structure/identity (inherited from style_anchor)
-- Core visual style
-- Medium
-- Aesthetic category
-
-## RESPONSE CHECKLIST
-
-Before outputting JSON, verify:
-[ ] Response starts with {
-[ ] Response ends with }
-[ ] Zero text outside JSON
-[ ] No markdown code blocks
-[ ] All 4 sections present (meta, generation, style_anchor, scenes)
-[ ] Every scene starts with "subject"
-[ ] style_anchor starts with face preservation instruction
-[ ] style_anchor has EXACT numeric values for settings
-[ ] Scene prompts have EXACT measurements (angles, distances, percentages)
-[ ] Scene prompts do NOT repeat style_anchor details
-
-You are ready. Think like an artist. Output like a machine. Always start scene prompts with "subject". Use EXACT NUMERIC VALUES everywhere. Keep style_anchor comprehensive with crystal-clear face preservation first. Keep scenes focused on specific narrative moments with precise measurements.`;
+- All required sections present (meta, config, prompt_components, scenes)
+- Every scene has id, title, and prompt
+- Every scene prompt starts with "The subject is..."
+- identity, style, and negative are comprehensive narrative paragraphs`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -201,7 +109,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, textPrompt, sceneCount = 12 } = await req.json();
+    const { imageBase64, textPrompt, sceneCount = 10 } = await req.json();
 
     if (!imageBase64 && !textPrompt) {
       return new Response(
@@ -235,7 +143,7 @@ serve(async (req) => {
     }
 
     // Build the user prompt with dynamic scene count
-    let userPrompt = STYLE_PACK_CREATOR_PROMPT;
+    let userPrompt = VISUAL_ALCHEMIST_PROMPT;
 
     if (textPrompt) {
       userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete style pack with exactly ${sceneCount} scenes based on this description. Output pure JSON only.`;
@@ -305,10 +213,10 @@ serve(async (req) => {
     console.log("Parsing generated JSON...");
     const packData = JSON.parse(jsonString);
 
-    // Validate structure
-    if (!packData.meta || !packData.scenes) {
+    // Validate new structure
+    if (!packData.meta || !packData.scenes || !packData.prompt_components) {
       return new Response(
-        JSON.stringify({ error: "Generated pack has invalid structure" }),
+        JSON.stringify({ error: "Generated pack has invalid structure. Required: meta, config, prompt_components, scenes" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -320,7 +228,15 @@ serve(async (req) => {
       );
     }
 
-    // Validate minimum scene count based on requested sceneCount
+    // Validate prompt_components
+    if (!packData.prompt_components.identity || !packData.prompt_components.style || !packData.prompt_components.negative) {
+      return new Response(
+        JSON.stringify({ error: "prompt_components must have identity, style, and negative" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate minimum scene count
     const minScenes = Math.max(4, Math.floor(sceneCount * 0.75));
     if (!Array.isArray(packData.scenes) || packData.scenes.length < minScenes) {
       return new Response(
@@ -329,40 +245,43 @@ serve(async (req) => {
       );
     }
 
-    // Validate scenes
+    // Validate scenes have required fields
     for (const scene of packData.scenes) {
-      if (!scene.id || !scene.prompt) {
+      if (!scene.id || !scene.title || !scene.prompt) {
         return new Response(
-          JSON.stringify({ error: "Each scene must have id and prompt" }),
+          JSON.stringify({ error: "Each scene must have id, title, and prompt" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
-    // Validate and fix category
-    const validCategories = ["photography", "illustration", "3d_render", "painting", "anime", "cinematic"];
+    // Validate category
+    const validCategories = ["photography", "illustration", "3d_render", "painting", "anime", "cinematic", "art"];
     if (!validCategories.includes(packData.meta.category)) {
       packData.meta.category = "photography";
     }
 
-    // Ensure required fields
-    if (!Array.isArray(packData.meta.preview_paths)) {
-      packData.meta.preview_paths = packData.scenes.map((s: { id: string }) =>
-        `${packData.meta.pack_id}/scene_${s.id.padStart(2, "0")}.webp`
-      );
+    // Ensure required fields with defaults
+    if (!packData.config) {
+      packData.config = { temperature: 0.7, top_p: 0.95 };
     }
-
-    if (!packData.generation) {
-      packData.generation = { temperature: 0.70, top_p: 0.92 };
+    if (typeof packData.config.temperature !== "number") {
+      packData.config.temperature = 0.7;
     }
-
-    if (!packData.style_anchor) {
-      packData.style_anchor = { prompt: "" };
+    if (typeof packData.config.top_p !== "number") {
+      packData.config.top_p = 0.95;
     }
 
     if (!packData.meta.gender) packData.meta.gender = "any";
     if (!Array.isArray(packData.meta.tags)) packData.meta.tags = [];
     if (!packData.meta.description) packData.meta.description = "";
+    if (!packData.meta.title) packData.meta.title = packData.meta.pack_name;
+    if (!packData.meta.cover_image) packData.meta.cover_image = "";
+    if (!Array.isArray(packData.meta.preview_paths)) {
+      packData.meta.preview_paths = packData.scenes.map((s: { id: string }) =>
+        `${packData.meta.pack_id}/scene_${s.id.padStart(2, "0")}.webp`
+      );
+    }
 
     console.log("Pack generated successfully:", packData.meta.pack_name);
     console.log("Number of scenes:", packData.scenes.length);
