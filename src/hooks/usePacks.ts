@@ -32,12 +32,13 @@ export const normalizeSceneId = (id: string | number | undefined): number => {
 };
 
 // Convert scenes to SceneWithStatus array
-const scenesToArray = (packFile: PackFile): { id: string; prompt: string }[] => {
+const scenesToArray = (packFile: PackFile): { id: string; title: string; prompt: string }[] => {
   const scenes = getScenes(packFile);
   if (!scenes || !Array.isArray(scenes)) return [];
   
   return scenes.map(scene => ({
     id: String(scene.id),
+    title: scene.title || `Scene ${scene.id}`,
     prompt: scene.prompt || ""
   }));
 };
