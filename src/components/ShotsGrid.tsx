@@ -1,4 +1,4 @@
-import { SceneWithStatus } from "@/types/pack";
+import { SceneWithStatus, ShotWithStatus } from "@/types/pack";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
