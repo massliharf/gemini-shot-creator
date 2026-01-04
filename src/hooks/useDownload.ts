@@ -54,9 +54,9 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
     }
 
     try {
-      toast.info('Creating ZIP file...');
+      toast.info('ZIP hazırlanıyor...');
       const zip = new JSZip();
-      
+
       // New nested schema: meta.pack_id and meta.pack_name
       const packIdName = String(getPackId(packData.pack) || getPackName(packData.pack) || 'pack');
       const folder = zip.folder(packIdName);
@@ -65,6 +65,9 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
       for (const scene of successfulScenes) {
         const response = await fetch(scene.imageUrl!);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image for scene ${scene.id}: ${response.status}`);
+        }
         const blob = await response.blob();
         const sceneIdStr = String(normalizeSceneId(scene.id)).padStart(2, '0');
         const filename = `scene-${sceneIdStr}.jpg`;
@@ -73,16 +76,27 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(zipBlob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${packIdName}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast.success('ZIP file downloaded');
+
+      // Some browsers block programmatic downloads after async work.
+      // Offer a user-click "Download" action to keep it reliable.
+      toast.success('ZIP hazır', {
+        duration: 10000,
+        action: {
+          label: 'İndir',
+          onClick: () => {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${packIdName}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          },
+        },
+      });
+
+      // Safety cleanup if user doesn't click
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
       toast.error('Failed to create ZIP file');
       console.error(error);
@@ -96,19 +110,22 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
     }
 
     try {
-      toast.info('Creating ZIP file...');
+      toast.info('ZIP hazırlanıyor...');
       const zip = new JSZip();
 
       for (const [, packData] of packs) {
         // New nested schema: meta.pack_id and meta.pack_name
         const packName = String(getPackId(packData.pack) || getPackName(packData.pack) || 'pack');
         const folder = zip.folder(packName);
-        
+
         folder?.file('pack.json', JSON.stringify(packData.pack, null, 2));
 
         for (const scene of packData.scenes) {
           if (scene.status === 'success' && scene.imageUrl) {
             const response = await fetch(scene.imageUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image for ${packName} scene ${scene.id}: ${response.status}`);
+            }
             const blob = await response.blob();
             const sceneIdStr = String(normalizeSceneId(scene.id)).padStart(2, '0');
             const filename = `scene-${sceneIdStr}.jpg`;
@@ -119,16 +136,25 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(zipBlob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `all-packs-${Date.now()}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast.success('ZIP file downloaded');
+      const filename = `all-packs-${Date.now()}.zip`;
+
+      toast.success('ZIP hazır', {
+        duration: 10000,
+        action: {
+          label: 'İndir',
+          onClick: () => {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          },
+        },
+      });
+
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (error) {
       toast.error('Failed to create ZIP file');
       console.error(error);
