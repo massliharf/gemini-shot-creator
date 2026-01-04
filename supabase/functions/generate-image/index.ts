@@ -178,18 +178,20 @@ Generate the image at ${validAspectRatio} aspect ratio.`;
 
     parts.push({ text: promptWithSpec });
 
-    // Build generation config
+    // Build generation config (camelCase per Gemini API docs)
     const generationConfig: Record<string, unknown> = {
-      response_modalities: ["IMAGE", "TEXT"],
       temperature,
-      top_p: topP,
+      topP,
+      candidateCount: 1,
+      maxOutputTokens: 8192,
     };
 
-    // Pro model supports image_config
+    // Pro model supports responseModalities and imageConfig
     if (isProModel) {
-      generationConfig.image_config = {
-        aspect_ratio: validAspectRatio,
-        image_size: resolution,
+      generationConfig.responseModalities = ["TEXT", "IMAGE"];
+      generationConfig.imageConfig = {
+        aspectRatio: validAspectRatio,
+        imageSize: resolution,
       };
     }
 
