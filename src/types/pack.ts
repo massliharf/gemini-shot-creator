@@ -69,13 +69,72 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
+// ========== Cost Calculation ==========
+// Gemini pricing per 1M tokens (as of 2024)
+export const GEMINI_PRICING = {
+  "gemini-2.5-flash-image": {
+    inputPer1M: 0.10,   // $0.10 per 1M input tokens
+    outputPer1M: 0.40,  // $0.40 per 1M output tokens
+    imagePer1K: 0.02,   // $0.02 per 1K images generated
+  },
+  "gemini-3-pro-image-preview": {
+    inputPer1M: 1.25,   // $1.25 per 1M input tokens
+    outputPer1M: 5.00,  // $5.00 per 1M output tokens
+    imagePer1K: 0.03,   // $0.03 per 1K images generated
+  },
+} as const;
+
+export type GeminiModel = keyof typeof GEMINI_PRICING;
+
+export interface CostBreakdown {
+  inputCost: number;
+  outputCost: number;
+  imageCost: number;
+  totalCost: number;
+  currency: "USD";
+}
+
 export interface PackGenerationStats {
   packId: string;
   packName: string;
   totalTokensUsed: number;
+  promptTokensUsed: number;
+  candidatesTokensUsed: number;
+  imagesGenerated: number;
   scenesGenerated: number;
+  model: GeminiModel;
+  cost: CostBreakdown;
   timestamp: string;
 }
+
+// Calculate cost from token usage
+export const calculateCost = (
+  tokenUsage: TokenUsage,
+  model: GeminiModel = "gemini-2.5-flash-image",
+  imageCount: number = 1
+): CostBreakdown => {
+  const pricing = GEMINI_PRICING[model] || GEMINI_PRICING["gemini-2.5-flash-image"];
+  
+  const inputCost = (tokenUsage.promptTokens / 1_000_000) * pricing.inputPer1M;
+  const outputCost = (tokenUsage.candidatesTokens / 1_000_000) * pricing.outputPer1M;
+  const imageCost = (imageCount / 1000) * pricing.imagePer1K;
+  
+  return {
+    inputCost,
+    outputCost,
+    imageCost,
+    totalCost: inputCost + outputCost + imageCost,
+    currency: "USD",
+  };
+};
+
+// Format cost for display
+export const formatCost = (cost: number): string => {
+  if (cost < 0.01) {
+    return `$${(cost * 100).toFixed(4)}¢`;
+  }
+  return `$${cost.toFixed(4)}`;
+};
 
 // ========== Helper Functions ==========
 
