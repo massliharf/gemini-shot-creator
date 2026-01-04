@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { User } from "@supabase/supabase-js";
-import { PackFile, SceneWithStatus, SceneStatus, getPackId, getPackName, hasScenes, getScenes } from "@/types/pack";
+import { PackFile, LegacyPackFile, SceneWithStatus, SceneStatus, getPackId, getPackName, hasScenes, getScenes } from "@/types/pack";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 

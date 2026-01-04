@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from "react";
-import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getPackTags, hasScenes, getSceneCount } from "@/types/pack";
-import { 
+import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getPackTags, hasShots, getShotCount } from "@/types/pack";
+import {
   Briefcase, Palette, Wand2, Film, Clock, Shirt, Plane, Sun, Globe2, GraduationCap,
   Users, User, Sparkles, Upload, Loader2, Trash2, Play, Download, HardDrive, Bomb,
   ChevronDown, ChevronRight, ImagePlus, AlertCircle, CheckCircle2, Circle, XCircle
@@ -250,12 +250,12 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
         const packName = getPackName(pack);
 
         if (!packId || !packName) {
-          setError("Invalid JSON: missing meta.pack_id or meta.pack_name");
+          setError("Invalid JSON: missing pack_id or package_name");
           setIsUploading(false);
           return;
         }
-        if (!hasScenes(pack)) {
-          setError("Invalid JSON: missing or empty scenes array");
+        if (!hasShots(pack)) {
+          setError("Invalid JSON: missing or empty shots array");
           setIsUploading(false);
           return;
         }
@@ -305,7 +305,7 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
               setJsonText(e.target.value);
               setError(null);
             }}
-            placeholder='{"meta": {...}, "config": {...}, "prompt_components": {...}, "scenes": [...]}'
+            placeholder='{"package_meta": {...}, "global_render_settings": {...}, "shots": [...]}'
             className="w-full h-48 p-3 text-sm font-mono bg-secondary border-0 rounded-lg focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
             disabled={isUploading}
           />
