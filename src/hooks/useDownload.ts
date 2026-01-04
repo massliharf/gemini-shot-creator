@@ -1,8 +1,8 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
 import JSZip from "jszip";
-import { PackData, normalizeSceneId } from "./usePacks";
-import { getPackId, getPackName } from "@/types/pack";
+import { PackData } from "./usePacks";
+import { getPackId, getPackName, normalizeSceneId } from "@/types/pack";
 
 interface UseDownloadProps {
   packs: Map<string, PackData>;
