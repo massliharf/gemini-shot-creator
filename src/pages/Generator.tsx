@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Wand2, Loader2, X, Check, Home } from "lucide-react";
@@ -23,15 +24,17 @@ interface UploadedImage {
   savedToDb?: boolean;
 }
 
+const SCENE_COUNT_OPTIONS = [4, 8, 12, 16];
+
 export default function Generator() {
   const navigate = useNavigate();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [sceneCount, setSceneCount] = useState<number>(8);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
+  const [completedCount, setCompletedCount] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -134,63 +137,81 @@ export default function Generator() {
     }
 
     setIsGenerating(true);
-    setCurrentIndex(0);
+    setCompletedCount(0);
 
-    let successCount = 0;
-    let savedCount = 0;
+    // Mark all pending as generating
+    setImages(prev => prev.map(p => 
+      pendingImages.find(pi => pi.id === p.id) 
+        ? { ...p, status: 'generating' as const } 
+        : p
+    ));
 
-    for (let i = 0; i < pendingImages.length; i++) {
-      const img = pendingImages[i];
-      setCurrentIndex(i + 1);
+    // Process all images in parallel
+    const results = await Promise.allSettled(
+      pendingImages.map(async (img) => {
+        try {
+          const { data, error } = await supabase.functions.invoke("generate-pack", {
+            body: { imageBase64: img.base64, sceneCount },
+          });
 
-      setImages(prev => prev.map(p => 
-        p.id === img.id ? { ...p, status: 'generating' } : p
-      ));
+          if (error) throw error;
 
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-pack", {
-          body: { imageBase64: img.base64, sceneCount: 8 },
-        });
-
-        if (error) throw error;
-
-        if (data.success && data.pack) {
-          const pack = data.pack as PackFile;
-          successCount++;
-
-          // Otomatik olarak veritabanına kaydet
-          const saved = await savePackToDatabase(pack);
-          if (saved) {
-            savedCount++;
-            setImages(prev => prev.map(p => 
-              p.id === img.id ? { ...p, status: 'saved', pack, savedToDb: true } : p
-            ));
+          if (data.success && data.pack) {
+            const pack = data.pack as PackFile;
+            const saved = await savePackToDatabase(pack);
+            
+            setCompletedCount(prev => prev + 1);
+            
+            return { id: img.id, pack, saved };
           } else {
-            setImages(prev => prev.map(p => 
-              p.id === img.id ? { ...p, status: 'success', pack, savedToDb: false } : p
-            ));
+            throw new Error(data.error || "Pack oluşturulamadı");
           }
-        } else {
-          throw new Error(data.error || "Pack oluşturulamadı");
+        } catch (error) {
+          setCompletedCount(prev => prev + 1);
+          throw { id: img.id, error };
         }
-      } catch (error) {
-        console.error("Generation error:", error);
-        setImages(prev => prev.map(p => 
-          p.id === img.id ? { 
-            ...p, 
-            status: 'error', 
-            error: error instanceof Error ? error.message : "Bilinmeyen hata" 
-          } : p
-        ));
+      })
+    );
+
+    // Update all image statuses based on results
+    setImages(prev => prev.map(p => {
+      const result = results.find(r => {
+        if (r.status === "fulfilled") return r.value.id === p.id;
+        if (r.status === "rejected") return r.reason?.id === p.id;
+        return false;
+      });
+
+      if (!result) return p;
+
+      if (result.status === "fulfilled") {
+        return {
+          ...p,
+          status: result.value.saved ? 'saved' as const : 'success' as const,
+          pack: result.value.pack,
+          savedToDb: result.value.saved,
+        };
+      } else {
+        return {
+          ...p,
+          status: 'error' as const,
+          error: result.reason?.error?.message || "Bilinmeyen hata",
+        };
       }
-    }
+    }));
 
     setIsGenerating(false);
-    
+
+    const successCount = results.filter(r => r.status === "fulfilled").length;
+    const savedCount = results.filter(r => r.status === "fulfilled" && r.value.saved).length;
+    const failCount = results.filter(r => r.status === "rejected").length;
+
     if (savedCount > 0) {
       toast.success(`${savedCount} pack oluşturuldu ve kaydedildi!`);
     } else if (successCount > 0) {
       toast.warning(`${successCount} pack oluşturuldu ama kaydedilemedi`);
+    }
+    if (failCount > 0) {
+      toast.error(`${failCount} pack oluşturulamadı`);
     }
   };
 
@@ -199,11 +220,10 @@ export default function Generator() {
   };
 
   const pendingCount = images.filter(i => i.status === 'pending').length;
-  const successCount = images.filter(i => i.status === 'success' || i.status === 'saved').length;
   const savedCount = images.filter(i => i.status === 'saved').length;
   const errorCount = images.filter(i => i.status === 'error').length;
-  const totalToProcess = images.filter(i => i.status !== 'saved' && i.status !== 'success').length;
-  const progress = images.length > 0 ? ((successCount + savedCount) / images.length) * 100 : 0;
+  const generatingCount = images.filter(i => i.status === 'generating').length;
+  const progress = images.length > 0 ? (completedCount / generatingCount) * 100 : 0;
 
   if (!isAuthenticated) return null;
 
@@ -220,12 +240,38 @@ export default function Generator() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Scene Count Selector */}
+          <Card className="p-4 border-border/50">
+            <div className="flex items-center gap-4">
+              <Label className="text-xs font-medium whitespace-nowrap">Sahne Sayısı:</Label>
+              <Select
+                value={sceneCount.toString()}
+                onValueChange={(v) => setSceneCount(parseInt(v))}
+                disabled={isGenerating}
+              >
+                <SelectTrigger className="w-24 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SCENE_COUNT_OPTIONS.map((count) => (
+                    <SelectItem key={count} value={count.toString()}>
+                      {count} sahne
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-[10px] text-muted-foreground">
+                Her pack için oluşturulacak sahne sayısı
+              </span>
+            </div>
+          </Card>
+
           {/* Upload Area */}
           <Card className="p-4 space-y-4 border-border/50">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium">Referans Görseller</Label>
+              <Label className="text-xs font-medium">Referans Görseller (max 10)</Label>
               {images.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={clearAll} className="text-xs h-6">
+                <Button variant="ghost" size="sm" onClick={clearAll} className="text-xs h-6" disabled={isGenerating}>
                   Temizle
                 </Button>
               )}
@@ -284,10 +330,10 @@ export default function Generator() {
             {isGenerating && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span>Üretiliyor {currentIndex} / {pendingCount + currentIndex}...</span>
-                  <span>{Math.round(progress)}%</span>
+                  <span>Paralel üretiliyor... {completedCount} / {generatingCount}</span>
+                  <span>{generatingCount > 0 ? Math.round(progress) : 0}%</span>
                 </div>
-                <Progress value={progress} className="h-1" />
+                <Progress value={generatingCount > 0 ? progress : 0} className="h-1" />
               </div>
             )}
 
