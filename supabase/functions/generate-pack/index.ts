@@ -61,7 +61,7 @@ Your response = pure JSON object only
   "gender": "any | woman_only | man_only | genderless",
   "category": "photography | illustration | 3d_render | painting | anime | cinematic",
   "tags": ["primary_style", "mood", "era", "color_tone", "technique"],
-  "description": "2-3 sentences describing the visual style, aesthetic philosophy, and emotional impact. Be specific about what makes this pack unique.",
+  "description": "2-3 sentences describing the visual style, aesthetic philosophy, and emotional impact.",
   "preview_paths": ["pack_id/scene_01.webp", ...]
 }
 
@@ -105,29 +105,65 @@ Face preservation is embedded at the START of every style_anchor prompt.
 ## 4. STYLE_ANCHOR (Complete Visual DNA - Narrative)
 
 "style_anchor": {
-  "prompt": "[FACE_PRESERVATION_BY_CATEGORY] + [Complete style DNA paragraph 4-6 sentences covering: medium/technique, camera/lens, lighting, color grading, texture, atmosphere, aesthetic references]"
+  "prompt": "[FACE_PRESERVATION_BY_CATEGORY] + [Complete style DNA paragraph 4-6 sentences]"
 }
+
+COMPLETE VISUAL DNA must include EXACT VALUES:
+- Medium/technique
+- Camera/lens with EXACT values: "50mm at f/1.4" NOT "50mm f/1.4 lens wide open"
+- Lighting philosophy
+- Color grading with PRECISE numbers: "+0.33 EV" NOT "+0.3 stops", "contrast +0.42" NOT "enhanced contrast"
+- Texture with EXACT measurements: "grain at 38% opacity" NOT "moderate grain"
+- Atmospheric mood
+- Post-processing with SPECIFIC values
 
 ## 5. SCENES (Dynamic Storytelling)
 
 "scenes": [
   {
     "id": "01",
-    "prompt": "subject + specific scene narrative"
+    "prompt": "subject + specific scene narrative with EXACT measurements"
   }
 ]
 
 ### CRITICAL SCENE WRITING RULES:
 
 1. **Always Start with "subject"** - Every scene prompt MUST begin with "subject"
-2. **Write Narrative Descriptions** - Describe the complete visual moment as a flowing paragraph
-3. **Scene Structure:**
-   - Subject placement & action
-   - Environment details
-   - Lighting specifics (direction, quality)
-   - Camera framing (angle, shot type)
-   - Expression & mood
+
+2. **Write DETERMINISTIC Descriptions** with exact measurements:
+   - Angles: "15 degrees", "45 degrees" (not "slightly", "somewhat")
+   - Distances: "2.5 meters", "1.8 meters" (not "close", "medium distance")
+   - Percentages: "65% of frame", "40% headroom" (not "mostly", "some space")
+   - Ratios: "2:1 lighting ratio", "1.5:1 key to fill" (not "bright side light")
+   - Positions: "centered with 8cm offset left" (not "off-center")
+
+3. **Scene Structure with EXACT SPECIFICATIONS:**
+   - Subject placement: exact pose description, specific body angles, measurable positions
+   - Environment: specific location with measurable elements
+   - Lighting: exact angles, measurable ratios, specific qualities
+   - Camera framing: precise angles, exact distances, measurable framing
+   - Expression: specific, observable descriptions
+
 4. **Do NOT Repeat style_anchor** - Focus ONLY on what's unique to THIS scene
+
+### GOOD Scene Example (Photography):
+{
+  "id": "01",
+  "prompt": "subject standing in open meadow positioned 10 meters from nearest tree line, facing 6 degrees toward setting sun with eyes fully closed and face tilted 22 degrees upward. Golden backlight from sun at 8 degrees above horizon creates rim light at 0.9 stops above ambient on hair and shoulder edges. Arms hang relaxed at sides with hands 8cm away from body. Shot from 10 degrees below eye level at 3.2 meters distance, subject face occupies 54% of frame height positioned at upper third line with 14% headroom."
+}
+
+### BAD Scene Example:
+{
+  "id": "01",
+  "prompt": "subject standing in field with warm golden light, eyes closed peacefully, looking serene"
+}
+(Bad because no measurements, angles are vague, no precise positioning)
+
+### GOOD Scene Example (Anime):
+{
+  "id": "05",
+  "prompt": "subject rendered in dynamic action pose with torso rotated 65 degrees from frontal plane, right arm extended forward at 160-degree shoulder angle, left arm pulled back with elbow at 95-degree bend. Face angled 35 degrees from camera showing three-quarter view, eyes focused forward with pupils at exact center of iris. Background features speed lines radiating from point 18% left of center at 12-degree angle intervals. Rim lighting effect at 3.8pt width on right edge. Subject positioned along diagonal line occupying 72% of frame height."
+}
 
 ### WHAT VARIES PER SCENE:
 - Subject's specific pose and body position
@@ -136,25 +172,12 @@ Face preservation is embedded at the START of every style_anchor prompt.
 - Environmental location and details
 - Specific lighting direction
 - Props, wardrobe, and scene elements (all from scene, NOT uploaded photo)
-- Compositional arrangement
 
 ### WHAT NEVER VARIES:
 - Face structure/identity (inherited from style_anchor)
 - Core visual style
 - Medium
 - Aesthetic category
-
-## QUALITY STANDARDS
-
-Every scene should answer:
-- Where is the subject and what are they doing?
-- What's their pose, body language, expression?
-- Where is the light coming from?
-- What's the camera angle and framing?
-- What's in the environment/background?
-- What's the emotional subtext?
-
-Apply: "Could another photographer recreate this exact shot from my description?"
 
 ## RESPONSE CHECKLIST
 
@@ -166,13 +189,11 @@ Before outputting JSON, verify:
 [ ] All 4 sections present (meta, generation, style_anchor, scenes)
 [ ] Every scene starts with "subject"
 [ ] style_anchor starts with face preservation instruction
-[ ] Face preservation clearly states: "Extract ONLY face, do NOT copy clothing/accessories/hairstyle/background/environment/props"
-[ ] style_anchor is comprehensive (7-9 sentences total including face preservation)
+[ ] style_anchor has EXACT numeric values for settings
+[ ] Scene prompts have EXACT measurements (angles, distances, percentages)
 [ ] Scene prompts do NOT repeat style_anchor details
-[ ] Scene prompts focus on specific narrative moments
-[ ] Scene count matches preview_paths count
 
-You are ready. Think like an artist. Output like a machine. Always start scene prompts with "subject". Keep style_anchor comprehensive with crystal-clear face preservation first. Keep scenes focused on narrative moments.`;
+You are ready. Think like an artist. Output like a machine. Always start scene prompts with "subject". Use EXACT NUMERIC VALUES everywhere. Keep style_anchor comprehensive with crystal-clear face preservation first. Keep scenes focused on specific narrative moments with precise measurements.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
