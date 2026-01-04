@@ -162,7 +162,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, textPrompt } = await req.json();
+    const { imageBase64, textPrompt, sceneCount = 12 } = await req.json();
 
     if (!imageBase64 && !textPrompt) {
       return new Response(
@@ -179,7 +179,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Generating style pack...");
+    console.log(`Generating style pack with ${sceneCount} scenes...`);
 
     // Build content parts
     const contentParts: unknown[] = [];
@@ -195,13 +195,13 @@ serve(async (req) => {
       });
     }
 
-    // Build the user prompt
+    // Build the user prompt with dynamic scene count
     let userPrompt = STYLE_PACK_CREATOR_PROMPT;
 
     if (textPrompt) {
-      userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete style pack based on this description. Output pure JSON only.`;
+      userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete style pack with exactly ${sceneCount} scenes based on this description. Output pure JSON only.`;
     } else {
-      userPrompt += `\n\n## Task:\nAnalyze the uploaded reference image and extract the visual DNA. Create a complete style pack that captures and explores this style across 12 unique scenes. Output pure JSON only.`;
+      userPrompt += `\n\n## Task:\nAnalyze the uploaded reference image and extract the visual DNA. Create a complete style pack with exactly ${sceneCount} unique scenes that captures and explores this style. Output pure JSON only.`;
     }
 
     contentParts.push({ text: userPrompt });
@@ -281,9 +281,11 @@ serve(async (req) => {
       );
     }
 
-    if (!Array.isArray(packData.scenes) || packData.scenes.length < 8) {
+    // Validate minimum scene count based on requested sceneCount
+    const minScenes = Math.max(4, Math.floor(sceneCount * 0.75));
+    if (!Array.isArray(packData.scenes) || packData.scenes.length < minScenes) {
       return new Response(
-        JSON.stringify({ error: "Generated pack must have at least 8 scenes" }),
+        JSON.stringify({ error: `Generated pack must have at least ${minScenes} scenes` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
