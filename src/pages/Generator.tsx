@@ -6,29 +6,32 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Wand2, Download, Loader2, X, FileJson } from "lucide-react";
+import { Upload, Wand2, Loader2, X, Check, Home } from "lucide-react";
 import type { PackFile } from "@/types/pack";
-import { getPackId, getPackName, getSceneCount } from "@/types/pack";
-import JSZip from "jszip";
+import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
+import { User } from "@supabase/supabase-js";
 
 interface UploadedImage {
   id: string;
   file: File;
   preview: string;
   base64: string;
-  status: 'pending' | 'generating' | 'success' | 'error';
+  status: 'pending' | 'generating' | 'success' | 'saved' | 'error';
   pack?: PackFile;
   error?: string;
+  savedToDb?: boolean;
 }
 
 export default function Generator() {
   const navigate = useNavigate();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -37,6 +40,7 @@ export default function Generator() {
       } else {
         setIsAuthenticated(true);
         setUserEmail(session.user.email || "");
+        setUser(session.user);
       }
     });
   }, [navigate]);
@@ -64,7 +68,7 @@ export default function Generator() {
     );
 
     setImages(prev => [...prev, ...newImages]);
-    toast.success(`${newImages.length} image(s) added`);
+    toast.success(`${newImages.length} görsel eklendi`);
   };
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -89,15 +93,51 @@ export default function Generator() {
     setImages([]);
   };
 
+  const savePackToDatabase = async (pack: PackFile): Promise<boolean> => {
+    if (!user) return false;
+
+    const packId = getPackId(pack);
+    const packName = getPackName(pack);
+
+    if (!packId || !packName || !hasScenes(pack)) {
+      console.error("Invalid pack structure");
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('packs')
+        .insert({
+          pack_name: packName,
+          pack_id: packId,
+          pack_data: pack as any,
+          user_id: user.id,
+        });
+
+      if (error) {
+        console.error("Failed to save pack:", error);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Error saving pack:", err);
+      return false;
+    }
+  };
+
   const handleGenerateAll = async () => {
     const pendingImages = images.filter(img => img.status === 'pending' || img.status === 'error');
     if (pendingImages.length === 0) {
-      toast.error("No images to generate");
+      toast.error("Oluşturulacak görsel yok");
       return;
     }
 
     setIsGenerating(true);
     setCurrentIndex(0);
+
+    let successCount = 0;
+    let savedCount = 0;
 
     for (let i = 0; i < pendingImages.length; i++) {
       const img = pendingImages[i];
@@ -115,11 +155,23 @@ export default function Generator() {
         if (error) throw error;
 
         if (data.success && data.pack) {
-          setImages(prev => prev.map(p => 
-            p.id === img.id ? { ...p, status: 'success', pack: data.pack } : p
-          ));
+          const pack = data.pack as PackFile;
+          successCount++;
+
+          // Otomatik olarak veritabanına kaydet
+          const saved = await savePackToDatabase(pack);
+          if (saved) {
+            savedCount++;
+            setImages(prev => prev.map(p => 
+              p.id === img.id ? { ...p, status: 'saved', pack, savedToDb: true } : p
+            ));
+          } else {
+            setImages(prev => prev.map(p => 
+              p.id === img.id ? { ...p, status: 'success', pack, savedToDb: false } : p
+            ));
+          }
         } else {
-          throw new Error(data.error || "Failed to generate pack");
+          throw new Error(data.error || "Pack oluşturulamadı");
         }
       } catch (error) {
         console.error("Generation error:", error);
@@ -127,65 +179,31 @@ export default function Generator() {
           p.id === img.id ? { 
             ...p, 
             status: 'error', 
-            error: error instanceof Error ? error.message : "Unknown error" 
+            error: error instanceof Error ? error.message : "Bilinmeyen hata" 
           } : p
         ));
       }
     }
 
     setIsGenerating(false);
-    toast.success("Batch generation complete!");
-  };
-
-  const handleDownloadAll = async () => {
-    const successImages = images.filter(img => img.status === 'success' && img.pack);
-    if (successImages.length === 0) {
-      toast.error("No packs to download");
-      return;
+    
+    if (savedCount > 0) {
+      toast.success(`${savedCount} pack oluşturuldu ve kaydedildi!`);
+    } else if (successCount > 0) {
+      toast.warning(`${successCount} pack oluşturuldu ama kaydedilemedi`);
     }
-
-    const zip = new JSZip();
-
-    successImages.forEach(img => {
-      // New nested schema: meta.pack_name and meta.pack_id
-      const packName = img.pack ? getPackName(img.pack) : 'pack';
-      const packId = img.pack ? getPackId(img.pack) : packName.replace(/\s+/g, '_').toLowerCase();
-      const fileName = `${packId}.json`;
-      zip.file(fileName, JSON.stringify(img.pack, null, 2));
-    });
-
-    const blob = await zip.generateAsync({ type: "blob" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `stylepacks_${Date.now()}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success(`${successImages.length} pack(s) downloaded as ZIP`);
   };
 
-  const handleDownloadSingle = (img: UploadedImage) => {
-    if (!img.pack) return;
-    // New nested schema: meta.pack_name and meta.pack_id
-    const packName = getPackName(img.pack);
-    const packId = getPackId(img.pack) || packName.replace(/\s+/g, '_').toLowerCase();
-    const blob = new Blob([JSON.stringify(img.pack, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${packId}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const goToMainPage = () => {
+    navigate("/");
   };
 
   const pendingCount = images.filter(i => i.status === 'pending').length;
-  const successCount = images.filter(i => i.status === 'success').length;
+  const successCount = images.filter(i => i.status === 'success' || i.status === 'saved').length;
+  const savedCount = images.filter(i => i.status === 'saved').length;
   const errorCount = images.filter(i => i.status === 'error').length;
-  const progress = images.length > 0 ? (successCount / images.length) * 100 : 0;
+  const totalToProcess = images.filter(i => i.status !== 'saved' && i.status !== 'success').length;
+  const progress = images.length > 0 ? ((successCount + savedCount) / images.length) * 100 : 0;
 
   if (!isAuthenticated) return null;
 
@@ -193,10 +211,10 @@ export default function Generator() {
     <AppLayout userEmail={userEmail}>
       <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
         <div className="p-4 border-b border-border/50">
-          <h1 className="text-sm font-semibold">Pack Generator</h1>
+          <h1 className="text-sm font-semibold">Toplu Pack Oluşturucu</h1>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
             <span>{images.length} görsel</span>
-            {successCount > 0 && <span className="text-green-500">• {successCount} başarılı</span>}
+            {savedCount > 0 && <span className="text-green-500">• {savedCount} kaydedildi</span>}
             {errorCount > 0 && <span className="text-red-500">• {errorCount} hatalı</span>}
           </div>
         </div>
@@ -234,7 +252,8 @@ export default function Generator() {
                       src={img.preview}
                       alt="Reference"
                       className={`w-full aspect-square object-cover rounded-lg border-2 ${
-                        img.status === 'success' ? 'border-green-500' :
+                        img.status === 'saved' ? 'border-green-500' :
+                        img.status === 'success' ? 'border-blue-500' :
                         img.status === 'error' ? 'border-red-500' :
                         img.status === 'generating' ? 'border-yellow-500 animate-pulse' :
                         'border-border/50'
@@ -245,13 +264,10 @@ export default function Generator() {
                         <Loader2 className="h-4 w-4 animate-spin text-white" />
                       </div>
                     )}
-                    {img.status === 'success' && (
-                      <button
-                        onClick={() => handleDownloadSingle(img)}
-                        className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <FileJson className="h-4 w-4 text-white" />
-                      </button>
+                    {img.status === 'saved' && (
+                      <div className="absolute inset-0 bg-green-500/20 rounded-lg flex items-center justify-center">
+                        <Check className="h-4 w-4 text-green-500" />
+                      </div>
                     )}
                     <button
                       onClick={() => removeImage(img.id)}
@@ -268,7 +284,7 @@ export default function Generator() {
             {isGenerating && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span>Üretiliyor {currentIndex} / {images.filter(i => i.status !== 'success').length}...</span>
+                  <span>Üretiliyor {currentIndex} / {pendingCount + currentIndex}...</span>
                   <span>{Math.round(progress)}%</span>
                 </div>
                 <Progress value={progress} className="h-1" />
@@ -291,44 +307,47 @@ export default function Generator() {
                 ) : (
                   <>
                     <Wand2 className="h-4 w-4 mr-2" />
-                    Oluştur ({pendingCount})
+                    Oluştur ve Kaydet ({pendingCount})
                   </>
                 )}
               </Button>
-              <Button
-                onClick={handleDownloadAll}
-                disabled={successCount === 0}
-                variant="outline"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                ZIP ({successCount})
-              </Button>
+              {savedCount > 0 && (
+                <Button
+                  onClick={goToMainPage}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Home className="h-4 w-4 mr-2" />
+                  Ana Sayfa
+                </Button>
+              )}
             </div>
           </Card>
 
-          {/* Generated Packs List */}
-          {images.filter(i => i.status === 'success' && i.pack).length > 0 && (
-            <Card className="p-4 space-y-4 border-border/50">
-              <Label className="text-xs font-medium">Oluşturulan Pack'ler</Label>
+          {/* Saved Packs List */}
+          {images.filter(i => i.status === 'saved' && i.pack).length > 0 && (
+            <Card className="p-4 space-y-4 border-green-500/30 bg-green-500/5">
+              <Label className="text-xs font-medium text-green-600">Kaydedilen Pack'ler</Label>
               <div className="space-y-2">
-                {images.filter(i => i.status === 'success' && i.pack).map(img => (
-                  <div key={img.id} className="flex items-center gap-3 p-2 bg-secondary/30 rounded-lg">
+                {images.filter(i => i.status === 'saved' && i.pack).map(img => (
+                  <div key={img.id} className="flex items-center gap-3 p-2 bg-green-500/10 rounded-lg">
                     <img src={img.preview} className="w-10 h-10 object-cover rounded-lg shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">
                         {img.pack ? getPackName(img.pack) : 'Untitled Pack'}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {getSceneCount(img.pack) || 0} sahne
+                        {getSceneCount(img.pack) || 0} sahne • Kaydedildi ✓
                       </p>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => handleDownloadSingle(img)} className="h-7 w-7 p-0">
-                      <Download className="h-3 w-3" />
-                    </Button>
+                    <Check className="h-4 w-4 text-green-500 shrink-0" />
                   </div>
                 ))}
               </div>
+              <Button onClick={goToMainPage} className="w-full" size="sm">
+                <Home className="h-4 w-4 mr-2" />
+                Pack'leri Görüntüle
+              </Button>
             </Card>
           )}
 
