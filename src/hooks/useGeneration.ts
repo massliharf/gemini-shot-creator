@@ -1,9 +1,9 @@
 import { useCallback, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { 
-  SceneStatus, PackFile, TokenUsage, PackGenerationStats, 
+  SceneStatus, TokenUsage, PackGenerationStats, 
   getPackName, buildFinalPrompt, getGenerationConfig,
-  calculateCost, GeminiModel, formatCost
+  calculateImageCost, GeminiModel, formatCost
 } from "@/types/pack";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -141,7 +141,8 @@ export const useGeneration = ({
         // Track token usage with cost
         if (data?.tokenUsage) {
           const modelKey = (selectedModel === "pro" ? "gemini-3-pro-image-preview" : "gemini-2.5-flash-image") as GeminiModel;
-          const cost = calculateCost(data.tokenUsage, modelKey, 1);
+          const resolutionKey = (resolution as "1K" | "2K" | "4K") || "1K";
+          const cost = calculateImageCost(data.tokenUsage.promptTokens, modelKey, 1, resolutionKey);
           
           setPackTokenStats(prev => {
             const updated = new Map(prev);
@@ -156,9 +157,9 @@ export const useGeneration = ({
               imagesGenerated: (existing?.imagesGenerated || 0) + 1,
               scenesGenerated: (existing?.scenesGenerated || 0) + 1,
               model: modelKey,
+              resolution: resolutionKey,
               cost: {
                 inputCost: (existing?.cost.inputCost || 0) + cost.inputCost,
-                outputCost: (existing?.cost.outputCost || 0) + cost.outputCost,
                 imageCost: (existing?.cost.imageCost || 0) + cost.imageCost,
                 totalCost: (existing?.cost.totalCost || 0) + cost.totalCost,
                 currency: "USD",
@@ -316,6 +317,7 @@ export const useGeneration = ({
 
     // Reset token stats for this pack at start of generation
     const modelKey = (selectedModel === "pro" ? "gemini-3-pro-image-preview" : "gemini-2.5-flash-image") as GeminiModel;
+    const resolutionKey = (resolution as "1K" | "2K" | "4K") || "1K";
     setPackTokenStats(prev => {
       const updated = new Map(prev);
       updated.set(packId, {
@@ -327,7 +329,8 @@ export const useGeneration = ({
         imagesGenerated: 0,
         scenesGenerated: 0,
         model: modelKey,
-        cost: { inputCost: 0, outputCost: 0, imageCost: 0, totalCost: 0, currency: "USD" },
+        resolution: resolutionKey,
+        cost: { inputCost: 0, imageCost: 0, totalCost: 0, currency: "USD" },
         timestamp: new Date().toISOString(),
       });
       return updated;
@@ -385,7 +388,7 @@ export const useGeneration = ({
 
           // Track token usage with cost
           if (data?.tokenUsage) {
-            const cost = calculateCost(data.tokenUsage, modelKey, 1);
+            const cost = calculateImageCost(data.tokenUsage.promptTokens, modelKey, 1, resolutionKey);
             
             setPackTokenStats(prev => {
               const updated = new Map(prev);
@@ -400,9 +403,9 @@ export const useGeneration = ({
                 imagesGenerated: (existing?.imagesGenerated || 0) + 1,
                 scenesGenerated: (existing?.scenesGenerated || 0) + 1,
                 model: modelKey,
+                resolution: resolutionKey,
                 cost: {
                   inputCost: (existing?.cost.inputCost || 0) + cost.inputCost,
-                  outputCost: (existing?.cost.outputCost || 0) + cost.outputCost,
                   imageCost: (existing?.cost.imageCost || 0) + cost.imageCost,
                   totalCost: (existing?.cost.totalCost || 0) + cost.totalCost,
                   currency: "USD",
