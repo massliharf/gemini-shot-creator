@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, Wand2, Loader2, X, Check, Home } from "lucide-react";
 import type { PackFile } from "@/types/pack";
-import { getPackId, getPackName, getShotCount, hasShots } from "@/types/pack";
+import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
 
@@ -102,7 +102,7 @@ export default function Generator() {
     const packId = getPackId(pack);
     const packName = getPackName(pack);
 
-    if (!packId || !packName || !hasShots(pack)) {
+    if (!packId || !packName || !hasScenes(pack)) {
       console.error("Invalid pack structure");
       return false;
     }
@@ -383,7 +383,7 @@ export default function Generator() {
                         {img.pack ? getPackName(img.pack) : 'Untitled Pack'}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {getShotCount(img.pack!) || 0} sahne • Kaydedildi ✓
+                        {getSceneCount(img.pack!) || 0} sahne • Kaydedildi ✓
                       </p>
                     </div>
                     <Check className="h-4 w-4 text-green-500 shrink-0" />

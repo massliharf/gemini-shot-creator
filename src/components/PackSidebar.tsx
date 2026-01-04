@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getPackTags, hasShots, getShotCount } from "@/types/pack";
+import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getPackTags, hasScenes, getSceneCount } from "@/types/pack";
 import {
   Briefcase, Palette, Wand2, Film, Clock, Shirt, Plane, Sun, Globe2, GraduationCap,
   Users, User, Sparkles, Upload, Loader2, Trash2, Play, Download, HardDrive, Bomb,
@@ -254,8 +254,8 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
           setIsUploading(false);
           return;
         }
-        if (!hasShots(pack)) {
-          setError("Invalid JSON: missing or empty shots array");
+        if (!hasScenes(pack)) {
+          setError("Invalid JSON: missing or empty scenes array");
           setIsUploading(false);
           return;
         }
