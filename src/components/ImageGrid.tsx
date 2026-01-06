@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Download, RefreshCw, Play, Image as ImageIcon, Expand } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { FullscreenImageView } from "./FullscreenImageView";
+import { SmartImage } from "@/components/SmartImage";
 
 interface ImageGridProps {
   shots: SceneWithStatus[];
@@ -12,21 +13,21 @@ interface ImageGridProps {
 }
 
 const getSceneId = (scene: any): string | number => {
-  return scene.id ?? scene.scene_id ?? '0';
+  return scene.id ?? scene.scene_id ?? "0";
 };
 
 const getSceneName = (scene: any): string => {
-  return scene.name || scene.title || '';
+  return scene.name || scene.title || "";
 };
 
 export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridProps) => {
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
 
-  const successfulShots = shots.filter(s => s.status === 'success' && s.imageUrl);
+  const successfulShots = shots.filter((s) => s.status === "success" && s.imageUrl);
   const currentFullscreenShot = fullscreenIndex !== null ? successfulShots[fullscreenIndex] : null;
 
   const handleOpenFullscreen = (scene: SceneWithStatus) => {
-    const idx = successfulShots.findIndex(s => getSceneId(s) === getSceneId(scene));
+    const idx = successfulShots.findIndex((s) => getSceneId(s) === getSceneId(scene));
     if (idx !== -1) setFullscreenIndex(idx);
   };
 
@@ -49,26 +50,28 @@ export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridPr
           {shots.map((scene) => {
             const sceneId = getSceneId(scene);
             const sceneName = getSceneName(scene);
-            const isGenerating = scene.status === 'generating';
-            const hasImage = scene.status === 'success' && scene.imageUrl;
-            const isIdle = scene.status === 'idle';
-            const isError = scene.status === 'error';
+            const isGenerating = scene.status === "generating";
+            const hasImage = scene.status === "success" && scene.imageUrl;
+            const isIdle = scene.status === "idle";
+            const isError = scene.status === "error";
 
             return (
               <div
                 key={sceneId}
                 className="group relative bg-secondary rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer"
-                style={{ minWidth: '280px', maxWidth: '420px', flex: '1 1 300px' }}
+                style={{ minWidth: "280px", maxWidth: "420px", flex: "1 1 300px" }}
                 onClick={() => hasImage && handleOpenFullscreen(scene)}
               >
                 {hasImage ? (
                   <>
-                    <img
-                      src={scene.imageUrl}
+                    <SmartImage
+                      src={scene.imageUrl!}
                       alt={sceneName || `Scene ${sceneId}`}
-                      className="w-full h-auto object-contain"
+                      className="w-full h-auto"
                       loading="lazy"
+                      maxRetries={3}
                     />
+
                     {/* Hover overlay with actions */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       {/* Scene info */}
@@ -81,9 +84,9 @@ export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridPr
 
                       {/* Expand icon */}
                       <div className="absolute top-2 right-2">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white rounded-lg backdrop-blur-sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -93,12 +96,12 @@ export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridPr
                           <Expand className="w-3.5 h-3.5" />
                         </Button>
                       </div>
-                      
+
                       {/* Bottom actions */}
                       <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white rounded-lg backdrop-blur-sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -107,9 +110,9 @@ export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridPr
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
                         </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white rounded-lg backdrop-blur-sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -153,9 +156,7 @@ export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridPr
                           </Button>
                         )}
                         {isError && (
-                          <p className="text-[10px] text-destructive px-2 text-center line-clamp-2">
-                            {scene.error}
-                          </p>
+                          <p className="text-[10px] text-destructive px-2 text-center line-clamp-2">{scene.error}</p>
                         )}
                       </>
                     )}
