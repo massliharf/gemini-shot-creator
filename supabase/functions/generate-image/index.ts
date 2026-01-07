@@ -44,10 +44,8 @@ serve(async (req) => {
       selfie2MimeType = "image/jpeg",
       finalPrompt,
       model = "flash",
-      temperature = 0.70,
-      topP = 0.92,
       aspectRatio = "4:5",
-      resolution = "1K", // Only used for Pro model
+      resolution = "1K",
     } = await req.json();
 
     // Validate API key
@@ -114,25 +112,18 @@ serve(async (req) => {
 
     parts.push({ text: finalPrompt });
 
-    // Build generation config based on model
-    // REST API format matches Python SDK: imageConfig with aspectRatio (and imageSize for Pro)
+    // Build generation config - only essential params
     const generationConfig: Record<string, unknown> = {
-      temperature,
-      topP,
-      candidateCount: 1,
-      maxOutputTokens: 8192,
       responseModalities: ["IMAGE", "TEXT"],
     };
 
     // Add imageConfig based on model type
     if (isProModel) {
-      // Pro model: aspectRatio + imageSize
       generationConfig.imageConfig = {
         aspectRatio: validAspectRatio,
         imageSize: validResolution,
       };
     } else {
-      // Flash model: only aspectRatio
       generationConfig.imageConfig = {
         aspectRatio: validAspectRatio,
       };
