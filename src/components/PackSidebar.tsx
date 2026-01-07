@@ -52,12 +52,14 @@ interface PackSidebarProps {
   onDownloadAllCloudData?: () => void;
   onDeleteAllCloudData?: () => void;
   onDeleteAllPacks?: () => void;
+  onDownloadPackOptimized?: (packId: string) => void;
   isGeneratingAll?: boolean;
 }
 
 const categoryIcons: Record<string, React.ReactNode> = {
   photography: <Film className="w-4 h-4" />,
   "3d": <Wand2 className="w-4 h-4" />,
+  art: <Palette className="w-4 h-4" />,
   illustration: <Palette className="w-4 h-4" />,
   painting: <Palette className="w-4 h-4" />,
   professional: <Briefcase className="w-4 h-4" />,
@@ -70,6 +72,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   seasonal: <Sun className="w-4 h-4" />,
   cultural: <Globe2 className="w-4 h-4" />,
   career: <GraduationCap className="w-4 h-4" />,
+  other: <Sparkles className="w-4 h-4" />,
 };
 
 const genderIcons: Record<string, React.ReactNode> = {
@@ -344,12 +347,14 @@ const PackCard = ({
   pack, 
   isSelected, 
   onSelect, 
-  onDelete 
+  onDelete,
+  onDownloadOptimized,
 }: { 
   pack: PackInfo; 
   isSelected: boolean; 
   onSelect: () => void; 
   onDelete: () => void;
+  onDownloadOptimized?: () => void;
 }) => {
   const gender = getPackGender(pack.pack) || "any";
   const packName = getPackName(pack.pack);
@@ -402,35 +407,53 @@ const PackCard = ({
           </div>
         </div>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
+        <div className="flex items-center gap-0.5">
+          {/* Download Optimized Button */}
+          {pack.completedShots > 0 && onDownloadOptimized && (
             <Button
               variant="ghost"
               size="icon"
               className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownloadOptimized();
+              }}
+              title="WebP + Orijinal İndir"
             >
-              <Trash2 className="w-3 h-3 text-muted-foreground" />
+              <Download className="w-3 h-3 text-primary" />
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Pack'i Sil?</AlertDialogTitle>
-              <AlertDialogDescription>
-                "{packName}" ve tüm görselleri silinecek.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>İptal</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={onDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          )}
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
               >
-                Sil
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <Trash2 className="w-3 h-3 text-muted-foreground" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Pack'i Sil?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  "{packName}" ve tüm görselleri silinecek.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>İptal</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={onDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Sil
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* Tags */}
@@ -461,6 +484,7 @@ export const PackSidebar = ({
   onDownloadAllCloudData,
   onDeleteAllCloudData,
   onDeleteAllPacks,
+  onDownloadPackOptimized,
   isGeneratingAll = false,
 }: PackSidebarProps) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['all']));
@@ -599,6 +623,7 @@ export const PackSidebar = ({
                 isSelected={selectedPackId === pack.packId}
                 onSelect={() => onSelectPack(pack.packId)}
                 onDelete={() => onDeletePack(pack.packId)}
+                onDownloadOptimized={onDownloadPackOptimized ? () => onDownloadPackOptimized(pack.packId) : undefined}
               />
             ))
           ) : (
@@ -629,6 +654,7 @@ export const PackSidebar = ({
                       isSelected={selectedPackId === pack.packId}
                       onSelect={() => onSelectPack(pack.packId)}
                       onDelete={() => onDeletePack(pack.packId)}
+                      onDownloadOptimized={onDownloadPackOptimized ? () => onDownloadPackOptimized(pack.packId) : undefined}
                     />
                   ))}
                 </CollapsibleContent>

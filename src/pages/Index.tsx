@@ -90,6 +90,7 @@ const Index = () => {
   const {
     downloadScene,
     downloadPackAsZip,
+    downloadPackOptimized,
     downloadAllPacks,
   } = useDownload({ packs, selectedPackId });
 
@@ -266,6 +267,7 @@ const Index = () => {
                   onDownloadAllCloudData={downloadAllCloudData}
                   onDeleteAllCloudData={deleteAllCloudData}
                   onDeleteAllPacks={deleteAllPacks}
+                  onDownloadPackOptimized={downloadPackOptimized}
                   isGeneratingAll={isGeneratingAll}
                 />
               </SheetContent>
@@ -298,6 +300,7 @@ const Index = () => {
             onDownloadAllCloudData={downloadAllCloudData}
             onDeleteAllCloudData={deleteAllCloudData}
             onDeleteAllPacks={deleteAllPacks}
+            onDownloadPackOptimized={downloadPackOptimized}
             isGeneratingAll={isGeneratingAll}
           />
         </aside>

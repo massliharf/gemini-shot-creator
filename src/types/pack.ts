@@ -165,9 +165,9 @@ export const getPackGender = (pack: PackFile | LegacyPackFile): string => {
 };
 
 export const getPackCategory = (pack: PackFile | LegacyPackFile): string => {
-  if ("meta" in pack) return pack.meta.category;
-  if ("package_meta" in pack) return pack.package_meta.style_category;
-  return "Photography";
+  if ("meta" in pack) return (pack.meta.category || "Photography").toLowerCase();
+  if ("package_meta" in pack) return (pack.package_meta.style_category || "photography").toLowerCase();
+  return "photography";
 };
 
 export const getPackTags = (pack: PackFile | LegacyPackFile): string[] => {
