@@ -82,7 +82,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
         for (let partIndex = 0; partIndex < parts.length; partIndex++) {
           const zip = new JSZip();
           const folder = zip.folder(packIdName);
-          folder?.file("pack.json", JSON.stringify(packData.pack, null, 2));
+          folder?.file(`${packIdName}.json`, JSON.stringify(packData.pack, null, 2));
 
           await mapLimit(parts[partIndex], 4, async (scene) => {
             const response = await fetch(scene.imageUrl!, { cache: "no-store" });
@@ -201,7 +201,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
             const existing = folderByPack.get(packName);
             if (existing) return existing;
             const folder = zip.folder(packName) as JSZip;
-            folder.file("pack.json", JSON.stringify(packData.pack, null, 2));
+            folder.file(`${packName}.json`, JSON.stringify(packData.pack, null, 2));
             folderByPack.set(packName, folder);
             return folder;
           };
