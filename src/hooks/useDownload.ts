@@ -2,13 +2,44 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import JSZip from "jszip";
 import { PackData } from "./usePacks";
-import { getPackId, getPackName, normalizeSceneId } from "@/types/pack";
+import { getPackId, getPackName, normalizeSceneId, PackFile } from "@/types/pack";
 import {
   chunkArray,
   getMaxZipImagesPerPart,
   mapLimit,
   triggerDownload,
 } from "@/lib/download-utils";
+
+// Convert image to WebP using canvas
+const convertToWebP = async (blob: Blob, quality: number = 0.85): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(blob); // fallback to original
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(
+        (webpBlob) => {
+          if (webpBlob) {
+            resolve(webpBlob);
+          } else {
+            resolve(blob); // fallback
+          }
+        },
+        "image/webp",
+        quality
+      );
+    };
+    img.onerror = () => resolve(blob); // fallback
+    img.src = URL.createObjectURL(blob);
+  });
+};
 
 interface UseDownloadProps {
   packs: Map<string, PackData>;
@@ -145,6 +176,90 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
     [packs]
   );
 
+  // Download pack with WebP-optimized images (reduced size) + keep originals
+  const downloadPackOptimized = useCallback(
+    async (packId: string) => {
+      const packData = packs.get(packId);
+      if (!packData) return;
+
+      const successfulScenes = packData.scenes.filter(
+        (s) => s.status === "success" && s.imageUrl
+      );
+
+      if (successfulScenes.length === 0) {
+        toast.error("İndirilecek görsel yok");
+        return;
+      }
+
+      const packIdName = String(
+        getPackId(packData.pack) || getPackName(packData.pack) || "pack"
+      );
+
+      try {
+        const toastId = toast.loading(`${packIdName} hazırlanıyor... (${successfulScenes.length} görsel)`);
+
+        const zip = new JSZip();
+        const folder = zip.folder(packIdName);
+        
+        // Add JSON with the pack name
+        folder?.file(`${packIdName}.json`, JSON.stringify(packData.pack, null, 2));
+
+        // Create originals subfolder
+        const originalsFolder = folder?.folder("originals");
+
+        let completed = 0;
+        await mapLimit(successfulScenes, 4, async (scene) => {
+          const response = await fetch(scene.imageUrl!, { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`Scene ${scene.id} fetch failed: ${response.status}`);
+          }
+          const originalBlob = await response.blob();
+          const sceneIdStr = String(normalizeSceneId(scene.id)).padStart(2, "0");
+          
+          // Save original
+          originalsFolder?.file(`scene-${sceneIdStr}.jpg`, originalBlob);
+          
+          // Convert to WebP (reduced)
+          const webpBlob = await convertToWebP(originalBlob, 0.82);
+          folder?.file(`scene-${sceneIdStr}.webp`, webpBlob);
+
+          completed++;
+          toast.loading(`${packIdName} hazırlanıyor... (${completed}/${successfulScenes.length})`, { id: toastId });
+        });
+
+        const zipBlob = await zip.generateAsync({
+          type: "blob",
+          compression: "DEFLATE",
+          compressionOptions: { level: 6 },
+          streamFiles: true,
+        });
+
+        toast.dismiss(toastId);
+
+        const url = URL.createObjectURL(zipBlob);
+        const filename = `${packIdName}-optimized.zip`;
+        
+        // Auto download
+        triggerDownload(url, filename);
+        
+        const sizeMB = (zipBlob.size / 1024 / 1024).toFixed(1);
+        toast.success(`${packIdName}.zip indirildi (${sizeMB} MB)`);
+        
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+
+        if (error instanceof RangeError) {
+          toast.error("ZIP oluşturulamadı: Bellek yetmedi");
+        } else {
+          toast.error(`ZIP hatası: ${message}`);
+        }
+        console.error(error);
+      }
+    },
+    [packs]
+  );
+
   const downloadAllPacks = useCallback(
     async () => {
       if (packs.size === 0) {
@@ -268,6 +383,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
   return {
     downloadScene,
     downloadPackAsZip,
+    downloadPackOptimized,
     downloadAllPacks,
   };
 };

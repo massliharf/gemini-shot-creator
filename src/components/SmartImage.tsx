@@ -18,7 +18,7 @@ export function SmartImage({
   src,
   alt,
   className,
-  loading = "lazy",
+  loading = "eager", // Changed to eager for faster loading
   maxRetries = 3,
 }: SmartImageProps) {
   const initialSrc = useMemo(() => src, [src]);
@@ -36,24 +36,24 @@ export function SmartImage({
     <div className={cn("relative", className)}>
       {!loaded && (
         <div className="absolute inset-0 grid place-items-center bg-muted/30">
-          <div className="h-6 w-6 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground/70 animate-spin" />
+          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground/70 animate-spin" />
         </div>
       )}
       <img
         src={currentSrc}
         alt={alt}
         loading={loading}
-        className={cn("w-full h-full object-contain", loaded ? "opacity-100" : "opacity-0")}
+        className={cn("w-full h-full object-contain transition-opacity duration-150", loaded ? "opacity-100" : "opacity-0")}
         onLoad={() => setLoaded(true)}
         onError={() => {
           if (attempt >= maxRetries) {
-            setLoaded(true); // stop spinner; browser will show broken image icon
+            setLoaded(true);
             return;
           }
           const nextAttempt = attempt + 1;
           setAttempt(nextAttempt);
-          // storage sometimes becomes available a moment later; retry with cache-bust
-          setTimeout(() => setCurrentSrc(withCacheBust(src)), 800 * nextAttempt);
+          // Faster retry: 300ms instead of 800ms
+          setTimeout(() => setCurrentSrc(withCacheBust(src)), 300 * nextAttempt);
         }}
       />
     </div>
