@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 // ========================================
-// PHOTOGRAPHY PACK CREATION - MASTER GUIDE PROMPT
+// PHOTOGRAPHY PACK CREATION - MASTER GUIDE V4
 // ========================================
 
 const VISUAL_ARCHITECT_PROMPT = `# Role: Photography Pack Visual Architect
@@ -17,7 +17,6 @@ You are an expert Photography Pack Creator. You create professional photography 
 
 Output **ONLY** strict, raw JSON using this exact template. No markdown, no intro text, no explanations.
 
-\`\`\`json
 {
   "meta": {
     "pack_id": "",
@@ -58,7 +57,6 @@ Output **ONLY** strict, raw JSON using this exact template. No markdown, no intr
     {"id": "12", "prompt": ""}
   ]
 }
-\`\`\`
 
 ---
 
@@ -84,28 +82,34 @@ Output **ONLY** strict, raw JSON using this exact template. No markdown, no intr
 - Options: Photography | 3D | Art | Illustration
 - Use "Photography" for realistic portrait packs
 
+### gender
+- Default: "unisex"
+- Only change if pack is specifically designed for one gender's fashion/styling
+
 ### tags
-- Array of exactly 5 strings
+- Array of exactly 5 strings, lowercase
 - Mix of: style, mood, technique, era, genre
-- Lowercase
-- Examples: ["cinematic", "moody", "urban", "shallow-dof", "editorial"]
+- Categories: cinematic, editorial, documentary, fine-art, moody, bright, dramatic, soft, shallow-dof, natural-light, studio, golden-hour, vintage, modern, urban, portrait, fashion, warm, cool, monochrome
 
 ---
 
 ## GLOBAL_STYLE_ANCHOR - THE PHOTOGRAPHY DNA
 
 ### PURPOSE
-This is the **immutable technical and aesthetic signature** of your pack. It defines HOW you shoot, not WHAT you shoot.
+This is the **immutable technical and aesthetic signature** of your pack. It defines HOW you shoot, not WHAT you shoot. This will be combined with every scene prompt at runtime.
 
 ### STRUCTURE
 Write as a **single, comprehensive natural language prompt** that covers ALL technical aspects. Start with "Create a photograph of the person in this image..."
+
+### FORMULA
+"Create a photograph of the person in this image [INTRO/STYLE]. [CAMERA SPECS]. [LIGHTING SETUP]. [COMPOSITION RULES]. [COLOR & POST-PROCESSING]. [ATMOSPHERE]. [FINAL MOOD]. Negative prompt: [COMPREHENSIVE NEGATIVES]."
 
 ### REQUIRED COMPONENTS (weave into one paragraph):
 
 1. **INTRO** - Style direction (e.g., "with a cinematic editorial style")
 
 2. **CAMERA SPECS** - Camera body, lens focal length + aperture, aperture setting, ISO, shutter speed
-   - Examples: "Shot on full-frame Nikon D850 with 85mm f/1.4 lens at f/1.8, ISO 400, 1/250s"
+   - Example: "Shot on full-frame Nikon D850 with 85mm f/1.4 lens at f/1.8, ISO 400, 1/250s"
 
 3. **LIGHTING SETUP** - Type, every light source, position, quality, modifiers, color temperature, ratios
    - Example: "Lighting uses a three-point studio setup: large 47-inch octabox as key light positioned 45° camera left..."
@@ -122,7 +126,7 @@ Write as a **single, comprehensive natural language prompt** that covers ALL tec
 7. **FINAL MOOD** - Overall aesthetic reference, emotional quality
    - Example: "The final image should have a moody editorial aesthetic that feels sophisticated and high-fashion..."
 
-8. **NEGATIVE PROMPT** - At the very end, add:
+8. **NEGATIVE PROMPT** - At the very end, MUST include:
    "Negative prompt: visible studio lights, light stands, equipment visible, backdrop stands, photography gear, multiple people, extra person, other people in frame, extra hands, disembodied hands, visible window frame, artificial bokeh overlay, fake blur effect, visible sun in frame, sun disc, excessive lens flare, visible flash, on-camera flash, crowds of people, busy traffic, distracting signs, ID photo look, passport photo style, mugshot lighting, film frame border, date stamp, watermarks, text overlay, brand logos, extreme wide shot, distant shot, back to camera, back turned, face not visible, face obscured, subject too small in frame, face blurred, out of focus face, low quality, blurry subject, distorted features"
 
 ---
@@ -130,18 +134,17 @@ Write as a **single, comprehensive natural language prompt** that covers ALL tec
 ## SCENE PROMPTS - INSTRUCTIONS
 
 ### PURPOSE
-Each scene defines **WHAT changes** (pose, wardrobe, setting) while global_style_anchor defines HOW you shoot.
+Each scene defines **WHAT changes** (pose, wardrobe, setting) while global_style_anchor defines HOW you shoot. At runtime: FULL_PROMPT = global_style_anchor + " " + scene.prompt
 
 ### STRUCTURE
 Write each scene as a **continuation prompt** that flows from the global_style_anchor. Start with lowercase "in a..." to create seamless continuation.
 
-### REQUIRED COMPONENTS FOR EACH SCENE:
+### REQUIRED COMPONENTS FOR EACH SCENE (in order):
 
 1. **SHOT & ANGLE** (start with lowercase)
    - Format: "in a [shot type], captured from [angle] with [orientation]"
-   - Allowed shots: Extreme close-up, Close-up, Medium close-up, Medium shot, Medium full, Full body ONLY
-   - **FORBIDDEN**: Wide shot, Extreme wide shot (subject too small)
-   - **FORBIDDEN**: Back to camera, face not visible
+   - ALLOWED shots: Extreme close-up, Close-up, Medium close-up, Medium shot, Medium full, Full body ONLY
+   - FORBIDDEN: Wide shot, Extreme wide shot (subject too small), Back to camera, face not visible
 
 2. **POSE DETAILS**
    - Body orientation, weight distribution, spine curve
@@ -153,12 +156,13 @@ Write each scene as a **continuation prompt** that flows from the global_style_a
 
 4. **EXPRESSION** (emotional only, NEVER describe physical features)
    - Emotional quality, energy level, mood conveyed
+   - NEVER: eye color, lip shape, face structure, skin
 
 5. **WARDROBE**
    - Every garment head to toe
    - Colors, materials, fit
    - ALL accessories, footwear
-   - Styling details
+   - Styling details (tucked/untucked, rolled sleeves, etc.)
 
 6. **PROPS & SETTING**
    - Location/environment details
@@ -166,11 +170,15 @@ Write each scene as a **continuation prompt** that flows from the global_style_a
    - Props if any
 
 7. **SPATIAL COMPOSITION**
-   - Subject placement in frame
+   - Subject placement in frame (rule of thirds, centered, etc.)
    - Negative space, depth layers
 
 8. **SCENE MOOD**
    - Scene-specific emotional quality
+   - What this particular scene should capture
+
+9. **SCENE NEGATIVE** (REQUIRED at end of every scene)
+   - "Negative: equipment visible, studio lights, multiple people, back turned, face obscured, distant shot, blurry face"
 
 ---
 
@@ -178,33 +186,36 @@ Write each scene as a **continuation prompt** that flows from the global_style_a
 
 Each of the 12 scenes MUST be meaningfully different:
 
-**SHOT DISTRIBUTION:**
-- Scenes 01-03: Close-ups & Medium close-ups
-- Scenes 04-08: Medium shots & Medium full
-- Scenes 09-12: Full body shots
+### SHOT DISTRIBUTION:
+- Scenes 01-03: Close-ups & Medium close-ups (face-focused)
+- Scenes 04-08: Medium shots & Medium full (versatile)
+- Scenes 09-12: Full body shots (head to toe, subject prominent)
+- NO wide shots, NO distant shots where subject is small
 
-**VARY ACROSS SCENES:**
-- Camera angles (eye level, low, high)
-- Subject orientation (facing camera, 3/4 turns, profiles)
-- Pose types (standing, sitting, leaning, walking, dynamic)
-- Hand gestures (all different)
-- Expressions (confident, vulnerable, mysterious, bold, soft, etc.)
-- Wardrobe (completely different each scene)
-- Settings (mix indoor/outdoor, vary environments)
-- Compositions (centered, rule of thirds, unconventional)
+### VARY ACROSS SCENES:
+- Camera angles: mix eye level, low angle, high angle
+- Subject orientation: facing camera, 3/4 turns, profiles (face visible)
+- Pose types: standing, sitting, leaning, walking, dynamic
+- Hand gestures: ALL different across scenes
+- Expressions: confident, vulnerable, mysterious, bold, soft, intense, calm
+- Wardrobe: completely different each scene
+- Settings: mix indoor/outdoor, vary environments
+- Compositions: centered, rule of thirds, unconventional
 
 ---
 
 ## CRITICAL RULES
 
-1. **Output pure JSON only** - No markdown, no explanations, no code blocks
+1. **Output pure JSON only** - No markdown, no code blocks, no explanations
 2. **NEVER describe facial features** - No eye color, lip shape, skin, face structure
-3. **Face must be visible and in focus in ALL scenes**
+3. **Face must be visible and in focus in ALL scenes** - This is MANDATORY
 4. **NO back-turned poses, NO distant shots, NO obscured faces**
 5. **12 scenes minimum** with meaningful variation
-6. **Global style anchor = complete technical paragraph**
-7. **Scene prompts start with lowercase "in a..." as continuations**
-8. **Be extremely specific** - Use concrete, visual language`;
+6. **Global style anchor = complete technical paragraph** starting with "Create a photograph..."
+7. **Scene prompts start with lowercase "in a..."** as continuations
+8. **Every scene MUST end with Negative prompt**
+9. **Be extremely specific** - Use concrete, visual language
+10. **Maximum shot distance: Full body** (head to toe, subject fills frame)`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -251,9 +262,37 @@ serve(async (req) => {
     let userPrompt = VISUAL_ARCHITECT_PROMPT;
 
     if (textPrompt) {
-      userPrompt += `\n\n## User Request:\n${textPrompt}\n\nCreate a complete photography style pack with exactly ${sceneCount} scenes based on this description. Remember:\n- global_style_anchor is the complete technical paragraph covering camera, lighting, color, atmosphere\n- Each scene prompt continues from global_style_anchor (start with lowercase "in a...")\n- Face must be visible in ALL scenes\n- 12 meaningfully different scenes\n\nOutput pure JSON only.`;
+      userPrompt += `
+
+## User Request:
+${textPrompt}
+
+Create a complete photography style pack with exactly ${sceneCount} scenes based on this description.
+
+Remember:
+- global_style_anchor is ONE complete technical paragraph starting with "Create a photograph of the person in this image..." and ending with comprehensive negative prompt
+- Each scene prompt starts with lowercase "in a..." as continuation
+- Each scene MUST end with "Negative: equipment visible, studio lights, multiple people, back turned, face obscured, distant shot, blurry face"
+- Face must be clearly visible in ALL scenes
+- 12 meaningfully different scenes with varied shots, poses, wardrobe, settings
+- NO back-turned poses, NO distant shots, NO obscured faces
+
+Output pure JSON only.`;
     } else {
-      userPrompt += `\n\n## Task:\nAnalyze the uploaded reference image and extract the visual DNA. Create a complete photography style pack with exactly ${sceneCount} unique scenes that captures and explores this aesthetic.\n\nRemember:\n- global_style_anchor is the complete technical paragraph covering camera, lighting, color, atmosphere\n- Each scene prompt continues from global_style_anchor (start with lowercase "in a...")\n- Face must be visible in ALL scenes\n- 12 meaningfully different scenes\n\nOutput pure JSON only.`;
+      userPrompt += `
+
+## Task:
+Analyze the uploaded reference image and extract the visual DNA. Create a complete photography style pack with exactly ${sceneCount} unique scenes that captures and explores this aesthetic.
+
+Remember:
+- global_style_anchor is ONE complete technical paragraph starting with "Create a photograph of the person in this image..." and ending with comprehensive negative prompt
+- Each scene prompt starts with lowercase "in a..." as continuation
+- Each scene MUST end with "Negative: equipment visible, studio lights, multiple people, back turned, face obscured, distant shot, blurry face"
+- Face must be clearly visible in ALL scenes
+- 12 meaningfully different scenes with varied shots, poses, wardrobe, settings
+- NO back-turned poses, NO distant shots, NO obscured faces
+
+Output pure JSON only.`;
     }
 
     contentParts.push({ text: userPrompt });
@@ -357,6 +396,7 @@ serve(async (req) => {
       );
     }
 
+    // Validate global_style_anchor
     if (!packData.global_style_anchor || typeof packData.global_style_anchor !== "string") {
       // Try to build from legacy format
       if (typeof packData.global_style_anchor === "object") {
@@ -364,6 +404,11 @@ serve(async (req) => {
       } else {
         packData.global_style_anchor = "";
       }
+    }
+
+    // Validate global_style_anchor starts correctly
+    if (packData.global_style_anchor && !packData.global_style_anchor.toLowerCase().startsWith("create a photograph")) {
+      console.log("[generate-pack] Warning: global_style_anchor doesn't start with 'Create a photograph'");
     }
 
     // Validate minimum scene count
@@ -380,6 +425,11 @@ serve(async (req) => {
       const scene = packData.scenes[i];
       if (!scene.id) scene.id = String(i + 1).padStart(2, "0");
       if (!scene.prompt) scene.prompt = `Scene ${scene.id}`;
+      
+      // Validate scene prompt starts with lowercase "in a"
+      if (scene.prompt && !scene.prompt.toLowerCase().startsWith("in a")) {
+        console.log(`[generate-pack] Warning: Scene ${scene.id} prompt doesn't start with 'in a'`);
+      }
     }
 
     // Ensure meta fields with defaults
@@ -388,6 +438,12 @@ serve(async (req) => {
     if (!packData.meta.gender) packData.meta.gender = "unisex";
     if (packData.meta.featured === undefined) packData.meta.featured = false;
     if (!packData.meta.tags || !Array.isArray(packData.meta.tags)) packData.meta.tags = [];
+    
+    // Ensure exactly 5 tags
+    while (packData.meta.tags.length < 5) {
+      packData.meta.tags.push("");
+    }
+    packData.meta.tags = packData.meta.tags.slice(0, 5);
     
     // Ensure preview_images are set correctly
     if (!packData.preview_images || !Array.isArray(packData.preview_images)) {
@@ -400,6 +456,7 @@ serve(async (req) => {
     console.log("[generate-pack] Number of scenes:", packData.scenes.length);
     console.log("[generate-pack] Category:", packData.meta.category);
     console.log("[generate-pack] Global style anchor length:", packData.global_style_anchor.length);
+    console.log("[generate-pack] Global style anchor starts with:", packData.global_style_anchor.substring(0, 50));
     console.log("[generate-pack] Tags:", packData.meta.tags);
 
     return new Response(
