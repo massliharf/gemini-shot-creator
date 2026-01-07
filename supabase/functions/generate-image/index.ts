@@ -167,13 +167,19 @@ serve(async (req) => {
       topP,
     });
 
-    // Log the prompt for debugging
+    // Log prompts for debugging
     console.log("Final prompt (first 500 chars):", finalPrompt.substring(0, 500));
 
-    // Build prompt with output spec
+    // Build prompt with output spec (this is what gets sent to Gemini)
     const promptWithSpec = `${finalPrompt}
 
-Generate the image at ${validAspectRatio} aspect ratio.`;
+OUTPUT SPEC:
+- Aspect ratio: ${validAspectRatio}
+- Target size: ${imageSize} px
+- Generate exactly 1 image
+- No text, no watermark, no borders`;
+
+    console.log("Prompt with spec (first 700 chars):", promptWithSpec.substring(0, 700));
 
     // Build request parts: images first, then text (per Gemini docs)
     const parts: unknown[] = [
