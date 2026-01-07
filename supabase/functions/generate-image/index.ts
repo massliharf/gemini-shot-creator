@@ -6,60 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// ========================================
-// Style Pack Image Generator
-// ========================================
-// 
-// This edge function generates images using the Gemini API
-// based on style packs with the "Prompt Fusion" pattern:
-//
-// 1. User uploads photo (base64 encoded)
-// 2. User selects a style pack and scene
-// 3. Final prompt = global_style_anchor + scene.prompt
-// 4. Request sent to Gemini with photo + prompt
-// 5. Generated image returned and stored
-//
-// Supports both Gemini 2.5 Flash and Gemini 3 Pro models
-// ========================================
-
-// Supported aspect ratios
+// Supported aspect ratios for both models
 const ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
 
-// Resolution mappings for Gemini 2.5 Flash Image (fixed per aspect ratio)
-const FLASH_RESOLUTIONS: Record<string, string> = {
-  "1:1": "1024x1024",
-  "2:3": "832x1248",
-  "3:2": "1248x832",
-  "3:4": "864x1184",
-  "4:3": "1184x864",
-  "4:5": "896x1152",
-  "5:4": "1152x896",
-  "9:16": "768x1344",
-  "16:9": "1344x768",
-  "21:9": "1536x672",
-};
-
-// Resolution mappings for Gemini 3 Pro Image Preview (1K, 2K, 4K)
-const PRO_RESOLUTIONS: Record<string, Record<string, string>> = {
-  "1:1": { "1K": "1024x1024", "2K": "2048x2048", "4K": "4096x4096" },
-  "2:3": { "1K": "848x1264", "2K": "1696x2528", "4K": "3392x5056" },
-  "3:2": { "1K": "1264x848", "2K": "2528x1696", "4K": "5056x3392" },
-  "3:4": { "1K": "896x1200", "2K": "1792x2400", "4K": "3584x4800" },
-  "4:3": { "1K": "1200x896", "2K": "2400x1792", "4K": "4800x3584" },
-  "4:5": { "1K": "928x1152", "2K": "1856x2304", "4K": "3712x4608" },
-  "5:4": { "1K": "1152x928", "2K": "2304x1856", "4K": "4608x3712" },
-  "9:16": { "1K": "768x1376", "2K": "1536x2752", "4K": "3072x5504" },
-  "16:9": { "1K": "1376x768", "2K": "2752x1536", "4K": "5504x3072" },
-  "21:9": { "1K": "1584x672", "2K": "3168x1344", "4K": "6336x2688" },
-};
-
-// Model endpoints
+// Model definitions
 const MODELS = {
   flash: "gemini-2.5-flash-image",
   pro: "gemini-3-pro-image-preview",
 } as const;
-
-type ModelType = keyof typeof MODELS;
 
 const base64ToBytes = (base64: string): Uint8Array => {
   const binaryString = atob(base64);
@@ -93,20 +47,8 @@ serve(async (req) => {
       temperature = 0.70,
       topP = 0.92,
       aspectRatio = "4:5",
-      resolution = "1K",
+      resolution = "1K", // Only used for Pro model
     } = await req.json();
-
-    console.log("Request received:", {
-      queueId,
-      model,
-      temperature,
-      topP,
-      aspectRatio,
-      resolution,
-      hasPrompt: !!finalPrompt,
-      hasSelfie: !!selfieBase64,
-      hasSelfie2: !!selfie2Base64,
-    });
 
     // Validate API key
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
@@ -137,8 +79,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Determine model and resolution
-    // Accept both short keys ("flash", "pro") and full model names
+    // Resolve model name
     let resolvedModel: string;
     if (model === "flash" || model === "gemini-2.5-flash-image") {
       resolvedModel = MODELS.flash;
@@ -149,39 +90,20 @@ serve(async (req) => {
     }
     const isProModel = resolvedModel === MODELS.pro;
 
+    // Validate aspect ratio
     const validAspectRatio = ASPECT_RATIOS.includes(aspectRatio) ? aspectRatio : "4:5";
     
-    let imageSize: string;
-    if (isProModel) {
-      const validResolution = ["1K", "2K", "4K"].includes(resolution) ? resolution : "1K";
-      imageSize = PRO_RESOLUTIONS[validAspectRatio]?.[validResolution] || PRO_RESOLUTIONS["4:5"]["1K"];
-    } else {
-      imageSize = FLASH_RESOLUTIONS[validAspectRatio] || FLASH_RESOLUTIONS["4:5"];
-    }
+    // Validate resolution for Pro model
+    const validResolution = ["1K", "2K", "4K"].includes(resolution) ? resolution : "1K";
 
-    console.log("Generation config:", {
-      model: resolvedModel,
-      aspectRatio: validAspectRatio,
-      imageSize,
-      temperature,
-      topP,
-    });
+    console.log("=== GENERATION REQUEST ===");
+    console.log("Model:", resolvedModel);
+    console.log("Aspect Ratio:", validAspectRatio);
+    console.log("Resolution:", isProModel ? validResolution : "N/A (Flash)");
+    console.log("Has Selfie:", !!selfieBase64);
+    console.log("Has Selfie2:", !!selfie2Base64);
 
-    // Log prompts for debugging
-    console.log("Final prompt (first 500 chars):", finalPrompt.substring(0, 500));
-
-    // Build prompt with output spec (this is what gets sent to Gemini)
-    const promptWithSpec = `${finalPrompt}
-
-OUTPUT SPEC:
-- Aspect ratio: ${validAspectRatio}
-- Target size: ${imageSize} px
-- Generate exactly 1 image
-- No text, no watermark, no borders`;
-
-    console.log("Prompt with spec (first 700 chars):", promptWithSpec.substring(0, 700));
-
-    // Build request parts: images first, then text (per Gemini docs)
+    // Build request parts: images first, then text
     const parts: unknown[] = [
       { inline_data: { mime_type: selfieMimeType, data: selfieBase64 } },
     ];
@@ -190,16 +112,34 @@ OUTPUT SPEC:
       parts.push({ inline_data: { mime_type: selfie2MimeType, data: selfie2Base64 } });
     }
 
-    parts.push({ text: promptWithSpec });
+    parts.push({ text: finalPrompt });
 
-    // Build generation config (camelCase per Gemini API docs)
+    // Build generation config based on model
+    // REST API format matches Python SDK: imageConfig with aspectRatio (and imageSize for Pro)
     const generationConfig: Record<string, unknown> = {
       temperature,
       topP,
       candidateCount: 1,
       maxOutputTokens: 8192,
-      responseModalities: ["TEXT", "IMAGE"],
+      responseModalities: ["IMAGE", "TEXT"],
     };
+
+    // Add imageConfig based on model type
+    if (isProModel) {
+      // Pro model: aspectRatio + imageSize
+      generationConfig.imageConfig = {
+        aspectRatio: validAspectRatio,
+        imageSize: validResolution,
+      };
+    } else {
+      // Flash model: only aspectRatio
+      generationConfig.imageConfig = {
+        aspectRatio: validAspectRatio,
+      };
+    }
+
+    console.log("Generation Config:", JSON.stringify(generationConfig, null, 2));
+    console.log("Prompt (first 500 chars):", finalPrompt.substring(0, 500));
 
     // Call Gemini API
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`;
@@ -223,7 +163,7 @@ OUTPUT SPEC:
         : `Gemini API error: ${aiResp.status}`;
 
       return new Response(
-        JSON.stringify({ success: false, reason, message, status: aiResp.status }),
+        JSON.stringify({ success: false, reason, message, status: aiResp.status, details: errorText }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -243,18 +183,13 @@ OUTPUT SPEC:
     console.log("Finish reason:", finishReason);
     
     if (finishReason && !["STOP", "MAX_TOKENS"].includes(finishReason)) {
-      console.error("Generation blocked:", finishReason, JSON.stringify(aiData.candidates?.[0]?.safetyRatings || []));
+      console.error("Generation blocked:", finishReason);
       
-      const blockReason = aiData.candidates?.[0]?.blockReason;
-      const safetyRatings = aiData.candidates?.[0]?.safetyRatings || [];
-      
-      console.error("Block details:", { blockReason, safetyRatings });
-      
-      const isPolicy = finishReason.toLowerCase().includes("safety") || blockReason;
+      const isPolicy = finishReason.toLowerCase().includes("safety");
       const errorMessage = isPolicy 
         ? "Content policy violation" 
         : finishReason === "IMAGE_OTHER" 
-          ? "Model could not generate this image. Try a different scene or check your reference photo."
+          ? "Model could not generate this image. Try a different scene."
           : "Model could not generate this image";
       
       return new Response(
@@ -289,6 +224,8 @@ OUTPUT SPEC:
     const imageBase64 = inline.data;
     const mimeType = inline.mimeType || inline.mime_type || "image/png";
     const imageBytes = base64ToBytes(imageBase64);
+
+    console.log("Image generated successfully, size:", imageBytes.length, "bytes");
 
     // If queueId provided, upload to storage
     if (queueId) {
