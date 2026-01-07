@@ -195,22 +195,6 @@ Generate the image at ${validAspectRatio} aspect ratio.`;
       responseModalities: ["TEXT", "IMAGE"],
     };
 
-    // Both models support aspectRatio in imageGenerationConfig
-    // Parse imageSize to get width/height for the API
-    const [width, height] = imageSize.split("x").map(Number);
-    
-    generationConfig.imageGenerationConfig = {
-      aspectRatio: validAspectRatio,
-      numberOfImages: 1,
-    };
-
-    console.log("Image generation config:", {
-      aspectRatio: validAspectRatio,
-      imageSize,
-      width,
-      height,
-    });
-
     // Call Gemini API
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`;
 
