@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Wand2, Loader2, X, Check, Home } from "lucide-react";
+import { Upload, Wand2, Loader2, X, Check, Home, Camera, Box } from "lucide-react";
 import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
@@ -28,11 +28,29 @@ interface UploadedImage {
 
 const SCENE_COUNT_OPTIONS = [4, 8, 12, 16];
 
+type PackType = "photography" | "3d";
+
+const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
+  { 
+    value: "photography", 
+    label: "Photography", 
+    icon: <Camera className="h-4 w-4" />,
+    description: "Gerçekçi fotoğraf stilleri"
+  },
+  { 
+    value: "3d", 
+    label: "3D Character", 
+    icon: <Box className="h-4 w-4" />,
+    description: "3D render ve karakter stilleri"
+  },
+];
+
 export default function Generator() {
   const navigate = useNavigate();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sceneCount, setSceneCount] = useState<number>(8);
+  const [packType, setPackType] = useState<PackType>("photography");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
@@ -162,7 +180,7 @@ export default function Generator() {
       pendingImages.map(async (img) => {
         try {
           const { data, error } = await supabase.functions.invoke("generate-pack", {
-            body: { imageBase64: img.base64, sceneCount },
+            body: { imageBase64: img.base64, sceneCount, packType },
           });
 
           if (error) throw error;
@@ -253,6 +271,35 @@ export default function Generator() {
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Generation Settings */}
           <Card className="p-4 border-border/50 space-y-4">
+            {/* Pack Type Selector */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Pack Tipi</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {PACK_TYPE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setPackType(option.value)}
+                    disabled={isGenerating}
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                      packType === option.value
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border/50 hover:border-border hover:bg-muted/50'
+                    } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div className={`${packType === option.value ? 'text-primary' : 'text-muted-foreground'}`}>
+                      {option.icon}
+                    </div>
+                    <div className="text-left">
+                      <p className={`text-sm font-medium ${packType === option.value ? 'text-primary' : ''}`}>
+                        {option.label}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{option.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex items-center gap-4">
               <Label className="text-xs font-medium whitespace-nowrap">Sahne Sayısı:</Label>
               <Select
