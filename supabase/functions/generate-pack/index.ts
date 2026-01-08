@@ -643,9 +643,19 @@ Output pure JSON only.`;
     }
 
     // Validate scenes have required fields (id, prompt)
+    // ALWAYS normalize scene IDs to "01", "02" format
     for (let i = 0; i < packData.scenes.length; i++) {
       const scene = packData.scenes[i];
-      if (!scene.id) scene.id = String(i + 1).padStart(2, "0");
+      
+      // Normalize scene ID to "01", "02", etc. format (always string with leading zero)
+      if (!scene.id) {
+        scene.id = String(i + 1).padStart(2, "0");
+      } else {
+        // Convert any format (1, "1", "01", etc.) to "01" format
+        const numericId = typeof scene.id === "string" ? parseInt(scene.id, 10) : scene.id;
+        scene.id = String(isNaN(numericId) ? i + 1 : numericId).padStart(2, "0");
+      }
+      
       if (!scene.prompt) scene.prompt = `Scene ${scene.id}`;
       
       // Validate scene prompt starts with lowercase "in a"
