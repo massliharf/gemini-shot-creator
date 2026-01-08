@@ -1,9 +1,9 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getPackTags, hasScenes, getSceneCount } from "@/types/pack";
 import {
   Briefcase, Palette, Wand2, Film, Clock, Shirt, Plane, Sun, Globe2, GraduationCap,
   Users, User, Sparkles, Upload, Loader2, Trash2, Play, Download, HardDrive, Bomb,
-  ChevronDown, ChevronRight, ImagePlus, AlertCircle, CheckCircle2, Circle, XCircle
+  ChevronDown, ChevronRight, AlertCircle, CheckCircle2, Circle, XCircle
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -83,103 +83,21 @@ const genderIcons: Record<string, React.ReactNode> = {
 };
 
 const genderLabels: Record<string, string> = {
-  male: "Erkek",
-  female: "Kadın", 
-  any: "Herkes",
+  male: "Male",
+  female: "Female", 
+  any: "All",
   unisex: "Unisex",
 };
 
-// Generate Pack from Image Component
-const GeneratePackFromImage = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Promise<PacksLoadResult> }) => {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+type GenderFilter = "all" | "male" | "female" | "unisex";
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const GENDER_FILTERS: { value: GenderFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "unisex", label: "Unisex" },
+];
 
-    const preview = URL.createObjectURL(file);
-    setPreviewUrl(preview);
-    setIsGenerating(true);
-
-    try {
-      const reader = new FileReader();
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const base64Data = await base64Promise;
-
-      toast.info("Generating pack from reference image...", { duration: 10000 });
-
-      const { data, error } = await supabase.functions.invoke('generate-pack', {
-        body: { imageBase64: base64Data },
-      });
-
-      if (error) throw error;
-
-      if (!data?.success || !data?.pack) {
-        throw new Error(data?.error || 'Failed to generate pack');
-      }
-
-      const result = await onPacksLoad([data.pack]);
-      
-      if (result.uploadedCount > 0) {
-        toast.success(`Pack "${getPackName(data.pack)}" generated successfully!`);
-      } else {
-        throw new Error(result.failed[0]?.message || 'Failed to save pack');
-      }
-    } catch (err) {
-      console.error('Generate pack error:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to generate pack');
-    } finally {
-      setIsGenerating(false);
-      setPreviewUrl(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  return (
-    <div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-        disabled={isGenerating}
-      />
-      
-      {previewUrl && isGenerating ? (
-        <div className="relative border-2 border-primary/50 rounded-xl p-2 bg-secondary/30">
-          <img 
-            src={previewUrl} 
-            alt="Reference" 
-            className="w-full h-16 object-cover rounded-lg opacity-50"
-          />
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <Loader2 className="w-5 h-5 animate-spin text-primary mb-1" />
-            <p className="text-[10px] text-muted-foreground">Generating...</p>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isGenerating}
-          className="w-full border-2 border-dashed border-primary/40 rounded-xl p-3 text-center hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer bg-gradient-to-br from-primary/5 to-transparent"
-        >
-          <div className="flex items-center justify-center gap-2 mb-0.5">
-            <Wand2 className="w-3.5 h-3.5 text-primary" />
-            <ImagePlus className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <p className="text-[11px] font-medium text-primary">AI ile Pack Oluştur</p>
-        </button>
-      )}
-    </div>
-  );
-};
 
 // JSON Uploader Component
 const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Promise<PacksLoadResult> }) => {
@@ -290,14 +208,14 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
       <AlertDialogTrigger asChild>
         <button className="w-full border border-dashed border-border rounded-xl p-2.5 text-center hover:border-primary/50 hover:bg-secondary/30 transition-colors cursor-pointer">
           <Upload className="w-3.5 h-3.5 mx-auto mb-0.5 text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">JSON Yükle</p>
+          <p className="text-[10px] text-muted-foreground">Upload JSON</p>
         </button>
       </AlertDialogTrigger>
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle>JSON Pack Yapıştır</AlertDialogTitle>
+          <AlertDialogTitle>Paste JSON Pack</AlertDialogTitle>
           <AlertDialogDescription className="text-sm">
-            JSON pack içeriğini aşağıya yapıştırın.
+            Paste your JSON pack content below.
           </AlertDialogDescription>
         </AlertDialogHeader>
         
@@ -321,7 +239,7 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isUploading}>İptal</AlertDialogCancel>
+          <AlertDialogCancel disabled={isUploading}>Cancel</AlertDialogCancel>
           <Button
             onClick={handlePaste}
             disabled={isUploading || !jsonText.trim()}
@@ -330,10 +248,10 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
             {isUploading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Yükleniyor...
+                Uploading...
               </>
             ) : (
-              "Yükle"
+              "Upload"
             )}
           </Button>
         </AlertDialogFooter>
@@ -418,7 +336,7 @@ const PackCard = ({
                 e.stopPropagation();
                 onDownloadOptimized();
               }}
-              title="WebP + Orijinal İndir"
+              title="Download WebP + Original"
             >
               <Download className="w-3 h-3 text-primary" />
             </Button>
@@ -437,18 +355,18 @@ const PackCard = ({
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Pack'i Sil?</AlertDialogTitle>
+                <AlertDialogTitle>Delete Pack?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  "{packName}" ve tüm görselleri silinecek.
+                  "{packName}" and all its images will be deleted.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>İptal</AlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={onDelete}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Sil
+                  Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -488,12 +406,22 @@ export const PackSidebar = ({
   isGeneratingAll = false,
 }: PackSidebarProps) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['all']));
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
+
+  // Filter packs by gender
+  const filteredPacks = useMemo(() => {
+    if (genderFilter === "all") return packs;
+    return packs.filter(pack => {
+      const gender = getPackGender(pack.pack) || "unisex";
+      return gender === genderFilter;
+    });
+  }, [packs, genderFilter]);
 
   // Group packs by category
   const groupedPacks = useMemo(() => {
     const groups: Record<string, PackInfo[]> = {};
     
-    for (const pack of packs) {
+    for (const pack of filteredPacks) {
       const category = getPackCategory(pack.pack) || "other";
       if (!groups[category]) {
         groups[category] = [];
@@ -502,7 +430,7 @@ export const PackSidebar = ({
     }
     
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [packs]);
+  }, [filteredPacks]);
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => {
@@ -523,9 +451,9 @@ export const PackSidebar = ({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold">Pack'ler</h2>
+            <h2 className="text-sm font-semibold">Packs</h2>
             <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-              {packs.length}
+              {filteredPacks.length}
             </Badge>
           </div>
           
@@ -538,7 +466,7 @@ export const PackSidebar = ({
                   className="h-6 w-6"
                   onClick={onGenerateAllPacks}
                   disabled={isGeneratingAll}
-                  title="Tümünü oluştur"
+                  title="Generate all"
                 >
                   {isGeneratingAll ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -551,7 +479,7 @@ export const PackSidebar = ({
                   size="icon"
                   className="h-6 w-6"
                   onClick={onDownloadAllPacks}
-                  title="Tümünü indir"
+                  title="Download all"
                 >
                   <Download className="w-3 h-3" />
                 </Button>
@@ -562,7 +490,7 @@ export const PackSidebar = ({
               size="icon"
               className="h-6 w-6"
               onClick={onDownloadAllCloudData}
-              title="Cloud verisini dışa aktar"
+              title="Export cloud data"
             >
               <HardDrive className="w-3 h-3" />
             </Button>
@@ -573,25 +501,25 @@ export const PackSidebar = ({
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  title="Cloud verisini sil"
+                  title="Delete cloud data"
                 >
                   <Bomb className="w-3 h-3 text-destructive" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Cloud Verisini Sil?</AlertDialogTitle>
+                  <AlertDialogTitle>Delete Cloud Data?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Tüm pack'ler ve görseller kalıcı olarak silinecek.
+                    All packs and images will be permanently deleted.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>İptal</AlertDialogCancel>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={onDeleteAllCloudData}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    Sil
+                    Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -599,20 +527,36 @@ export const PackSidebar = ({
           </div>
         </div>
 
-        {/* Upload Components */}
-        <div className="space-y-2">
-          <GeneratePackFromImage onPacksLoad={onPacksLoad} />
-          <JsonUploader onPacksLoad={onPacksLoad} />
+        {/* Gender Filter */}
+        <div className="flex gap-1 mb-3">
+          {GENDER_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              onClick={() => setGenderFilter(filter.value)}
+              className={`flex-1 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all ${
+                genderFilter === filter.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
+
+        {/* Upload Component */}
+        <JsonUploader onPacksLoad={onPacksLoad} />
       </div>
 
       {/* Pack List */}
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-2">
-          {packs.length === 0 ? (
+          {filteredPacks.length === 0 ? (
             <div className="text-center py-8">
               <Sparkles className="w-8 h-8 mx-auto mb-2 text-muted-foreground/20" />
-              <p className="text-xs text-muted-foreground">Henüz pack yok</p>
+              <p className="text-xs text-muted-foreground">
+                {packs.length === 0 ? "No packs yet" : "No packs match this filter"}
+              </p>
             </div>
           ) : groupedPacks.length === 1 ? (
             // Single category - no grouping
@@ -675,23 +619,23 @@ export const PackSidebar = ({
                 className="w-full text-xs text-muted-foreground hover:text-destructive"
               >
                 <Trash2 className="w-3 h-3 mr-1" />
-                Tüm Pack'leri Sil
+                Delete All Packs
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Tüm Pack'leri Sil?</AlertDialogTitle>
+                <AlertDialogTitle>Delete All Packs?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {packs.length} pack ve tüm görselleri silinecek.
+                  {packs.length} pack(s) and all images will be deleted.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>İptal</AlertDialogCancel>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={onDeleteAllPacks}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Tümünü Sil
+                  Delete All
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

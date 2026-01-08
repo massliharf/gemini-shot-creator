@@ -163,9 +163,9 @@ const Index = () => {
 
   // Navigation items for left rail
   const navItems = [
-    { icon: Home, label: "Ana Sayfa", path: "/", active: true },
+    { icon: Home, label: "Home", path: "/", active: true },
     { icon: Wand2, label: "Pack Generator", path: "/generator" },
-    { icon: Cloud, label: "Cloud Dosyaları", path: "/cloud-files" },
+    { icon: Cloud, label: "Cloud Files", path: "/cloud-files" },
   ];
 
   return (
@@ -217,7 +217,7 @@ const Index = () => {
                   <HelpCircle className="w-5 h-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">Yardım</TooltipContent>
+              <TooltipContent side="right">Help</TooltipContent>
             </Tooltip>
             
             <Tooltip>
@@ -226,7 +226,7 @@ const Index = () => {
                   <Settings className="w-5 h-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right">Ayarlar</TooltipContent>
+              <TooltipContent side="right">Settings</TooltipContent>
             </Tooltip>
             
             <Tooltip>
@@ -238,7 +238,7 @@ const Index = () => {
                   </AvatarFallback>
                 </Avatar>
               </TooltipTrigger>
-              <TooltipContent side="right">Çıkış Yap</TooltipContent>
+              <TooltipContent side="right">Sign Out</TooltipContent>
             </Tooltip>
           </div>
         </nav>
@@ -319,7 +319,7 @@ const Index = () => {
                         {getPackName(selectedPack.pack) || 'Unnamed Pack'}
                       </h2>
                       <p className="text-xs text-muted-foreground">
-                        {selectedPack.scenes.filter(s => s.status === 'success').length}/{selectedPack.scenes.length} sahne tamamlandı
+                        {selectedPack.scenes.filter(s => s.status === 'success').length}/{selectedPack.scenes.length} scenes completed
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
@@ -367,10 +367,10 @@ const Index = () => {
                 <div className="text-center">
                   <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground/20" />
                   <h3 className="text-lg font-medium text-foreground/80 mb-2">
-                    {packs.size === 0 ? "Pack yükleyerek başlayın" : "Bir pack seçin"}
+                    {packs.size === 0 ? "Start by uploading a pack" : "Select a pack"}
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    AI ile muhteşem görseller oluşturun
+                    Create stunning images with AI
                   </p>
                   <Button 
                     variant="outline" 
@@ -378,7 +378,7 @@ const Index = () => {
                     onClick={() => setSidebarOpen(true)}
                   >
                     <Menu className="w-4 h-4 mr-2" />
-                    Menüyü Aç
+                    Open Menu
                   </Button>
                 </div>
               </div>
