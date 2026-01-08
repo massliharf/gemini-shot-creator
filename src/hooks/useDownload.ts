@@ -124,7 +124,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
             }
             const blob = await response.blob();
             const sceneIdStr = String(normalizeSceneId(scene.id)).padStart(2, "0");
-            folder?.file(`scene-${sceneIdStr}.jpg`, blob);
+            folder?.file(`${sceneIdStr}.jpg`, blob);
           });
 
           const zipBlob = await zip.generateAsync({
@@ -217,11 +217,11 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
           const sceneIdStr = String(normalizeSceneId(scene.id)).padStart(2, "0");
           
           // Save original
-          originalsFolder?.file(`scene-${sceneIdStr}.jpg`, originalBlob);
+          originalsFolder?.file(`${sceneIdStr}.jpg`, originalBlob);
           
           // Convert to WebP (reduced)
           const webpBlob = await convertToWebP(originalBlob, 0.82);
-          folder?.file(`scene-${sceneIdStr}.webp`, webpBlob);
+          folder?.file(`${sceneIdStr}.webp`, webpBlob);
 
           completed++;
           toast.loading(`Preparing ${packIdName}... (${completed}/${successfulScenes.length})`, { id: toastId });
@@ -330,7 +330,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
             }
             const blob = await response.blob();
             const folder = ensureFolder(item.packName, item.packData);
-            folder.file(`scene-${item.sceneId}.jpg`, blob);
+            folder.file(`${item.sceneId}.jpg`, blob);
           });
 
           const zipBlob = await zip.generateAsync({
@@ -461,7 +461,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
             }
             const blob = await response.blob();
             const folder = ensureFolder(item.packName, item.packData);
-            folder.file(`scene-${item.sceneId}.jpg`, blob);
+            folder.file(`${item.sceneId}.jpg`, blob);
           });
 
           const zipBlob = await zip.generateAsync({
