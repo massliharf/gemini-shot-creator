@@ -6,10 +6,11 @@ const corsHeaders = {
 };
 
 // ========================================
-// PHOTOGRAPHY PACK CREATION - MASTER GUIDE V4
+// PHOTOGRAPHY PACK CREATION - MASTER GUIDE
+// (Gemini Optimized - Positive Exclusion)
 // ========================================
 
-const VISUAL_ARCHITECT_PROMPT = `# Role: Photography Pack Visual Architect
+const PHOTOGRAPHY_PROMPT = `# Role: Photography Pack Visual Architect
 
 You are an expert Photography Pack Creator. You create professional photography style packs by following the exact structure and methodology outlined below.
 
@@ -217,13 +218,201 @@ Each of the 12 scenes MUST be meaningfully different:
 9. **Be extremely specific** - Use concrete, visual language
 10. **Maximum shot distance: Full body** (head to toe, subject fills frame)`;
 
+// ========================================
+// 3D CHARACTER PACK CREATION - MASTER GUIDE
+// (Gemini Optimized - Positive Exclusion)
+// ========================================
+
+const THREE_D_PROMPT = `# Role: 3D Character Pack Visual Architect
+
+You are an expert 3D Character Pack Creator. You create professional 3D render style packs by following the exact structure and methodology outlined below.
+
+## OUTPUT FORMAT
+
+Output **ONLY** strict, raw JSON using this exact template. No markdown, no intro text, no explanations.
+
+{
+  "meta": {
+    "pack_id": "",
+    "pack_name": "",
+    "description": "",
+    "category": "3D",
+    "gender": "unisex",
+    "featured": false,
+    "tags": ["", "", "", "", ""]
+  },
+  "preview_images": [
+    "themes/[pack_id]/01.webp",
+    "themes/[pack_id]/02.webp",
+    "themes/[pack_id]/03.webp",
+    "themes/[pack_id]/04.webp",
+    "themes/[pack_id]/05.webp",
+    "themes/[pack_id]/06.webp",
+    "themes/[pack_id]/07.webp",
+    "themes/[pack_id]/08.webp",
+    "themes/[pack_id]/09.webp",
+    "themes/[pack_id]/10.webp",
+    "themes/[pack_id]/11.webp",
+    "themes/[pack_id]/12.webp"
+  ],
+  "global_style_anchor": "",
+  "scenes": [
+    {"id": "01", "prompt": ""},
+    {"id": "02", "prompt": ""},
+    {"id": "03", "prompt": ""},
+    {"id": "04", "prompt": ""},
+    {"id": "05", "prompt": ""},
+    {"id": "06", "prompt": ""},
+    {"id": "07", "prompt": ""},
+    {"id": "08", "prompt": ""},
+    {"id": "09", "prompt": ""},
+    {"id": "10", "prompt": ""},
+    {"id": "11", "prompt": ""},
+    {"id": "12", "prompt": ""}
+  ]
+}
+
+---
+
+## META SECTION RULES
+
+### pack_id
+- Format: snake_case (lowercase, underscores only)
+- Rules: Reflects the rendering style, era, or artistic medium
+- Examples: pixar_style_cute, cyberpunk_octane_render, claymation_stopmotion, unreal_engine_5_warrior, low_poly_retro
+
+### pack_name
+- Format: Title Case
+- Rules: Engaging marketing name for the 3D style
+- Examples: Pixar Style Cute, Cyberpunk Octane Render, Claymation World, Next-Gen Warrior
+
+### description
+- Format: Single sentence, 10-20 words
+- Formula: [Render Engine/Style] + [Character Type] + [Key Material/Lighting Element]
+- Example: "High-fidelity Octane renders of sci-fi characters with neon rim lighting and metallic PBR textures."
+
+### category
+- Value: 3D
+
+### gender
+- Default: unisex (unless the pack is specifically for one gender)
+
+### tags
+- Format: Array of 5 strings (lowercase)
+- Keywords: 3d-render, octane, blender, c4d, unreal-engine, stylized, hyper-realistic, isometric, character-design, digital-art
+
+---
+
+## GLOBAL_STYLE_ANCHOR - THE RENDER DNA
+
+### PURPOSE
+This defines HOW the image is rendered (Engine, Shader Quality, Lighting Rig, Art Style). It applies to all 12 scenes.
+
+### STRUCTURE
+Write as a **single, comprehensive natural language prompt** starting with "Create a 3D render of the character in this image..."
+
+### FORMULA
+"Create a 3D render of the character in this image [RENDER STYLE & ENGINE]. [MATERIAL & TEXTURE QUALITY]. [LIGHTING RIG & ATMOSPHERE]. [COMPOSITION & CAMERA]. [POSITIVE EXCLUSION / PURITY STATEMENT]."
+
+### REQUIRED COMPONENTS:
+
+1. **RENDER STYLE & ENGINE** - Define the software look
+   - "Rendered in Octane for a hyper-realistic cinematic look"
+   - "A stylized 3D character design reminiscent of modern Disney/Pixar animation"
+   - "A high-fidelity Unreal Engine 5 real-time render"
+   - "A claymation style render with fingerprint textures mimics stop-motion"
+
+2. **MATERIAL & TEXTURE** - Describe surfaces using 3D terminology
+   - "Featuring PBR materials with detailed subsurface scattering (SSS) on the skin"
+   - "Surfaces are smooth, matte, and colorful with soft gradients"
+   - "Worn metal textures with realistic scratches and imperfection maps"
+
+3. **LIGHTING RIG** - Describe virtual lights
+   - "Lit by a classic 3-point studio lighting setup with a strong rim light"
+   - "Illuminated by global illumination and soft HDRI environment lighting"
+
+4. **POSITIVE EXCLUSION** - Ensure the render is clean
+   - "The render is fully converged and noise-free, showcasing a final production-quality asset"
+   - "The mesh topology is smooth and clean, with high-poly subdivision for perfect curves"
+   - "Presented against a seamless, solid studio backdrop for clear silhouette readability"
+
+---
+
+## SCENE PROMPTS - INSTRUCTIONS
+
+### PURPOSE
+Each scene defines WHAT the 3D character is doing (Pose, Action, Camera Angle).
+
+### STRUCTURE
+Write each scene as a **continuation prompt** starting with lowercase "in a..."
+
+### FORMULA
+"in a [CAMERA ANGLE/FRAMING]. [POSE & ACTION]. [EXPRESSION]. [OUTFIT/SKIN]. [ENVIRONMENT/PLATFORM]. [POSITIVE EXCLUSION / ASSET CLARITY]."
+
+### REQUIRED COMPONENTS:
+
+1. **CAMERA ANGLE**
+   - Isometric view (Game style)
+   - Low-angle hero shot (Cinematic)
+   - Turntable style front view (Asset showcase)
+   - Close-up portrait
+
+2. **POSE & ACTION**
+   - Static: "Standing in a relaxed A-pose idle stance"
+   - Dynamic: "Caught in a mid-air jump action pose"
+   - Expressive: "Leaning casually against a virtual prop"
+
+3. **OUTFIT & PROPS**
+   - "Wearing a tactical sci-fi armor set with glowing LED visualizers"
+
+4. **ENVIRONMENT**
+   - "Standing on a digital wireframe pedestal"
+   - "Floating in a zero-gravity space"
+   - "Placed within a simple studio lightbox"
+
+5. **SCENE-SPECIFIC POSITIVE EXCLUSION**
+   - "The render focuses strictly on the character geometry, ensuring a clean silhouette against the background"
+   - "Captured in an anatomically correct pose with natural weight distribution"
+   - "Framing the character as the sole hero asset in the center of the composition"
+
+---
+
+## DIVERSITY REQUIREMENTS
+
+### SHOT DISTRIBUTION:
+- Scenes 01-03: Close-up portraits (Face detail)
+- Scenes 04-08: Full body & Medium shots (Outfit showcase)
+- Scenes 09-12: Dynamic & Isometric views (Action poses)
+
+### VARY ACROSS SCENES:
+- Camera angles: mix isometric, front, 3/4 turn, dynamic low angles
+- Poses: Mix "T-Pose/A-Pose" (reference style) with "Action Poses" (marketing style)
+- Expressions: confident, playful, intense, calm, determined
+- Outfits: Change clothing/armor/skin for each scene
+- Environments: Mix studio, abstract, themed platforms
+
+---
+
+## CRITICAL RULES
+
+1. **Output pure JSON only** - No markdown, no code blocks, no explanations
+2. **NEVER describe facial features** - No eye color, lip shape, skin, face structure
+3. **Face must be visible in ALL scenes** - This is MANDATORY
+4. **NO back-turned poses, NO distant shots, NO obscured faces**
+5. **12 scenes minimum** with meaningful variation
+6. **Global style anchor = complete technical paragraph** starting with "Create a 3D render..."
+7. **Scene prompts start with lowercase "in a..."** as continuations
+8. **Use Positive Exclusion** - Describe quality, not negatives
+9. **Be extremely specific** - Use concrete, 3D technical language
+10. **Maximum shot distance: Full body** (character fills frame)`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageBase64, textPrompt, sceneCount = 12 } = await req.json();
+    const { imageBase64, textPrompt, sceneCount = 12, packType = "photography" } = await req.json();
 
     if (!imageBase64 && !textPrompt) {
       return new Response(
@@ -240,8 +429,13 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[generate-pack] Starting pack generation with ${sceneCount} scenes...`);
-    console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}`);
+    const is3D = packType === "3d";
+    const basePrompt = is3D ? THREE_D_PROMPT : PHOTOGRAPHY_PROMPT;
+    const styleType = is3D ? "3D character" : "photography";
+    const anchorStart = is3D ? "Create a 3D render of the character in this image" : "Create a photograph of the person in this image";
+
+    console.log(`[generate-pack] Starting ${styleType} pack generation with ${sceneCount} scenes...`);
+    console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}`);
 
     // Build content parts
     const contentParts: unknown[] = [];
@@ -259,7 +453,7 @@ serve(async (req) => {
     }
 
     // Build the user prompt
-    let userPrompt = VISUAL_ARCHITECT_PROMPT;
+    let userPrompt = basePrompt;
 
     if (textPrompt) {
       userPrompt += `
@@ -267,14 +461,13 @@ serve(async (req) => {
 ## User Request:
 ${textPrompt}
 
-Create a complete photography style pack with exactly ${sceneCount} scenes based on this description.
+Create a complete ${styleType} style pack with exactly ${sceneCount} scenes based on this description.
 
 Remember:
-- global_style_anchor is ONE complete technical paragraph starting with "Create a photograph of the person in this image..." and ending with comprehensive negative prompt
+- global_style_anchor is ONE complete technical paragraph starting with "${anchorStart}..."
 - Each scene prompt starts with lowercase "in a..." as continuation
-- Each scene MUST end with "Negative: equipment visible, studio lights, multiple people, back turned, face obscured, distant shot, blurry face"
 - Face must be clearly visible in ALL scenes
-- 12 meaningfully different scenes with varied shots, poses, wardrobe, settings
+- ${sceneCount} meaningfully different scenes with varied shots, poses, ${is3D ? 'outfits, environments' : 'wardrobe, settings'}
 - NO back-turned poses, NO distant shots, NO obscured faces
 
 Output pure JSON only.`;
@@ -282,14 +475,13 @@ Output pure JSON only.`;
       userPrompt += `
 
 ## Task:
-Analyze the uploaded reference image and extract the visual DNA. Create a complete photography style pack with exactly ${sceneCount} unique scenes that captures and explores this aesthetic.
+Analyze the uploaded reference image and extract the visual DNA. Create a complete ${styleType} style pack with exactly ${sceneCount} unique scenes that captures and explores this aesthetic.
 
 Remember:
-- global_style_anchor is ONE complete technical paragraph starting with "Create a photograph of the person in this image..." and ending with comprehensive negative prompt
+- global_style_anchor is ONE complete technical paragraph starting with "${anchorStart}..."
 - Each scene prompt starts with lowercase "in a..." as continuation
-- Each scene MUST end with "Negative: equipment visible, studio lights, multiple people, back turned, face obscured, distant shot, blurry face"
 - Face must be clearly visible in ALL scenes
-- 12 meaningfully different scenes with varied shots, poses, wardrobe, settings
+- ${sceneCount} meaningfully different scenes with varied shots, poses, ${is3D ? 'outfits, environments' : 'wardrobe, settings'}
 - NO back-turned poses, NO distant shots, NO obscured faces
 
 Output pure JSON only.`;
@@ -406,9 +598,10 @@ Output pure JSON only.`;
       }
     }
 
-    // Validate global_style_anchor starts correctly
-    if (packData.global_style_anchor && !packData.global_style_anchor.toLowerCase().startsWith("create a photograph")) {
-      console.log("[generate-pack] Warning: global_style_anchor doesn't start with 'Create a photograph'");
+    // Validate global_style_anchor starts correctly (for the pack type)
+    const expectedStart = is3D ? "create a 3d render" : "create a photograph";
+    if (packData.global_style_anchor && !packData.global_style_anchor.toLowerCase().startsWith(expectedStart)) {
+      console.log(`[generate-pack] Warning: global_style_anchor doesn't start with '${expectedStart}'`);
     }
 
     // Validate minimum scene count
@@ -434,7 +627,7 @@ Output pure JSON only.`;
 
     // Ensure meta fields with defaults
     if (!packData.meta.description) packData.meta.description = "";
-    if (!packData.meta.category) packData.meta.category = "Photography";
+    if (!packData.meta.category) packData.meta.category = is3D ? "3D" : "Photography";
     if (!packData.meta.gender) packData.meta.gender = "unisex";
     if (packData.meta.featured === undefined) packData.meta.featured = false;
     if (!packData.meta.tags || !Array.isArray(packData.meta.tags)) packData.meta.tags = [];
