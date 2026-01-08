@@ -91,12 +91,19 @@ const genderLabels: Record<string, string> = {
 };
 
 type GenderFilter = "all" | "male" | "female" | "unisex";
+type GenerationFilter = "all" | "generated" | "pending";
 
 const GENDER_FILTERS: { value: GenderFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
   { value: "unisex", label: "Unisex" },
+];
+
+const GENERATION_FILTERS: { value: GenerationFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "generated", label: "Generated" },
+  { value: "pending", label: "Pending" },
 ];
 
 
@@ -409,15 +416,27 @@ export const PackSidebar = ({
 }: PackSidebarProps) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
+  const [generationFilter, setGenerationFilter] = useState<GenerationFilter>("all");
 
-  // Filter packs by gender
+  // Filter packs by gender and generation status
   const filteredPacks = useMemo(() => {
-    if (genderFilter === "all") return packs;
     return packs.filter(pack => {
-      const gender = getPackGender(pack.pack) || "unisex";
-      return gender === genderFilter;
+      // Gender filter
+      if (genderFilter !== "all") {
+        const gender = getPackGender(pack.pack) || "unisex";
+        if (gender !== genderFilter) return false;
+      }
+      
+      // Generation filter
+      if (generationFilter === "generated") {
+        return pack.completedShots === pack.totalShots && pack.totalShots > 0;
+      } else if (generationFilter === "pending") {
+        return pack.completedShots < pack.totalShots || pack.totalShots === 0;
+      }
+      
+      return true;
     });
-  }, [packs, genderFilter]);
+  }, [packs, genderFilter, generationFilter]);
 
   // Group packs by category
   const groupedPacks = useMemo(() => {
@@ -530,7 +549,7 @@ export const PackSidebar = ({
         </div>
 
         {/* Gender Filter with Download */}
-        <div className="flex gap-1 mb-3">
+        <div className="flex gap-1 mb-2">
           {GENDER_FILTERS.map((filter) => (
             <div key={filter.value} className="flex-1 flex">
               <button
@@ -560,6 +579,23 @@ export const PackSidebar = ({
                 </button>
               )}
             </div>
+          ))}
+        </div>
+
+        {/* Generation Status Filter */}
+        <div className="flex gap-1 mb-3">
+          {GENERATION_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              onClick={() => setGenerationFilter(filter.value)}
+              className={`flex-1 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all ${
+                generationFilter === filter.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
+              }`}
+            >
+              {filter.label}
+            </button>
           ))}
         </div>
 
