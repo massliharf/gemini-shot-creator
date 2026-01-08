@@ -101,8 +101,8 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
       try {
         toast.info(
-          `ZIP hazırlanıyor... (${successfulScenes.length} görsel${
-            parts.length > 1 ? `, ${parts.length} parça` : ""
+          `Preparing ZIP... (${successfulScenes.length} images${
+            parts.length > 1 ? `, ${parts.length} parts` : ""
           })`
         );
 
@@ -141,12 +141,12 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
           toast.success(
             parts.length > 1
-              ? `ZIP hazır (${partIndex + 1}/${parts.length})`
-              : "ZIP hazır",
+              ? `ZIP ready (${partIndex + 1}/${parts.length})`
+              : "ZIP ready",
             {
               duration: 20000,
               action: {
-                label: "İndir",
+                label: "Download",
                 onClick: () => {
                   triggerDownload(url, filename);
                   setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -164,7 +164,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
         // This is the most common failure mode for big zips on the client.
         if (error instanceof RangeError) {
           toast.error(
-            "ZIP oluşturulamadı: Tarayıcı belleği yetmedi. Daha küçük parçalara bölerek indir veya pack sayısını azalt."
+            "Failed to create ZIP: Browser memory exhausted. Try downloading smaller parts."
           );
         } else {
           toast.error(`Failed to create ZIP file: ${message}`);
@@ -187,7 +187,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
       );
 
       if (successfulScenes.length === 0) {
-        toast.error("İndirilecek görsel yok");
+        toast.error("No images to download");
         return;
       }
 
@@ -196,7 +196,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
       );
 
       try {
-        const toastId = toast.loading(`${packIdName} hazırlanıyor... (${successfulScenes.length} görsel)`);
+        const toastId = toast.loading(`Preparing ${packIdName}... (${successfulScenes.length} images)`);
 
         const zip = new JSZip();
         const folder = zip.folder(packIdName);
@@ -224,7 +224,7 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
           folder?.file(`scene-${sceneIdStr}.webp`, webpBlob);
 
           completed++;
-          toast.loading(`${packIdName} hazırlanıyor... (${completed}/${successfulScenes.length})`, { id: toastId });
+          toast.loading(`Preparing ${packIdName}... (${completed}/${successfulScenes.length})`, { id: toastId });
         });
 
         const zipBlob = await zip.generateAsync({
@@ -250,9 +250,9 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
         const message = error instanceof Error ? error.message : "Unknown error";
 
         if (error instanceof RangeError) {
-          toast.error("ZIP oluşturulamadı: Bellek yetmedi");
+          toast.error("Failed to create ZIP: Memory exhausted");
         } else {
-          toast.error(`ZIP hatası: ${message}`);
+          toast.error(`ZIP error: ${message}`);
         }
         console.error(error);
       }
@@ -303,8 +303,8 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
       try {
         toast.info(
-          `ZIP hazırlanıyor... (${items.length} görsel${
-            parts.length > 1 ? `, ${parts.length} parça` : ""
+          `Preparing ZIP... (${items.length} images${
+            parts.length > 1 ? `, ${parts.length} parts` : ""
           })`
         );
 
@@ -347,12 +347,12 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
           toast.success(
             parts.length > 1
-              ? `ZIP hazır (${partIndex + 1}/${parts.length})`
-              : "ZIP hazır",
+              ? `ZIP ready (${partIndex + 1}/${parts.length})`
+              : "ZIP ready",
             {
               duration: 20000,
               action: {
-                label: "İndir",
+                label: "Download",
                 onClick: () => {
                   triggerDownload(url, filename);
                   setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -368,8 +368,128 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
         if (error instanceof RangeError) {
           toast.error(
-            "Toplu ZIP oluşturulamadı: Tarayıcı belleği yetmedi. Packleri tek tek indirmen daha stabil olur."
+            "Failed to create ZIP: Browser memory exhausted. Try downloading packs individually."
           );
+        } else {
+          toast.error(`Failed to create ZIP file: ${message}`);
+        }
+
+        console.error(error);
+      }
+    },
+    [packs]
+  );
+
+  // Download packs filtered by gender
+  const downloadPacksByGender = useCallback(
+    async (gender: string) => {
+      if (packs.size === 0) {
+        toast.error("No packs to download");
+        return;
+      }
+
+      // Import getPackGender dynamically since it's used here
+      const { getPackGender } = await import("@/types/pack");
+
+      type DownloadItem = {
+        packName: string;
+        packData: PackData;
+        sceneId: string;
+        imageUrl: string;
+      };
+
+      const packsArr = Array.from(packs.values()).filter(packData => {
+        const packGender = getPackGender(packData.pack) || "unisex";
+        return packGender === gender;
+      });
+
+      if (packsArr.length === 0) {
+        toast.error(`No ${gender} packs to download`);
+        return;
+      }
+
+      const items: DownloadItem[] = [];
+
+      for (const packData of packsArr) {
+        const packName = String(
+          getPackId(packData.pack) || getPackName(packData.pack) || "pack"
+        );
+
+        const scenes = packData.scenes.filter((s) => s.status === "success" && s.imageUrl);
+        for (const scene of scenes) {
+          items.push({
+            packName,
+            packData,
+            sceneId: String(normalizeSceneId(scene.id)).padStart(2, "0"),
+            imageUrl: scene.imageUrl!,
+          });
+        }
+      }
+
+      if (items.length === 0) {
+        toast.error(`No images in ${gender} packs`);
+        return;
+      }
+
+      const maxPerZip = getMaxZipImagesPerPart();
+      const parts = chunkArray(items, maxPerZip);
+
+      try {
+        toast.info(
+          `Preparing ${gender} packs ZIP... (${packsArr.length} packs, ${items.length} images)`
+        );
+
+        for (let partIndex = 0; partIndex < parts.length; partIndex++) {
+          const zip = new JSZip();
+          const folderByPack = new Map<string, JSZip>();
+
+          const ensureFolder = (packName: string, packData: PackData) => {
+            const existing = folderByPack.get(packName);
+            if (existing) return existing;
+            const folder = zip.folder(packName) as JSZip;
+            folder.file(`${packName}.json`, JSON.stringify(packData.pack, null, 2));
+            folderByPack.set(packName, folder);
+            return folder;
+          };
+
+          await mapLimit(parts[partIndex], 4, async (item) => {
+            const response = await fetch(item.imageUrl, { cache: "no-store" });
+            if (!response.ok) {
+              throw new Error(
+                `Failed to fetch image for ${item.packName} scene ${item.sceneId}: ${response.status}`
+              );
+            }
+            const blob = await response.blob();
+            const folder = ensureFolder(item.packName, item.packData);
+            folder.file(`scene-${item.sceneId}.jpg`, blob);
+          });
+
+          const zipBlob = await zip.generateAsync({
+            type: "blob",
+            compression: "STORE",
+            streamFiles: true,
+          });
+
+          const url = URL.createObjectURL(zipBlob);
+          const filename =
+            parts.length > 1
+              ? `${gender}-packs-part-${partIndex + 1}-of-${parts.length}.zip`
+              : `${gender}-packs-${Date.now()}.zip`;
+
+          triggerDownload(url, filename);
+          
+          toast.success(
+            `${gender} packs downloaded (${packsArr.length} packs)`,
+            { duration: 5000 }
+          );
+
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+
+        if (error instanceof RangeError) {
+          toast.error("Failed to create ZIP: Browser memory exhausted.");
         } else {
           toast.error(`Failed to create ZIP file: ${message}`);
         }
@@ -385,5 +505,6 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
     downloadPackAsZip,
     downloadPackOptimized,
     downloadAllPacks,
+    downloadPacksByGender,
   };
 };
