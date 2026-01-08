@@ -92,6 +92,7 @@ const Index = () => {
     downloadPackAsZip,
     downloadPackOptimized,
     downloadAllPacks,
+    downloadPacksByGender,
   } = useDownload({ packs, selectedPackId });
 
   const {
@@ -264,6 +265,7 @@ const Index = () => {
                   onPacksLoad={handlePacksLoad}
                   onGenerateAllPacks={handleGenerateAllPacks}
                   onDownloadAllPacks={downloadAllPacks}
+                  onDownloadPacksByGender={downloadPacksByGender}
                   onDownloadAllCloudData={downloadAllCloudData}
                   onDeleteAllCloudData={deleteAllCloudData}
                   onDeleteAllPacks={deleteAllPacks}
@@ -297,6 +299,7 @@ const Index = () => {
             onPacksLoad={handlePacksLoad}
             onGenerateAllPacks={handleGenerateAllPacks}
             onDownloadAllPacks={downloadAllPacks}
+            onDownloadPacksByGender={downloadPacksByGender}
             onDownloadAllCloudData={downloadAllCloudData}
             onDeleteAllCloudData={deleteAllCloudData}
             onDeleteAllPacks={deleteAllPacks}

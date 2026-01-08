@@ -49,6 +49,7 @@ interface PackSidebarProps {
   onPacksLoad: (packs: PackFile[]) => Promise<PacksLoadResult>;
   onGenerateAllPacks?: () => void;
   onDownloadAllPacks?: () => void;
+  onDownloadPacksByGender?: (gender: string) => void;
   onDownloadAllCloudData?: () => void;
   onDeleteAllCloudData?: () => void;
   onDeleteAllPacks?: () => void;
@@ -399,13 +400,14 @@ export const PackSidebar = ({
   onPacksLoad,
   onGenerateAllPacks,
   onDownloadAllPacks,
+  onDownloadPacksByGender,
   onDownloadAllCloudData,
   onDeleteAllCloudData,
   onDeleteAllPacks,
   onDownloadPackOptimized,
   isGeneratingAll = false,
 }: PackSidebarProps) => {
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['all']));
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
 
   // Filter packs by gender
@@ -527,20 +529,37 @@ export const PackSidebar = ({
           </div>
         </div>
 
-        {/* Gender Filter */}
+        {/* Gender Filter with Download */}
         <div className="flex gap-1 mb-3">
           {GENDER_FILTERS.map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => setGenderFilter(filter.value)}
-              className={`flex-1 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all ${
-                genderFilter === filter.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
-              }`}
-            >
-              {filter.label}
-            </button>
+            <div key={filter.value} className="flex-1 flex">
+              <button
+                onClick={() => setGenderFilter(filter.value)}
+                className={`flex-1 px-2 py-1.5 text-[10px] font-medium transition-all ${
+                  genderFilter === filter.value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
+                } ${filter.value !== "all" ? 'rounded-l-lg' : 'rounded-lg'}`}
+              >
+                {filter.label}
+              </button>
+              {filter.value !== "all" && onDownloadPacksByGender && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownloadPacksByGender(filter.value);
+                  }}
+                  className={`px-1.5 py-1.5 text-[10px] rounded-r-lg transition-all border-l ${
+                    genderFilter === filter.value
+                      ? 'bg-primary/80 text-primary-foreground border-primary-foreground/20 hover:bg-primary/70'
+                      : 'bg-secondary/50 text-muted-foreground border-border/50 hover:bg-secondary'
+                  }`}
+                  title={`Download ${filter.label} packs`}
+                >
+                  <Download className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
 
@@ -575,11 +594,11 @@ export const PackSidebar = ({
             groupedPacks.map(([category, categoryPacks]) => (
               <Collapsible
                 key={category}
-                open={expandedCategories.has(category) || expandedCategories.has('all')}
+                defaultOpen={true}
                 onOpenChange={() => toggleCategory(category)}
               >
                 <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-secondary/50 transition-colors">
-                  {expandedCategories.has(category) || expandedCategories.has('all') ? (
+                  {expandedCategories.has(category) ? (
                     <ChevronDown className="w-3 h-3 text-muted-foreground" />
                   ) : (
                     <ChevronRight className="w-3 h-3 text-muted-foreground" />
