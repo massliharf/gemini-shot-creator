@@ -23,7 +23,7 @@ Output **ONLY** strict, raw JSON using this exact template. No markdown, no intr
     "pack_id": "",
     "pack_name": "",
     "description": "",
-    "category": "",
+    "category": "Photography",
     "gender": "unisex",
     "featured": false,
     "tags": ["", "", "", "", ""]
@@ -65,143 +65,146 @@ Output **ONLY** strict, raw JSON using this exact template. No markdown, no intr
 
 ### pack_id
 - Format: snake_case (lowercase, underscores only)
-- 2-4 words maximum
-- Descriptive and memorable
-- Examples: golden_hour_streets, film_noir_studio, neon_cyberpunk_nights
+- Rules: Descriptive, reflects the visual style or era
+- Examples: golden_hour_streets, film_noir_studio, neon_cyberpunk_nights, soft_minimalist_editorial
 
 ### pack_name
 - Format: Title Case
-- Human-readable version of pack_id
-- Examples: "Golden Hour Streets", "Film Noir Studio"
+- Rules: Human-readable version of pack_id
+- Examples: Golden Hour Streets, Film Noir Studio, Soft Minimalist Editorial
 
 ### description
-- Single sentence, 10-20 words
+- Format: Single sentence, 10-20 words
 - Formula: [Style/Mood] + [Subject Type] + [Key Visual Elements]
-- Example: "Cinematic portraits with dramatic chiaroscuro lighting and shallow depth of field"
+- Example: "Cinematic portraits with dramatic chiaroscuro lighting and shallow depth of field."
 
 ### category
-- Options: Photography | 3D | Art | Illustration
-- Use "Photography" for realistic portrait packs
+- Value: Photography
 
 ### gender
-- Default: "unisex"
-- Only change if pack is specifically designed for one gender's fashion/styling
+- Default: unisex (unless the pack is specifically designed for one gender)
 
 ### tags
-- Array of exactly 5 strings, lowercase
-- Mix of: style, mood, technique, era, genre
-- Categories: cinematic, editorial, documentary, fine-art, moody, bright, dramatic, soft, shallow-dof, natural-light, studio, golden-hour, vintage, modern, urban, portrait, fashion, warm, cool, monochrome
+- Format: Array of 5 strings (lowercase)
+- Mix: Style, mood, lighting, era, genre
+- Examples: ["cinematic", "moody", "urban", "shallow-dof", "editorial"]
 
 ---
 
 ## GLOBAL_STYLE_ANCHOR - THE PHOTOGRAPHY DNA
 
 ### PURPOSE
-This is the **immutable technical and aesthetic signature** of your pack. It defines HOW you shoot, not WHAT you shoot. This will be combined with every scene prompt at runtime.
+This defines HOW the image is created (Camera, Lighting, Color, Post-Processing). It applies to all 12 scenes.
 
-### STRUCTURE
-Write as a **single, comprehensive natural language prompt** that covers ALL technical aspects. Start with "Create a photograph of the person in this image..."
+### STRATEGY FOR GEMINI MODELS
+Gemini models respond best to descriptive natural language. Do not use lists. Write a cohesive narrative description.
+
+**CRITICAL: Use Positive Exclusion.** Instead of saying "no equipment visible," describe the "cleanliness" of the framing.
+
+**LIGHTING RULE:** Do NOT use hardware names like "lightbox," "softbox," or "umbrella" if possible. These terms often cause the AI to draw the object itself. Instead, describe the QUALITY of the light (e.g., "diffused large area lighting," "soft window-style illumination").
 
 ### FORMULA
-"Create a photograph of the person in this image [INTRO/STYLE]. [CAMERA SPECS]. [LIGHTING SETUP]. [COMPOSITION RULES]. [COLOR & POST-PROCESSING]. [ATMOSPHERE]. [FINAL MOOD]. Negative prompt: [COMPREHENSIVE NEGATIVES]."
+"Create a photograph of the person in this image [INTRO/STYLE]. [CAMERA SPECS & OPTICAL CHARACTERISTICS]. [LIGHTING QUALITY & ATMOSPHERE]. [COLOR PALETTE & GRADING]. [POSITIVE EXCLUSION / PURITY STATEMENT]."
 
-### REQUIRED COMPONENTS (weave into one paragraph):
+### COMPONENTS:
 
-1. **INTRO** - Style direction (e.g., "with a cinematic editorial style")
+1. **CAMERA & OPTICS** - Define the lens and sensor look
+   - Examples:
+     - "Captured on a high-resolution full-frame sensor with an 85mm portrait lens at f/1.8."
+     - "Shot on 35mm analogue film stock with a 50mm lens for a natural perspective."
 
-2. **CAMERA SPECS** - Camera body, lens focal length + aperture, aperture setting, ISO, shutter speed
-   - Example: "Shot on full-frame Nikon D850 with 85mm f/1.4 lens at f/1.8, ISO 400, 1/250s"
+2. **LIGHTING QUALITY** (Not Hardware) - Describe how the light behaves, not the tool used
+   - BAD: "Using a large lightbox and a reflector." (Risk: AI draws a box)
+   - GOOD: "Illuminated by a soft, directional light source from the left that wraps gently around the features, creating smooth transitions between highlight and shadow."
+   - GOOD: "Lit by harsh, high-contrast sunlight creating dramatic, defined shadows."
 
-3. **LIGHTING SETUP** - Type, every light source, position, quality, modifiers, color temperature, ratios
-   - Example: "Lighting uses a three-point studio setup: large 47-inch octabox as key light positioned 45° camera left..."
+3. **COLOR & GRADING** - Define the aesthetic finish
+   - Examples:
+     - "Processed with a teal and orange cinematic grade, featuring lifted shadows and preserved highlights."
+     - "Finished in classic black and white with deep, rich blacks and silvery mid-tones."
 
-4. **COMPOSITION RULES** - Framing philosophy, depth of field, bokeh quality
-   - Example: "Composition follows rule of thirds. Shallow depth of field at f/1.8 produces smooth, creamy circular bokeh..."
+4. **POSITIVE EXCLUSION** (The "Anti-Negative" Strategy) - Prevent unwanted elements by enforcing purity
+   - To prevent Studio Gear: "The composition is tightly framed and pristine, ensuring a clean aesthetic devoid of any technical equipment or surroundings."
+   - To ensure focus: "The image is a dedicated portrait with a razor-sharp focus on the subject's face, blurring all background distractions into smooth bokeh."
 
-5. **COLOR & POST-PROCESSING** - Palette, grading style, contrast, grain, film emulation
-   - Example: "Warm color palette with teal shadows using cinematic teal-orange color grading. Post-processing includes lifted shadows at +15..."
+### GLOBAL_STYLE_ANCHOR EXAMPLES
 
-6. **ATMOSPHERE** - Environmental conditions, haze, volumetric light
-   - Example: "Subtle atmospheric haze with soft light diffusion adds depth and dimension..."
+**Example 1: Clean Studio (No Lightbox artifacts)**
+"Create a photograph of the person in this image with a high-end editorial studio aesthetic. Captured on a Hasselblad medium format camera with an 80mm lens at f/5.6 for exceptional clarity. The lighting creates a sculpted, flattering look using large, diffused area illumination from above, resulting in soft shadows under the chin without any harsh hotspots. The background is a pure, infinite grey tone. The image is processed with a modern commercial grade, featuring true-to-life skin tones and vibrant contrast. The composition is pristine and minimalist, focusing entirely on the subject within a clean space, ensuring a polished look free of any distractions."
 
-7. **FINAL MOOD** - Overall aesthetic reference, emotional quality
-   - Example: "The final image should have a moody editorial aesthetic that feels sophisticated and high-fashion..."
-
-8. **NEGATIVE PROMPT** - At the very end, MUST include:
-   "Negative prompt: visible studio lights, light stands, equipment visible, backdrop stands, photography gear, multiple people, extra person, other people in frame, extra hands, disembodied hands, visible window frame, artificial bokeh overlay, fake blur effect, visible sun in frame, sun disc, excessive lens flare, visible flash, on-camera flash, crowds of people, busy traffic, distracting signs, ID photo look, passport photo style, mugshot lighting, film frame border, date stamp, watermarks, text overlay, brand logos, extreme wide shot, distant shot, back to camera, back turned, face not visible, face obscured, subject too small in frame, face blurred, out of focus face, low quality, blurry subject, distorted features"
+**Example 2: Cinematic Outdoor**
+"Create a photograph of the person in this image with a moody, cinematic street photography style. Shot on a Leica M10 with a 35mm Summilux lens at f/1.4. The scene is illuminated by practical city lights and ambient moonlight, creating a low-key atmosphere with cool blue tones and warm highlights. There is a subtle atmospheric mist that diffuses the light sources. The color grading emulates Kodak Portra 800 film with fine grain and warm shadows. The framing focuses exclusively on the solitary subject, capturing a moment of quiet isolation where the surroundings are blurred and atmospheric."
 
 ---
 
 ## SCENE PROMPTS - INSTRUCTIONS
 
 ### PURPOSE
-Each scene defines **WHAT changes** (pose, wardrobe, setting) while global_style_anchor defines HOW you shoot. At runtime: FULL_PROMPT = global_style_anchor + " " + scene.prompt
+Each scene defines WHAT happens (Pose, Wardrobe, Setting). Scenes are continuations of the global anchor.
 
-### STRUCTURE
-Write each scene as a **continuation prompt** that flows from the global_style_anchor. Start with lowercase "in a..." to create seamless continuation.
+### RULE: Start with lowercase "in a..."
 
-### REQUIRED COMPONENTS FOR EACH SCENE (in order):
+### FORMULA
+"in a [SHOT TYPE] captured from [ANGLE]. [POSE & ACTION]. [EXPRESSION]. [WARDROBE]. [SETTING & CONTEXT]. [POSITIVE EXCLUSION / FRAMING CONSTRAINT]."
 
-1. **SHOT & ANGLE** (start with lowercase)
-   - Format: "in a [shot type], captured from [angle] with [orientation]"
-   - ALLOWED shots: Extreme close-up, Close-up, Medium close-up, Medium shot, Medium full, Full body ONLY
-   - FORBIDDEN: Wide shot, Extreme wide shot (subject too small), Back to camera, face not visible
+### THE POSITIVE EXCLUSION STRATEGY FOR SCENES
 
-2. **POSE DETAILS**
-   - Body orientation, weight distribution, spine curve
-   - Both arms specifically, leg stance
+Instead of using negative prompts, use phrases that enforce the desired outcome:
 
-3. **HANDS & HEAD**
-   - Left hand exact position, right hand exact position
-   - Head tilt, chin position, gaze direction
+- To ensure face visibility: "...captured in a composition where the subject's face is clearly visible, sharply in focus, and prominently featured."
+- To prevent back-turned poses: "...with the subject engaging directly with the camera lens, chest and face turned forward."
+- To prevent wide/distant shots: "...framed tightly to prioritize the subject's presence, ensuring they fill the majority of the frame."
 
-4. **EXPRESSION** (emotional only, NEVER describe physical features)
-   - Emotional quality, energy level, mood conveyed
-   - NEVER: eye color, lip shape, face structure, skin
+### COMPONENTS:
 
-5. **WARDROBE**
-   - Every garment head to toe
-   - Colors, materials, fit
-   - ALL accessories, footwear
-   - Styling details (tucked/untucked, rolled sleeves, etc.)
+1. **SHOT & ANGLE**
+   - GOOD: close-up, medium shot, full body shot (head to toe)
+   - FORBIDDEN: wide shot, extreme long shot (Subject becomes too small)
 
-6. **PROPS & SETTING**
-   - Location/environment details
-   - Foreground/background elements
-   - Props if any
+2. **POSE DETAILS** - Be specific about hands and body weight
+   - "Standing with weight shifted to the left hip, right hand resting in a pocket, left hand adjusting the lapel."
 
-7. **SPATIAL COMPOSITION**
-   - Subject placement in frame (rule of thirds, centered, etc.)
-   - Negative space, depth layers
+3. **WARDROBE** - Describe textures, colors, and fit
+   - "Wearing a textured beige wool trench coat over a charcoal turtleneck and fitted black trousers."
 
-8. **SCENE MOOD**
-   - Scene-specific emotional quality
-   - What this particular scene should capture
+4. **SETTING** - Describe the environment but emphasize cleanliness/emptiness if needed
+   - "Positioned in a modern concrete hallway with clean lines."
 
-9. **SCENE NEGATIVE** (REQUIRED at end of every scene)
-   - "Negative: equipment visible, studio lights, multiple people, back turned, face obscured, distant shot, blurry face"
+5. **SCENE-SPECIFIC POSITIVE EXCLUSION** - End every scene with a sentence that locks in quality
+   - Standard Ending: "The shot is composed as a pristine, professional portrait, ensuring the subject is the sole focus against a distraction-free background."
+
+### SCENE PROMPT EXAMPLES
+
+**Scene Example 1 (Studio):**
+"in a medium shot captured from eye level. The subject is seated on a simple wooden stool, leaning slightly forward with elbows resting on knees. Hands are clasped loosely together in a relaxed, confident gesture. The head is tilted slightly to the right, looking directly into the lens with a calm, engaging expression. Wearing a white linen button-down shirt with rolled sleeves and navy chinos. The setting is a minimalist space with no props other than the stool. The image is framed to ensure the subject's face is the absolute focal point, sharp and clear, creating an intimate connection free of any visual clutter or additional subjects."
+
+**Scene Example 2 (Urban):**
+"in a full body shot captured from a low angle. The subject is walking confidently toward the camera, caught mid-stride with the right leg forward. The left arm swings naturally by their side, while the right hand holds a leather messenger bag strap. Expression is focused and determined. Dressed in a sharp charcoal suit with a crisp white shirt and no tie. The background is a blurred architectural facade of glass and steel. The composition captures the subject as the solitary figure in the frame, emphasizing their dominance in the space without any other pedestrians or traffic visible."
 
 ---
 
-## DIVERSITY REQUIREMENTS
+## CONSISTENCY & DIVERSITY RULES
 
-Each of the 12 scenes MUST be meaningfully different:
+### 1. THE SEPARATION LAW (Crucial for Gemini)
+- **Global Anchor = Technical Specs** (Camera, Light Quality, Color)
+- **Scene Prompt = Content** (Pose, Clothes, Location)
+- NEVER mix them. Do not put "wearing a hat" in Global. Do not put "soft lighting" in Scene.
 
-### SHOT DISTRIBUTION:
-- Scenes 01-03: Close-ups & Medium close-ups (face-focused)
-- Scenes 04-08: Medium shots & Medium full (versatile)
-- Scenes 09-12: Full body shots (head to toe, subject prominent)
-- NO wide shots, NO distant shots where subject is small
+### 2. DIVERSITY ACROSS 12 SCENES
+Ensure your 12 scenes cover:
+- **Distances:** 4 Close-ups, 4 Medium, 4 Full Body
+- **Angles:** Eye level, Low angle, High angle
+- **Wardrobe:** Change the outfit description significantly for every scene
+- **Poses:** Standing, sitting, walking, leaning
 
-### VARY ACROSS SCENES:
-- Camera angles: mix eye level, low angle, high angle
-- Subject orientation: facing camera, 3/4 turns, profiles (face visible)
-- Pose types: standing, sitting, leaning, walking, dynamic
-- Hand gestures: ALL different across scenes
-- Expressions: confident, vulnerable, mysterious, bold, soft, intense, calm
-- Wardrobe: completely different each scene
-- Settings: mix indoor/outdoor, vary environments
-- Compositions: centered, rule of thirds, unconventional
+### 3. POSITIVE FRAMING CHECKLIST
+Before saving, check your prompts:
+- Did you use "Negative"? DELETE IT.
+- Did you use "Lightbox/Softbox"? DELETE IT. Use "Diffused Light" or "Area Lighting".
+- Replace negatives with positive constraints:
+  - Instead of "Negative: blurry face" → Write "The face is rendered with razor-sharp precision and clarity."
+  - Instead of "Negative: bad anatomy" → Write "The subject creates a natural, anatomically perfect pose."
+  - Instead of "Negative: cropped head" → Write "The framing creates generous headroom, capturing the full subject."
 
 ---
 
@@ -214,9 +217,10 @@ Each of the 12 scenes MUST be meaningfully different:
 5. **12 scenes minimum** with meaningful variation
 6. **Global style anchor = complete technical paragraph** starting with "Create a photograph..."
 7. **Scene prompts start with lowercase "in a..."** as continuations
-8. **Every scene MUST end with Negative prompt**
+8. **Use POSITIVE EXCLUSION** - Never use "Negative prompt:" - enforce quality through positive descriptions
 9. **Be extremely specific** - Use concrete, visual language
-10. **Maximum shot distance: Full body** (head to toe, subject fills frame)`;
+10. **Maximum shot distance: Full body** (head to toe, subject fills frame)
+11. **NO hardware names** like lightbox, softbox, umbrella - describe light QUALITY instead`;
 
 // ========================================
 // 3D CHARACTER PACK CREATION - MASTER GUIDE
@@ -308,13 +312,15 @@ Output **ONLY** strict, raw JSON using this exact template. No markdown, no intr
 ### PURPOSE
 This defines HOW the image is rendered (Engine, Shader Quality, Lighting Rig, Art Style). It applies to all 12 scenes.
 
-### STRUCTURE
-Write as a **single, comprehensive natural language prompt** starting with "Create a 3D render of the character in this image..."
+### STRATEGY FOR GEMINI MODELS
+Gemini models respond best to descriptive natural language. Do not use lists. Write a cohesive narrative description.
+
+**CRITICAL: Use Positive Exclusion.** Instead of saying "no artifacts visible," describe the "cleanliness" and "production quality" of the render.
 
 ### FORMULA
 "Create a 3D render of the character in this image [RENDER STYLE & ENGINE]. [MATERIAL & TEXTURE QUALITY]. [LIGHTING RIG & ATMOSPHERE]. [COMPOSITION & CAMERA]. [POSITIVE EXCLUSION / PURITY STATEMENT]."
 
-### REQUIRED COMPONENTS:
+### COMPONENTS:
 
 1. **RENDER STYLE & ENGINE** - Define the software look
    - "Rendered in Octane for a hyper-realistic cinematic look"
@@ -327,8 +333,8 @@ Write as a **single, comprehensive natural language prompt** starting with "Crea
    - "Surfaces are smooth, matte, and colorful with soft gradients"
    - "Worn metal textures with realistic scratches and imperfection maps"
 
-3. **LIGHTING RIG** - Describe virtual lights
-   - "Lit by a classic 3-point studio lighting setup with a strong rim light"
+3. **LIGHTING RIG** - Describe virtual lights by their quality
+   - "Lit by a classic 3-point lighting setup with a strong rim light creating separation"
    - "Illuminated by global illumination and soft HDRI environment lighting"
 
 4. **POSITIVE EXCLUSION** - Ensure the render is clean
@@ -336,20 +342,35 @@ Write as a **single, comprehensive natural language prompt** starting with "Crea
    - "The mesh topology is smooth and clean, with high-poly subdivision for perfect curves"
    - "Presented against a seamless, solid studio backdrop for clear silhouette readability"
 
+### GLOBAL_STYLE_ANCHOR EXAMPLES
+
+**Example 1: Pixar Style**
+"Create a 3D render of the character in this image with a stylized Disney/Pixar animation aesthetic. Rendered in a modern animation pipeline with smooth, appealing character proportions and expressive features. The materials feature soft, matte skin with subtle subsurface scattering and vibrant, saturated colors. The lighting creates a warm, inviting atmosphere with soft key illumination and gentle fill, producing smooth shadows and appealing highlights. The render is production-quality with anti-aliased edges, clean topology, and polished presentation against a simple gradient backdrop."
+
+**Example 2: Cyberpunk Octane**
+"Create a 3D render of the character in this image with a hyper-realistic cyberpunk aesthetic rendered in Octane. The materials feature detailed PBR textures with metallic surfaces, holographic overlays, and realistic skin with visible pores and subsurface scattering. The lighting creates a dramatic atmosphere with neon rim lights in cyan and magenta, volumetric fog, and strong contrast between shadows and highlights. The render is noise-free and fully converged, showcasing cinema-quality production values against an atmospheric urban backdrop with bokeh city lights."
+
 ---
 
 ## SCENE PROMPTS - INSTRUCTIONS
 
 ### PURPOSE
-Each scene defines WHAT the 3D character is doing (Pose, Action, Camera Angle).
+Each scene defines WHAT the 3D character is doing (Pose, Action, Camera Angle). Scenes are continuations of the global anchor.
 
-### STRUCTURE
-Write each scene as a **continuation prompt** starting with lowercase "in a..."
+### RULE: Start with lowercase "in a..."
 
 ### FORMULA
 "in a [CAMERA ANGLE/FRAMING]. [POSE & ACTION]. [EXPRESSION]. [OUTFIT/SKIN]. [ENVIRONMENT/PLATFORM]. [POSITIVE EXCLUSION / ASSET CLARITY]."
 
-### REQUIRED COMPONENTS:
+### THE POSITIVE EXCLUSION STRATEGY FOR SCENES
+
+Instead of using negative prompts, use phrases that enforce the desired outcome:
+
+- To ensure face visibility: "...framed to showcase the character's face with crystal-clear detail and sharp focus."
+- To prevent back-turned poses: "...with the character facing the camera, ensuring full facial visibility."
+- To ensure quality: "...rendered as a pristine, hero-quality asset with clean geometry and polished presentation."
+
+### COMPONENTS:
 
 1. **CAMERA ANGLE**
    - Isometric view (Game style)
@@ -368,12 +389,20 @@ Write each scene as a **continuation prompt** starting with lowercase "in a..."
 4. **ENVIRONMENT**
    - "Standing on a digital wireframe pedestal"
    - "Floating in a zero-gravity space"
-   - "Placed within a simple studio lightbox"
+   - "Placed within a clean studio environment"
 
 5. **SCENE-SPECIFIC POSITIVE EXCLUSION**
    - "The render focuses strictly on the character geometry, ensuring a clean silhouette against the background"
    - "Captured in an anatomically correct pose with natural weight distribution"
    - "Framing the character as the sole hero asset in the center of the composition"
+
+### SCENE PROMPT EXAMPLES
+
+**Scene Example 1 (Portrait):**
+"in a close-up portrait shot captured from eye level. The character's face is prominently featured with a confident, determined expression. Wearing futuristic headphones with LED accents and a high-collar tech jacket. The background is a soft gradient that complements the character's color palette. The render showcases exceptional facial detail with sharp focus on the eyes and subtle rim lighting separating the character from the background."
+
+**Scene Example 2 (Full Body Action):**
+"in a dynamic full body shot captured from a low angle hero perspective. The character is caught mid-motion in a powerful stance, weight shifted forward with arms positioned for action. Expression is intense and focused. Wearing full tactical armor with glowing energy cores and weathered battle damage. Standing on a floating platform with energy effects beneath. The composition frames the character as an imposing hero figure, filling the frame with commanding presence."
 
 ---
 
@@ -402,7 +431,7 @@ Write each scene as a **continuation prompt** starting with lowercase "in a..."
 5. **12 scenes minimum** with meaningful variation
 6. **Global style anchor = complete technical paragraph** starting with "Create a 3D render..."
 7. **Scene prompts start with lowercase "in a..."** as continuations
-8. **Use Positive Exclusion** - Describe quality, not negatives
+8. **Use POSITIVE EXCLUSION** - Never use "Negative prompt:" - enforce quality through positive descriptions
 9. **Be extremely specific** - Use concrete, 3D technical language
 10. **Maximum shot distance: Full body** (character fills frame)`;
 
