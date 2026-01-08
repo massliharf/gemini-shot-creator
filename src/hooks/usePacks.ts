@@ -51,7 +51,12 @@ type QueueRow = {
 const statusToSceneStatus = (status: string | null | undefined): SceneStatus => {
   if (status === "success") return "success";
   if (status === "error") return "error";
-  if (status === "generating" || status === "queued") return "generating";
+
+  // "queued" rows mean the client created queue items but generation did not actually run
+  // (e.g. user closed the app). Treat as idle to avoid "stuck generating" UI.
+  if (status === "generating") return "generating";
+  if (status === "queued") return "idle";
+
   return "idle";
 };
 
