@@ -35,13 +35,13 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
     value: "photography", 
     label: "Photography", 
     icon: <Camera className="h-4 w-4" />,
-    description: "Gerçekçi fotoğraf stilleri"
+    description: "Realistic photography styles"
   },
   { 
     value: "3d", 
     label: "3D Character", 
     icon: <Box className="h-4 w-4" />,
-    description: "3D render ve karakter stilleri"
+    description: "3D render and character styles"
   },
 ];
 
@@ -100,7 +100,7 @@ export default function Generator() {
     );
 
     setImages(prev => [...prev, ...newImages]);
-    toast.success(`${newImages.length} görsel eklendi`);
+    toast.success(`${newImages.length} image(s) added`);
   };
 
   const fileToBase64 = (file: File): Promise<string> => {
@@ -161,7 +161,7 @@ export default function Generator() {
   const handleGenerateAll = async () => {
     const pendingImages = images.filter(img => img.status === 'pending' || img.status === 'error');
     if (pendingImages.length === 0) {
-      toast.error("Oluşturulacak görsel yok");
+      toast.error("No images to generate");
       return;
     }
 
@@ -193,7 +193,7 @@ export default function Generator() {
             
             return { id: img.id, pack, saved };
           } else {
-            throw new Error(data.error || "Pack oluşturulamadı");
+            throw new Error(data.error || "Failed to create pack");
           }
         } catch (error) {
           setCompletedCount(prev => prev + 1);
@@ -223,7 +223,7 @@ export default function Generator() {
         return {
           ...p,
           status: 'error' as const,
-          error: result.reason?.error?.message || "Bilinmeyen hata",
+          error: result.reason?.error?.message || "Unknown error",
         };
       }
     }));
@@ -235,12 +235,12 @@ export default function Generator() {
     const failCount = results.filter(r => r.status === "rejected").length;
 
     if (savedCount > 0) {
-      toast.success(`${savedCount} pack oluşturuldu ve kaydedildi!`);
+      toast.success(`${savedCount} pack(s) created and saved!`);
     } else if (successCount > 0) {
-      toast.warning(`${successCount} pack oluşturuldu ama kaydedilemedi`);
+      toast.warning(`${successCount} pack(s) created but not saved`);
     }
     if (failCount > 0) {
-      toast.error(`${failCount} pack oluşturulamadı`);
+      toast.error(`${failCount} pack(s) failed`);
     }
   };
 
@@ -260,11 +260,11 @@ export default function Generator() {
     <AppLayout userEmail={userEmail}>
       <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
         <div className="p-4 border-b border-border/50">
-          <h1 className="text-sm font-semibold">Toplu Pack Oluşturucu</h1>
+          <h1 className="text-sm font-semibold">Bulk Pack Generator</h1>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-            <span>{images.length} görsel</span>
-            {savedCount > 0 && <span className="text-green-500">• {savedCount} kaydedildi</span>}
-            {errorCount > 0 && <span className="text-red-500">• {errorCount} hatalı</span>}
+            <span>{images.length} images</span>
+            {savedCount > 0 && <span className="text-green-500">• {savedCount} saved</span>}
+            {errorCount > 0 && <span className="text-red-500">• {errorCount} failed</span>}
           </div>
         </div>
 
@@ -273,7 +273,7 @@ export default function Generator() {
           <Card className="p-4 border-border/50 space-y-4">
             {/* Pack Type Selector */}
             <div className="space-y-2">
-              <Label className="text-xs font-medium">Pack Tipi</Label>
+              <Label className="text-xs font-medium">Pack Type</Label>
               <div className="grid grid-cols-2 gap-2">
                 {PACK_TYPE_OPTIONS.map((option) => (
                   <button
@@ -301,7 +301,7 @@ export default function Generator() {
             </div>
 
             <div className="flex items-center gap-4">
-              <Label className="text-xs font-medium whitespace-nowrap">Sahne Sayısı:</Label>
+              <Label className="text-xs font-medium whitespace-nowrap">Scene Count:</Label>
               <Select
                 value={sceneCount.toString()}
                 onValueChange={(v) => setSceneCount(parseInt(v))}
@@ -313,13 +313,13 @@ export default function Generator() {
                 <SelectContent>
                   {SCENE_COUNT_OPTIONS.map((count) => (
                     <SelectItem key={count} value={count.toString()}>
-                      {count} sahne
+                      {count} scenes
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <span className="text-[10px] text-muted-foreground">
-                Her pack için oluşturulacak sahne sayısı
+                Number of scenes per pack
               </span>
             </div>
             
@@ -337,17 +337,17 @@ export default function Generator() {
           {/* Upload Area */}
           <Card className="p-4 space-y-4 border-border/50">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-medium">Referans Görseller (max 10)</Label>
+              <Label className="text-xs font-medium">Reference Images (max 10)</Label>
               {images.length > 0 && (
                 <Button variant="ghost" size="sm" onClick={clearAll} className="text-xs h-6" disabled={isGenerating}>
-                  Temizle
+                  Clear
                 </Button>
               )}
             </div>
 
             <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
               <Upload className="h-6 w-6 text-muted-foreground mb-2" />
-              <span className="text-xs text-muted-foreground">Görselleri sürükleyin veya tıklayın</span>
+              <span className="text-xs text-muted-foreground">Drag images or click to upload</span>
               <input
                 type="file"
                 accept="image/*"
@@ -398,7 +398,7 @@ export default function Generator() {
             {isGenerating && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span>Paralel üretiliyor... {completedCount} / {generatingCount}</span>
+                  <span>Generating in parallel... {completedCount} / {generatingCount}</span>
                   <span>{generatingCount > 0 ? Math.round(progress) : 0}%</span>
                 </div>
                 <Progress value={generatingCount > 0 ? progress : 0} className="h-1" />
@@ -416,12 +416,12 @@ export default function Generator() {
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Üretiliyor...
+                    Generating...
                   </>
                 ) : (
                   <>
                     <Wand2 className="h-4 w-4 mr-2" />
-                    Oluştur ve Kaydet ({pendingCount})
+                    Generate & Save ({pendingCount})
                   </>
                 )}
               </Button>
@@ -432,7 +432,7 @@ export default function Generator() {
                   size="sm"
                 >
                   <Home className="h-4 w-4 mr-2" />
-                  Ana Sayfa
+                  Home
                 </Button>
               )}
             </div>
@@ -441,7 +441,7 @@ export default function Generator() {
           {/* Saved Packs List */}
           {images.filter(i => i.status === 'saved' && i.pack).length > 0 && (
             <Card className="p-4 space-y-4 border-green-500/30 bg-green-500/5">
-              <Label className="text-xs font-medium text-green-600">Kaydedilen Pack'ler</Label>
+              <Label className="text-xs font-medium text-green-600">Saved Packs</Label>
               <div className="space-y-2">
                 {images.filter(i => i.status === 'saved' && i.pack).map(img => (
                   <div key={img.id} className="flex items-center gap-3 p-2 bg-green-500/10 rounded-lg">
@@ -451,7 +451,7 @@ export default function Generator() {
                         {img.pack ? getPackName(img.pack) : 'Untitled Pack'}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {getSceneCount(img.pack!) || 0} sahne • Kaydedildi ✓
+                        {getSceneCount(img.pack!) || 0} scenes • Saved ✓
                       </p>
                     </div>
                     <Check className="h-4 w-4 text-green-500 shrink-0" />
@@ -460,7 +460,7 @@ export default function Generator() {
               </div>
               <Button onClick={goToMainPage} className="w-full" size="sm">
                 <Home className="h-4 w-4 mr-2" />
-                Pack'leri Görüntüle
+                View Packs
               </Button>
             </Card>
           )}
