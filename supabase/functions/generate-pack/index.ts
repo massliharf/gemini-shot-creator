@@ -441,7 +441,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, textPrompt, sceneCount = 12, packType = "photography" } = await req.json();
+    const { imageBase64, textPrompt, sceneCount = 12, packType = "photography", gender = "unisex" } = await req.json();
 
     if (!imageBase64 && !textPrompt) {
       return new Response(
@@ -449,6 +449,10 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Validate gender value
+    const validGenders = ["male", "female", "unisex"];
+    const normalizedGender = validGenders.includes(gender) ? gender : "unisex";
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) {
@@ -463,8 +467,8 @@ serve(async (req) => {
     const styleType = is3D ? "3D character" : "photography";
     const anchorStart = is3D ? "Create a 3D render of the character in this image" : "Create a photograph of the person in this image";
 
-    console.log(`[generate-pack] Starting ${styleType} pack generation with ${sceneCount} scenes...`);
-    console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}`);
+    console.log(`[generate-pack] Starting ${styleType} pack generation with ${sceneCount} scenes, gender=${normalizedGender}...`);
+    console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}, gender=${normalizedGender}`);
 
     // Build content parts
     const contentParts: unknown[] = [];
@@ -484,15 +488,24 @@ serve(async (req) => {
     // Build the user prompt
     let userPrompt = basePrompt;
 
+    // Build gender-specific instruction
+    const genderInstruction = normalizedGender === "unisex" 
+      ? "The pack should be gender-neutral and suitable for any person."
+      : `The pack is specifically designed for ${normalizedGender} subjects. Set meta.gender to "${normalizedGender}" and ensure all wardrobe, poses, and styling descriptions are appropriate for ${normalizedGender} subjects.`;
+
     if (textPrompt) {
       userPrompt += `
 
 ## User Request:
 ${textPrompt}
 
+## Gender Specification:
+${genderInstruction}
+
 Create a complete ${styleType} style pack with exactly ${sceneCount} scenes based on this description.
 
 Remember:
+- meta.gender MUST be set to "${normalizedGender}"
 - global_style_anchor is ONE complete technical paragraph starting with "${anchorStart}..."
 - Each scene prompt starts with lowercase "in a..." as continuation
 - Face must be clearly visible in ALL scenes
@@ -506,7 +519,11 @@ Output pure JSON only.`;
 ## Task:
 Analyze the uploaded reference image and extract the visual DNA. Create a complete ${styleType} style pack with exactly ${sceneCount} unique scenes that captures and explores this aesthetic.
 
+## Gender Specification:
+${genderInstruction}
+
 Remember:
+- meta.gender MUST be set to "${normalizedGender}"
 - global_style_anchor is ONE complete technical paragraph starting with "${anchorStart}..."
 - Each scene prompt starts with lowercase "in a..." as continuation
 - Face must be clearly visible in ALL scenes
@@ -667,7 +684,8 @@ Output pure JSON only.`;
     // Ensure meta fields with defaults
     if (!packData.meta.description) packData.meta.description = "";
     if (!packData.meta.category) packData.meta.category = is3D ? "3D" : "Photography";
-    if (!packData.meta.gender) packData.meta.gender = "unisex";
+    // Force the gender to the user-specified value
+    packData.meta.gender = normalizedGender;
     if (packData.meta.featured === undefined) packData.meta.featured = false;
     if (!packData.meta.tags || !Array.isArray(packData.meta.tags)) packData.meta.tags = [];
     
