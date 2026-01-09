@@ -204,17 +204,28 @@ Before saving, check your prompts:
 
 ---
 
-## REFERENCE IMAGE WORKFLOW - STYLE EXTRACTION
+## REFERENCE IMAGE WORKFLOW - FORENSIC STYLE CLONING
 
 ### PURPOSE
-This module allows you to "reverse engineer" the photographic style from a reference image into a complete Pack JSON. The goal is to clone the technique, not the subject.
+This module enables the **Forensic Replication** of a photographic style from a reference image. The goal is to clone the technical DNA so precisely that the output feels like a continuation of the original photoshoot, while applying that style to 12 completely new, high-quality variations.
 
-### THE GOLDEN RULE OF EXTRACTION
-**EXTRACT THE HOW, NOT THE WHO.**
+### THE "FORENSIC EXTRACTION" PROTOCOL
 
-- Do Extract: Lighting direction, shadow softness, color grading, lens focal length, background blur (bokeh), film grain, contrast levels.
-- Do NOT Extract: The specific person's gender, hair color, eye color, specific outfit features, or facial structure.
-- Placeholder: Always refer to the subject as "the person in this image" or "the subject".
+**VISUAL DNA REPLICATION (THE "HOW"):**
+Do not just "describe" the image. **Measure it.**
+- **Optics:** Identify the exact focal length (e.g., "85mm compression"), aperture behavior (e.g., "cat-eye bokeh"), and lens defects (e.g., "chromatic aberration," "vignette").
+- **Physics of Light:** Map the photons. Where is the key light? What is the fill ratio? Is there rim light? What is the color temperature of the shadows vs. highlights?
+- **Post-Processing:** Identify the grade. Is it "Bleach Bypass"? "Technicolor"? "Kodak Portra"?
+
+**SUBJECT ZEROING (THE "WHO"):**
+The reference subject (gender, race, hair, age) implies nothing.
+- **Hard Rule:** The Global Style Anchor MUST use the placeholder: "the person in this image".
+- Any description of the reference subject's physical features in the global_style_anchor is a **CRITICAL FAILURE**.
+
+**SCENE VARIATION (THE "WHAT"):**
+Once the style is cloned, you must prove its versatility.
+- **Do not repeat:** Do not output 12 scenes of "person looking at camera".
+- **Create:** Invent 12 distinct "moments" (e.g., A contemplative profile shot, A dynamic walking shot, A high-angle fashion shot) that ALL use the cloned lighting/camera style perfectly.
 
 ### EXTRACTION GUIDELINES (INTERNAL LOGIC)
 
@@ -238,6 +249,14 @@ Before outputting the global_style_anchor, perform this check:
 - Did I write "blonde woman"? → CORRECT TO: "the person in this image"
 - Did I write "man in a suit"? → CORRECT TO: "the subject"
 - Did I write "smiling girl"? → CORRECT TO: "the subject with an engaging expression"
+
+### EXAMPLE: EXTRACTION LOGIC (Mental Chain of Thought)
+
+**Reference:** A photo of a woman with rainbow light patterns on her face.
+
+**Bad Extraction:** "A photo of a woman with colorful light. She looks at the camera." (Too simple, defines subject)
+
+**Forensic Extraction:** "Create a creative portrait of the person in this image. The lighting creates sharp, prismatic caustic patterns (cyan, magenta, yellow) that contour the face. The light source is hard and directional, mimicking sunlight through cut glass. The lens is an 85mm macro, focusing strictly on skin texture with a rapid fall-off to a dark void background. The color grade is high-contrast and vibrant..."
 
 ---
 
@@ -581,31 +600,33 @@ Create a complete ${styleType} style pack with exactly ${sceneCount} scenes base
 
 Output pure JSON only.`;
     } else {
-      // Reference Image Mode - Style Extraction
+      // Reference Image Mode - Forensic Style Cloning
       userPrompt += `
 
 ---
 
-## STYLE EXTRACTION TASK:
+## FORENSIC STYLE CLONING TASK:
 
-Analyze the uploaded reference image and extract its "Visual DNA".
+Analyze the uploaded reference image and perform **Forensic Replication** of its photographic style.
 
-### STEP 1: ANALYZE THE STYLE (GLOBAL_STYLE_ANCHOR)
-Ignore the specific identity of the person in the reference (do not mention gender, race, or specific features). Focus ONLY on the photography/render technique:
-- Estimate the Camera & Lens (e.g., 85mm f/1.2, 35mm film)
-- Deconstruct the Lighting (Quality, Direction, Temperature). Do NOT use hardware names (no "softbox" or "lightbox"). Use descriptive terms like "diffused window-style light" or "hard directional sunlight"
-- Analyze the Color Grading (Contrast, Saturation, Palette, Film simulation)
-- Write the 'global_style_anchor' using the Positive Exclusion format
+### PHASE 1: FORENSIC STYLE EXTRACTION (Global Style Anchor)
+Analyze the reference image and write a detailed technical description.
+- **LIGHTING PHYSICS:** Don't just say "nice light". Describe the physics. Is it caustics? Is it projection? Is it gobo? Direction? Hardness? (Avoid hardware names like 'lightbox').
+- **OPTICAL SIGNATURE:** Define the lens character. Sharpness, bokeh shape, depth of field. Identify focal length, aperture behavior, lens defects.
+- **COLOR SCIENCE:** Exact color grading methodology. Split toning? Saturation levels? Is it "Bleach Bypass"? "Technicolor"? "Kodak Portra"?
+- **PURITY:** Use "Positive Exclusion" to ensure a clean frame.
+- **SUBJECT:** NEUTRALIZE the subject. Refer ONLY to "the person in this image". Do NOT describe their hair, gender, clothes, or any physical features in this section.
 
-### STEP 2: CREATE ${sceneCount} VARIED SCENES
-Using the extracted style, generate ${sceneCount} unique scene prompts:
-- Strictly follow the "Diversity Rules" (vary distances, angles, poses, settings)
-- Ensure consistency: The style from Step 1 must apply to all scenes
-- Ensure variation: No two scenes should have the same pose or wardrobe
-- Use "Positive Exclusion" endings for every scene
+### PHASE 2: VARIATION GENERATION (${sceneCount} Scenes)
+Apply this extracted style to ${sceneCount} NEW, DISTINCT scenes.
+- Do not just describe the reference image ${sceneCount} times.
+- CREATE: ${Math.floor(sceneCount / 3)} Close-ups, ${Math.floor(sceneCount / 3)} Medium Shots, ${Math.floor(sceneCount / 3)} Full Body shots.
+- CREATE: Different poses (sitting, standing, leaning, moving).
+- CREATE: Different wardrobe styling that fits the mood.
+- CONSTRAINT: Every scene must end with a "Positive Exclusion" sentence to ensure face visibility and clarity.
 
-### STEP 3: GENERATE THE JSON
-Output the result in the strict JSON format defined above.
+### PHASE 3: OUTPUT
+Generate the strict JSON format defined above.
 
 ## GENDER SPECIFICATION:
 ${genderInstruction}
@@ -615,10 +636,11 @@ ${genderInstruction}
 - global_style_anchor is ONE complete technical paragraph starting with "${anchorStart}..."
 - Each scene prompt starts with lowercase "in a..." as continuation
 - Face must be clearly visible in ALL scenes
-- ${sceneCount} meaningfully different scenes
+- ${sceneCount} meaningfully different scenes with REAL variation
 - NO back-turned poses, NO distant shots, NO obscured faces
 - Use POSITIVE EXCLUSION - no negative prompts
-- Extract the HOW, not the WHO - neutralize subject identity
+- Extract the HOW (camera, lighting, color), not the WHO (subject identity)
+- Any description of the reference subject's physical features is a CRITICAL FAILURE
 
 Output pure JSON only.`;
     }
