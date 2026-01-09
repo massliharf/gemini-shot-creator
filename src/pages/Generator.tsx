@@ -29,6 +29,7 @@ interface UploadedImage {
 const SCENE_COUNT_OPTIONS = [4, 8, 12, 16];
 
 type PackType = "photography" | "3d";
+type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
   { 
@@ -45,12 +46,19 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
   },
 ];
 
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "unisex", label: "Unisex" },
+];
+
 export default function Generator() {
   const navigate = useNavigate();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sceneCount, setSceneCount] = useState<number>(8);
   const [packType, setPackType] = useState<PackType>("photography");
+  const [gender, setGender] = useState<Gender>("unisex");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
@@ -180,7 +188,7 @@ export default function Generator() {
       pendingImages.map(async (img) => {
         try {
           const { data, error } = await supabase.functions.invoke("generate-pack", {
-            body: { imageBase64: img.base64, sceneCount, packType },
+            body: { imageBase64: img.base64, sceneCount, packType, gender },
           });
 
           if (error) throw error;
@@ -300,27 +308,46 @@ export default function Generator() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <Label className="text-xs font-medium whitespace-nowrap">Scene Count:</Label>
-              <Select
-                value={sceneCount.toString()}
-                onValueChange={(v) => setSceneCount(parseInt(v))}
-                disabled={isGenerating}
-              >
-                <SelectTrigger className="w-24 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SCENE_COUNT_OPTIONS.map((count) => (
-                    <SelectItem key={count} value={count.toString()}>
-                      {count} scenes
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="text-[10px] text-muted-foreground">
-                Number of scenes per pack
-              </span>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs font-medium whitespace-nowrap">Scene Count:</Label>
+                <Select
+                  value={sceneCount.toString()}
+                  onValueChange={(v) => setSceneCount(parseInt(v))}
+                  disabled={isGenerating}
+                >
+                  <SelectTrigger className="w-24 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SCENE_COUNT_OPTIONS.map((count) => (
+                      <SelectItem key={count} value={count.toString()}>
+                        {count} scenes
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Label className="text-xs font-medium whitespace-nowrap">Gender:</Label>
+                <Select
+                  value={gender}
+                  onValueChange={(v) => setGender(v as Gender)}
+                  disabled={isGenerating}
+                >
+                  <SelectTrigger className="w-24 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENDER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             {/* Model, Aspect Ratio, Resolution Selector */}
