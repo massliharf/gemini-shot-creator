@@ -16,6 +16,7 @@ import {
   XCircle,
   ChevronDown,
   ChevronRight,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   Collapsible,
@@ -30,6 +31,7 @@ export interface PackInfo {
   completedShots: number;
   failedShots: number;
   generatingShots: number;
+  thumbnailUrl?: string;
 }
 
 type GenderFilter = "all" | "male" | "female";
@@ -98,7 +100,7 @@ const PackItem = ({
   return (
     <div
       onClick={handleClick}
-      className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all ${
+      className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all ${
         isSelected && !isSelectionMode
           ? "bg-primary/10 ring-1 ring-primary"
           : isChecked && isSelectionMode
@@ -106,16 +108,37 @@ const PackItem = ({
             : "hover:bg-secondary/50"
       }`}
     >
-      {/* Thumbnail placeholder */}
-      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">
-        {isSelectionMode ? (
-          <Checkbox
-            checked={isChecked}
-            onClick={(e) => e.stopPropagation()}
-            onCheckedChange={onToggleCheck}
+      {/* Thumbnail */}
+      <div className="w-10 h-10 rounded-lg bg-secondary overflow-hidden flex-shrink-0 relative">
+        {pack.thumbnailUrl ? (
+          <img
+            src={pack.thumbnailUrl}
+            alt={packName}
+            className="w-full h-full object-cover"
           />
         ) : (
-          getStatusIcon()
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+            <ImageIcon className="w-4 h-4 text-muted-foreground/40" />
+          </div>
+        )}
+        
+        {/* Selection checkbox overlay */}
+        {isSelectionMode && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <Checkbox
+              checked={isChecked}
+              onClick={(e) => e.stopPropagation()}
+              onCheckedChange={onToggleCheck}
+              className="border-white data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            />
+          </div>
+        )}
+        
+        {/* Status indicator */}
+        {!isSelectionMode && (
+          <div className="absolute bottom-0.5 right-0.5">
+            {getStatusIcon()}
+          </div>
         )}
       </div>
 
