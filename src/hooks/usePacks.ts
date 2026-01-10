@@ -75,18 +75,28 @@ const scenesToArray = (packFile: PackFile): { id: string; title: string; prompt:
 const mergeQueueRowsIntoScenes = (packFile: PackFile, rows: QueueRow[] | undefined): SceneWithStatus[] => {
   const shotResults = new Map<number, QueueRow>();
   if (rows && rows.length > 0) {
-    // rows are sorted by updated_at desc; keep “best” for each shot
+    // rows are sorted by updated_at desc; keep "best" for each shot
+    // Priority: success with image_path > success without > generating > queued > error > idle
     for (const q of rows) {
       const existing = shotResults.get(q.shot_id);
       if (!existing) {
         shotResults.set(q.shot_id, q);
         continue;
       }
-      if (q.status === "success" && q.image_path && (!existing.image_path || existing.status !== "success")) {
-        shotResults.set(q.shot_id, q);
-      } else if (q.status === "success" && existing.status !== "success") {
-        shotResults.set(q.shot_id, q);
+      
+      // Always prefer success with image_path
+      if (q.status === "success" && q.image_path) {
+        if (existing.status !== "success" || !existing.image_path) {
+          shotResults.set(q.shot_id, q);
+        }
+        // If both have image_path, keep the newer one (first in sorted order = existing)
+      } else if (q.status === "success" && !q.image_path) {
+        // Success without image - only replace if existing is worse
+        if (existing.status !== "success") {
+          shotResults.set(q.shot_id, q);
+        }
       }
+      // For generating/queued/error, keep existing (older = first processed)
     }
   }
 
@@ -100,7 +110,14 @@ const mergeQueueRowsIntoScenes = (packFile: PackFile, rows: QueueRow[] | undefin
         data: { publicUrl },
       } = supabase.storage.from("generated-images").getPublicUrl(result.image_path);
 
-      return { ...scene, status: "success" as SceneStatus, imageUrl: publicUrl };
+      // Add cache-busting timestamp to prevent stale images
+      const urlWithCacheBust = `${publicUrl}?t=${new Date(result.updated_at || Date.now()).getTime()}`;
+      return { ...scene, status: "success" as SceneStatus, imageUrl: urlWithCacheBust };
+    }
+
+    // If status is success but no image_path yet, show as generating (image upload in progress)
+    if (sceneStatus === "success" && !result?.image_path) {
+      return { ...scene, status: "generating" as SceneStatus };
     }
 
     if (sceneStatus === "error") {
@@ -206,7 +223,7 @@ export const usePacks = (user: User | null) => {
     };
   }, [user]);
 
-  // Realtime: keep scene statuses/image URLs “anlık” up to date
+  // Realtime: keep scene statuses/image URLs "anlık" up to date
   useEffect(() => {
     if (!user) return;
 
@@ -239,20 +256,31 @@ export const usePacks = (user: User | null) => {
               const nextStatus = statusToSceneStatus(row.status);
 
               if (nextStatus === "success") {
-                // Sometimes status flips to success before image_path is written.
-                // In that case, keep whatever we already have instead of resetting.
+                // CRITICAL: Don't lose existing image if new row has no image_path
                 if (!row.image_path) {
-                  return s.imageUrl ? { ...s, status: "success" as SceneStatus, error: undefined } : { ...s, status: "generating" as SceneStatus };
+                  // If we already have an image, keep it and mark as success
+                  if (s.imageUrl) {
+                    return { ...s, status: "success" as SceneStatus, error: undefined };
+                  }
+                  // No image yet, show as generating (upload in progress)
+                  return { ...s, status: "generating" as SceneStatus };
                 }
 
                 const {
                   data: { publicUrl },
                 } = supabase.storage.from("generated-images").getPublicUrl(row.image_path);
 
-                return { ...s, status: "success" as SceneStatus, imageUrl: publicUrl, error: undefined };
+                // Add cache-busting to ensure fresh image loads
+                const urlWithCacheBust = `${publicUrl}?t=${new Date(row.updated_at || Date.now()).getTime()}`;
+                return { ...s, status: "success" as SceneStatus, imageUrl: urlWithCacheBust, error: undefined };
               }
 
               if (nextStatus === "error") {
+                // CRITICAL: Don't replace existing successful image with error
+                if (s.status === "success" && s.imageUrl) {
+                  console.warn(`Ignoring error status for scene ${s.id} that already has image`);
+                  return s;
+                }
                 return {
                   ...s,
                   status: "error" as SceneStatus,
@@ -261,6 +289,10 @@ export const usePacks = (user: User | null) => {
               }
 
               if (nextStatus === "generating") {
+                // CRITICAL: Don't downgrade from success to generating
+                if (s.status === "success" && s.imageUrl) {
+                  return s;
+                }
                 return { ...s, status: "generating" as SceneStatus };
               }
 
