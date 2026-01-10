@@ -44,17 +44,15 @@ export const PackHeader = ({
   const sceneCount = getSceneCount(pack);
 
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
-      <div className="flex items-center gap-4">
-        <div>
-          <h1 className="text-lg font-semibold">{packName}</h1>
-          <p className="text-sm text-muted-foreground">
-            {category.charAt(0).toUpperCase() + category.slice(1)} · {genderLabels[gender] || gender} · {sceneCount} Scenes
-          </p>
-        </div>
+    <div className="flex items-center gap-4 px-6 py-4">
+      <div className="flex-1">
+        <h1 className="text-lg font-semibold">{packName}</h1>
+        <p className="text-sm text-muted-foreground">
+          {category.charAt(0).toUpperCase() + category.slice(1)} · {genderLabels[gender] || gender} · {sceneCount} Scenes
+        </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         {onRegenerate && (
           <Button
             variant="ghost"

@@ -13,7 +13,10 @@ export default {
       },
     },
     extend: {
-colors: {
+      fontFamily: {
+        sans: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
+      },
+      colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -56,31 +59,19 @@ colors: {
           foreground: "hsl(var(--warning-foreground))",
         },
       },
-      backgroundImage: {
-        'gradient-primary': 'var(--gradient-primary)',
-        'gradient-card': 'var(--gradient-card)',
-      },
       boxShadow: {
-        'glow': 'var(--shadow-glow)',
-        'card': 'var(--shadow-card)',
+        'sm': 'var(--shadow-sm)',
+        'md': 'var(--shadow-md)',
       },
       borderRadius: {
-        lg: "0px",
-        md: "0px",
-        sm: "0px",
-      },
-      spacing: {
-        '0.5': '2px',
-        '1': '4px',
-        '1.5': '6px',
-        '2': '8px',
-        '2.5': '10px',
-        '3': '12px',
+        lg: "12px",
+        md: "8px",
+        sm: "6px",
       },
       fontSize: {
-        'xs': ['0.7rem', { lineHeight: '1rem' }],
-        'sm': ['0.8rem', { lineHeight: '1.15rem' }],
-        'base': ['0.875rem', { lineHeight: '1.25rem' }],
+        'xs': ['0.75rem', { lineHeight: '1rem' }],
+        'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
+        'base': ['0.875rem', { lineHeight: '1.5rem' }],
       },
       keyframes: {
         "accordion-down": {

@@ -165,7 +165,7 @@ const Index = () => {
         onConfirmContinue={handleCloudOperationConfirm}
       />
 
-      <div className="h-screen bg-muted/30 flex flex-col overflow-hidden">
+      <div className="h-screen bg-background flex flex-col overflow-hidden">
         {/* Top Header */}
         <TopHeader
           userEmail={user.email}
@@ -174,14 +174,14 @@ const Index = () => {
         />
 
         {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden p-4 pt-0 gap-4">
+        <div className="flex-1 flex overflow-hidden">
           {/* Icon Rail - Desktop */}
           <div className="hidden lg:block">
             <IconRail />
           </div>
 
           {/* Pack Sidebar - Desktop */}
-          <aside className="hidden lg:flex w-[280px] min-w-[260px] bg-card rounded-2xl border border-border/50 flex-col overflow-hidden">
+          <aside className="hidden lg:flex w-[280px] min-w-[260px] flex-col overflow-hidden">
             <PackList
               packs={packInfos}
               selectedPackId={selectedPackId}
@@ -196,7 +196,7 @@ const Index = () => {
 
           {/* Mobile Sidebar */}
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetContent side="left" className="w-[300px] p-0 bg-card overflow-hidden">
+            <SheetContent side="left" className="w-[300px] p-0 bg-background overflow-hidden">
               <PackList
                 packs={packInfos}
                 selectedPackId={selectedPackId}
@@ -214,7 +214,7 @@ const Index = () => {
           </Sheet>
 
           {/* Main Content Area */}
-          <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col min-w-0">
+          <main className="flex-1 overflow-hidden flex flex-col min-w-0 bg-background">
             {selectedPack ? (
               <>
                 {/* Pack Header */}

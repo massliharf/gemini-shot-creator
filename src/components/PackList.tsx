@@ -14,15 +14,8 @@ import {
   CheckCircle2,
   Circle,
   XCircle,
-  ChevronDown,
-  ChevronRight,
   Image as ImageIcon,
 } from "lucide-react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 
 export interface PackInfo {
   pack: PackFile;
@@ -82,13 +75,6 @@ const PackItem = ({
   const packName = getPackName(pack.pack);
   const gender = getPackGender(pack.pack);
 
-  const getStatusIcon = () => {
-    if (pack.generatingShots > 0) return <Loader2 className="w-3 h-3 animate-spin text-primary" />;
-    if (pack.completedShots === pack.totalShots && pack.totalShots > 0) return <CheckCircle2 className="w-3 h-3 text-green-500" />;
-    if (pack.failedShots > 0) return <XCircle className="w-3 h-3 text-destructive" />;
-    return <Circle className="w-3 h-3 text-muted-foreground/50" />;
-  };
-
   const handleClick = () => {
     if (isSelectionMode && onToggleCheck) {
       onToggleCheck();
@@ -102,14 +88,14 @@ const PackItem = ({
       onClick={handleClick}
       className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all ${
         isSelected && !isSelectionMode
-          ? "bg-primary/10 ring-1 ring-primary"
+          ? "bg-secondary"
           : isChecked && isSelectionMode
-            ? "bg-primary/15 ring-1 ring-primary/50"
+            ? "bg-secondary"
             : "hover:bg-secondary/50"
       }`}
     >
       {/* Thumbnail */}
-      <div className="w-10 h-10 rounded-lg bg-secondary overflow-hidden flex-shrink-0 relative">
+      <div className="w-11 h-11 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
         {pack.thumbnailUrl ? (
           <img
             src={pack.thumbnailUrl}
@@ -117,27 +103,20 @@ const PackItem = ({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-            <ImageIcon className="w-4 h-4 text-muted-foreground/40" />
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <ImageIcon className="w-5 h-5 text-muted-foreground/40" />
           </div>
         )}
         
         {/* Selection checkbox overlay */}
         {isSelectionMode && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+          <div className="absolute inset-0 bg-foreground/30 flex items-center justify-center">
             <Checkbox
               checked={isChecked}
               onClick={(e) => e.stopPropagation()}
               onCheckedChange={onToggleCheck}
-              className="border-white data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+              className="border-background data-[state=checked]:bg-primary data-[state=checked]:border-primary"
             />
-          </div>
-        )}
-        
-        {/* Status indicator */}
-        {!isSelectionMode && (
-          <div className="absolute bottom-0.5 right-0.5">
-            {getStatusIcon()}
           </div>
         )}
       </div>
@@ -146,7 +125,7 @@ const PackItem = ({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{packName}</p>
         <p className="text-xs text-muted-foreground">
-          {genderLabels[gender] || gender} · {pack.completedShots}/{pack.totalShots} Scenes
+          {genderLabels[gender] || gender} · {pack.totalShots} Scenes
         </p>
       </div>
     </div>
@@ -166,19 +145,6 @@ export const PackList = ({
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["photography", "3d", "illustration"]));
-
-  const toggleCategory = (category: string) => {
-    setExpandedCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(category)) {
-        next.delete(category);
-      } else {
-        next.add(category);
-      }
-      return next;
-    });
-  };
 
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
@@ -235,22 +201,22 @@ export const PackList = ({
   const categoryOrder = ["photography", "3d", "illustration", "art"];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-background border-r border-border">
       {/* Header */}
-      <div className="p-4 border-b border-border/50">
-        <h2 className="font-semibold text-sm">Packs ({packs.length})</h2>
+      <div className="px-4 py-4">
+        <h2 className="font-semibold">Packs ({packs.length})</h2>
       </div>
 
       {/* Gender Filter Tabs */}
-      <div className="p-3 border-b border-border/50">
-        <div className="flex bg-secondary/50 rounded-lg p-1">
+      <div className="px-4 pb-3">
+        <div className="flex bg-muted rounded-lg p-1">
           {GENDER_FILTERS.map((filter) => (
             <button
               key={filter.value}
               onClick={() => setGenderFilter(filter.value)}
-              className={`flex-1 text-xs py-1.5 px-2 rounded-md transition-colors ${
+              className={`flex-1 text-sm py-1.5 px-3 rounded-md transition-colors font-medium ${
                 genderFilter === filter.value
-                  ? "bg-card text-foreground shadow-sm"
+                  ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -261,11 +227,11 @@ export const PackList = ({
       </div>
 
       {/* Action Bar */}
-      <div className="p-3 flex items-center gap-1 border-b border-border/50">
+      <div className="px-4 pb-3 flex items-center gap-1">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-lg"
+          className="h-9 w-9 rounded-lg"
           onClick={() => setIsSelectionMode(!isSelectionMode)}
           title={isSelectionMode ? "Exit Selection" : "Select Multiple"}
         >
@@ -281,7 +247,7 @@ export const PackList = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-lg"
               onClick={handleBatchDownload}
               disabled={selectedIds.size === 0}
               title="Download Selected"
@@ -291,7 +257,7 @@ export const PackList = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-lg"
               onClick={handleBatchDelete}
               disabled={selectedIds.size === 0}
               title="Delete Selected"
@@ -304,7 +270,7 @@ export const PackList = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-lg"
               onClick={onGenerateAllPacks}
               disabled={isGeneratingAll || packs.length === 0}
               title="Generate All"
@@ -318,7 +284,7 @@ export const PackList = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-lg"
               title="Delete All"
             >
               <Trash2 className="w-4 h-4" />
@@ -326,7 +292,7 @@ export const PackList = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-9 w-9 rounded-lg"
               title="Upload"
             >
               <Upload className="w-4 h-4" />
@@ -337,29 +303,17 @@ export const PackList = ({
 
       {/* Pack List */}
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-2">
+        <div className="px-3 pb-3 space-y-4">
           {categoryOrder.map((category) => {
             const categoryPacks = groupedPacks[category];
             if (!categoryPacks || categoryPacks.length === 0) return null;
 
-            const isExpanded = expandedCategories.has(category);
-
             return (
-              <Collapsible
-                key={category}
-                open={isExpanded}
-                onOpenChange={() => toggleCategory(category)}
-              >
-                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  {isExpanded ? (
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  )}
+              <div key={category}>
+                <h3 className="text-xs font-medium text-muted-foreground mb-2 px-1">
                   {category.charAt(0).toUpperCase() + category.slice(1)}
-                </CollapsibleTrigger>
-
-                <CollapsibleContent className="space-y-1 mt-1">
+                </h3>
+                <div className="space-y-1">
                   {categoryPacks.map((pack) => (
                     <PackItem
                       key={pack.packId}
@@ -371,8 +325,8 @@ export const PackList = ({
                       onToggleCheck={() => toggleSelection(pack.packId)}
                     />
                   ))}
-                </CollapsibleContent>
-              </Collapsible>
+                </div>
+              </div>
             );
           })}
         </div>

@@ -27,12 +27,12 @@ export const SceneCard = ({
 
   return (
     <div
-      className="relative bg-card rounded-xl border border-border/50 overflow-hidden group cursor-pointer"
+      className="relative bg-muted rounded-xl overflow-hidden group cursor-pointer"
       onClick={() => hasImage && onClick?.()}
     >
       {/* Scene Label */}
       <div className="absolute top-3 left-3 z-10">
-        <span className="text-xs font-medium text-foreground/80 bg-background/80 backdrop-blur-sm px-2 py-1 rounded-md">
+        <span className="text-xs font-medium text-foreground">
           Scene {sceneId}
         </span>
       </div>
@@ -94,7 +94,7 @@ export const SceneCard = ({
       ) : (
         <div className="aspect-[4/5] flex flex-col items-center justify-center">
           {isGenerating ? (
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
           ) : (
             <Button
               variant="outline"
@@ -103,7 +103,7 @@ export const SceneCard = ({
                 e.stopPropagation();
                 onGenerate();
               }}
-              className={`rounded-lg ${isError ? 'border-destructive text-destructive' : ''}`}
+              className={`rounded-lg bg-background border-border text-foreground hover:bg-muted ${isError ? 'border-destructive text-destructive' : ''}`}
             >
               {isError ? 'RETRY' : 'GENERATE'}
             </Button>

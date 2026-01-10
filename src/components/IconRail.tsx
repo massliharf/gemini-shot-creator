@@ -14,7 +14,7 @@ export const IconRail = () => {
   const location = useLocation();
 
   return (
-    <nav className="w-14 flex-shrink-0 bg-card rounded-2xl border border-border/50 flex flex-col items-center py-4">
+    <nav className="w-14 flex-shrink-0 bg-secondary/30 flex flex-col items-center py-4 border-r border-border">
       {navItems.map((item) => {
         const isActive = location.pathname === item.path;
         
@@ -26,8 +26,8 @@ export const IconRail = () => {
                 size="icon"
                 className={`h-10 w-10 rounded-xl mb-1 ${
                   isActive 
-                    ? 'bg-primary/10 text-primary' 
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                 }`}
                 onClick={() => navigate(item.path)}
               >
