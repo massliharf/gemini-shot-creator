@@ -43,6 +43,7 @@ const Index = () => {
     handlePacksLoad,
     deletePack,
     deleteAllPacks,
+    deleteMultiplePacks,
     getPackInfos,
   } = usePacks(user);
 
@@ -93,6 +94,7 @@ const Index = () => {
     downloadPackOptimized,
     downloadAllPacks,
     downloadPacksByGender,
+    downloadMultiplePacks,
   } = useDownload({ packs, selectedPackId });
 
   const {
@@ -270,6 +272,8 @@ const Index = () => {
                   onDeleteAllCloudData={deleteAllCloudData}
                   onDeleteAllPacks={deleteAllPacks}
                   onDownloadPackOptimized={downloadPackOptimized}
+                  onDeleteMultiplePacks={deleteMultiplePacks}
+                  onDownloadMultiplePacks={downloadMultiplePacks}
                   isGeneratingAll={isGeneratingAll}
                 />
               </SheetContent>
@@ -304,6 +308,8 @@ const Index = () => {
             onDeleteAllCloudData={deleteAllCloudData}
             onDeleteAllPacks={deleteAllPacks}
             onDownloadPackOptimized={downloadPackOptimized}
+            onDeleteMultiplePacks={deleteMultiplePacks}
+            onDownloadMultiplePacks={downloadMultiplePacks}
             isGeneratingAll={isGeneratingAll}
           />
         </aside>

@@ -461,6 +461,38 @@ export const usePacks = (user: User | null) => {
     }
   }, [user, packs]);
 
+  const deleteMultiplePacks = useCallback(
+    async (packIds: string[]) => {
+      if (!user || packIds.length === 0) return;
+
+      try {
+        for (const packId of packIds) {
+          await supabase.from("packs").delete().eq("id", packId).eq("user_id", user.id);
+          await supabase.from("generation_queue").delete().eq("pack_id", packId).eq("user_id", user.id);
+        }
+
+        setPacks((prev) => {
+          const next = new Map(prev);
+          for (const packId of packIds) {
+            next.delete(packId);
+          }
+          return next;
+        });
+
+        if (selectedPackId && packIds.includes(selectedPackId)) {
+          const remainingPacks = Array.from(packs.keys()).filter((id) => !packIds.includes(id));
+          setSelectedPackId(remainingPacks.length > 0 ? remainingPacks[0] : null);
+        }
+
+        toast.success(`${packIds.length} pack(s) deleted`);
+      } catch (error) {
+        console.error("Error deleting packs:", error);
+        toast.error("Failed to delete packs");
+      }
+    },
+    [user, packs, selectedPackId]
+  );
+
   const getPackInfos = useCallback((): PackInfo[] => {
     return Array.from(packs.values()).map((packData) => ({
       pack: packData.pack,
@@ -496,6 +528,7 @@ export const usePacks = (user: User | null) => {
     handlePacksLoad,
     deletePack,
     deleteAllPacks,
+    deleteMultiplePacks,
     getPackInfos,
     navigatePack,
   };

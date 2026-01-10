@@ -3,11 +3,12 @@ import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getPa
 import {
   Briefcase, Palette, Wand2, Film, Clock, Shirt, Plane, Sun, Globe2, GraduationCap,
   Users, User, Sparkles, Upload, Loader2, Trash2, Play, Download, HardDrive, Bomb,
-  ChevronDown, ChevronRight, AlertCircle, CheckCircle2, Circle, XCircle
+  ChevronDown, ChevronRight, AlertCircle, CheckCircle2, Circle, XCircle, SquareCheck, Square, X
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -54,6 +55,8 @@ interface PackSidebarProps {
   onDeleteAllCloudData?: () => void;
   onDeleteAllPacks?: () => void;
   onDownloadPackOptimized?: (packId: string) => void;
+  onDeleteMultiplePacks?: (packIds: string[]) => void;
+  onDownloadMultiplePacks?: (packIds: string[]) => void;
   isGeneratingAll?: boolean;
 }
 
@@ -275,12 +278,18 @@ const PackCard = ({
   onSelect, 
   onDelete,
   onDownloadOptimized,
+  isSelectionMode,
+  isChecked,
+  onToggleCheck,
 }: { 
   pack: PackInfo; 
   isSelected: boolean; 
   onSelect: () => void; 
   onDelete: () => void;
   onDownloadOptimized?: () => void;
+  isSelectionMode?: boolean;
+  isChecked?: boolean;
+  onToggleCheck?: () => void;
 }) => {
   const gender = getPackGender(pack.pack) || "any";
   const packName = getPackName(pack.pack);
@@ -296,14 +305,24 @@ const PackCard = ({
     return <Circle className="w-2.5 h-2.5 text-muted-foreground" />;
   };
 
+  const handleClick = () => {
+    if (isSelectionMode && onToggleCheck) {
+      onToggleCheck();
+    } else {
+      onSelect();
+    }
+  };
+
   return (
     <div
-      onClick={onSelect}
+      onClick={handleClick}
       className={`
         group relative p-2.5 rounded-xl cursor-pointer transition-all duration-200
-        ${isSelected 
+        ${isSelected && !isSelectionMode
           ? 'bg-primary/10 ring-1 ring-primary shadow-sm' 
-          : 'bg-secondary/40 hover:bg-secondary/70'
+          : isChecked && isSelectionMode
+            ? 'bg-primary/15 ring-1 ring-primary/50'
+            : 'bg-secondary/40 hover:bg-secondary/70'
         }
       `}
     >
@@ -316,7 +335,16 @@ const PackCard = ({
       )}
 
       <div className="flex items-start gap-2">
-        <div className="mt-0.5">{getStatusIcon()}</div>
+        {isSelectionMode ? (
+          <Checkbox 
+            checked={isChecked} 
+            className="mt-0.5"
+            onClick={(e) => e.stopPropagation()}
+            onCheckedChange={onToggleCheck}
+          />
+        ) : (
+          <div className="mt-0.5">{getStatusIcon()}</div>
+        )}
         
         <div className="flex-1 min-w-0">
           <h4 className="text-xs font-medium truncate">
@@ -412,11 +440,55 @@ export const PackSidebar = ({
   onDeleteAllCloudData,
   onDeleteAllPacks,
   onDownloadPackOptimized,
+  onDeleteMultiplePacks,
+  onDownloadMultiplePacks,
   isGeneratingAll = false,
 }: PackSidebarProps) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
   const [generationFilter, setGenerationFilter] = useState<GenerationFilter>("all");
+  
+  // Selection mode state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedIds(new Set(filteredPacks.map((p) => p.packId)));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const exitSelectionMode = () => {
+    setIsSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBatchDelete = () => {
+    if (onDeleteMultiplePacks && selectedIds.size > 0) {
+      onDeleteMultiplePacks(Array.from(selectedIds));
+      exitSelectionMode();
+    }
+  };
+
+  const handleBatchDownload = () => {
+    if (onDownloadMultiplePacks && selectedIds.size > 0) {
+      onDownloadMultiplePacks(Array.from(selectedIds));
+    }
+  };
 
   // Filter packs by gender and generation status
   const filteredPacks = useMemo(() => {
@@ -469,84 +541,161 @@ export const PackSidebar = ({
     <div className="h-full flex flex-col">
       {/* Header with Actions */}
       <div className="p-3 border-b border-border/50 flex-shrink-0">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold">Packs</h2>
-            <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-              {filteredPacks.length}
-            </Badge>
-          </div>
-          
-          <div className="flex gap-0.5">
-            {packs.length > 0 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={onGenerateAllPacks}
-                  disabled={isGeneratingAll}
-                  title="Generate all"
-                >
-                  {isGeneratingAll ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Play className="w-3 h-3" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={onDownloadAllPacks}
-                  title="Download all"
-                >
-                  <Download className="w-3 h-3" />
-                </Button>
-              </>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={onDownloadAllCloudData}
-              title="Export cloud data"
-            >
-              <HardDrive className="w-3 h-3" />
-            </Button>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  title="Delete cloud data"
-                >
-                  <Bomb className="w-3 h-3 text-destructive" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Cloud Data?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    All packs and images will be permanently deleted.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={onDeleteAllCloudData}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        {/* Selection Mode Bar */}
+        {isSelectionMode ? (
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={exitSelectionMode}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium">{selectedIds.size} selected</span>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={selectAllFiltered}
+              >
+                <SquareCheck className="w-3 h-3 mr-1" />
+                All
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleBatchDownload}
+                disabled={selectedIds.size === 0}
+                title="Download selected"
+              >
+                <Download className="w-3.5 h-3.5 text-primary" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled={selectedIds.size === 0}
+                    title="Delete selected"
                   >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete {selectedIds.size} pack(s)?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Selected packs and all their images will be permanently deleted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleBatchDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-semibold">Packs</h2>
+              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                {filteredPacks.length}
+              </Badge>
+            </div>
+            
+            <div className="flex gap-0.5">
+              {packs.length > 0 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setIsSelectionMode(true)}
+                    title="Select packs"
+                  >
+                    <Square className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={onGenerateAllPacks}
+                    disabled={isGeneratingAll}
+                    title="Generate all"
+                  >
+                    {isGeneratingAll ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Play className="w-3 h-3" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={onDownloadAllPacks}
+                    title="Download all"
+                  >
+                    <Download className="w-3 h-3" />
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={onDownloadAllCloudData}
+                title="Export cloud data"
+              >
+                <HardDrive className="w-3 h-3" />
+              </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    title="Delete cloud data"
+                  >
+                    <Bomb className="w-3 h-3 text-destructive" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Cloud Data?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      All packs and images will be permanently deleted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={onDeleteAllCloudData}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        )}
 
         {/* Gender Filter with Download */}
         <div className="flex gap-1 mb-2">
@@ -623,6 +772,9 @@ export const PackSidebar = ({
                 onSelect={() => onSelectPack(pack.packId)}
                 onDelete={() => onDeletePack(pack.packId)}
                 onDownloadOptimized={onDownloadPackOptimized ? () => onDownloadPackOptimized(pack.packId) : undefined}
+                isSelectionMode={isSelectionMode}
+                isChecked={selectedIds.has(pack.packId)}
+                onToggleCheck={() => toggleSelection(pack.packId)}
               />
             ))
           ) : (
@@ -654,6 +806,9 @@ export const PackSidebar = ({
                       onSelect={() => onSelectPack(pack.packId)}
                       onDelete={() => onDeletePack(pack.packId)}
                       onDownloadOptimized={onDownloadPackOptimized ? () => onDownloadPackOptimized(pack.packId) : undefined}
+                      isSelectionMode={isSelectionMode}
+                      isChecked={selectedIds.has(pack.packId)}
+                      onToggleCheck={() => toggleSelection(pack.packId)}
                     />
                   ))}
                 </CollapsibleContent>
@@ -664,7 +819,7 @@ export const PackSidebar = ({
       </ScrollArea>
 
       {/* Footer with Delete All */}
-      {packs.length > 0 && (
+      {packs.length > 0 && !isSelectionMode && (
         <div className="p-3 border-t border-border/50">
           <AlertDialog>
             <AlertDialogTrigger asChild>
