@@ -172,7 +172,7 @@ serve(async (req) => {
 
     console.log(`[generate-pack] Starting ${styleType} pack generation with ${sceneCount} scenes, gender=${normalizedGender}...`);
     console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}, gender=${normalizedGender}`);
-    console.log(`[generate-pack] Using Google Gemini API with gemini-2.5-pro-preview-05-06 model`);
+    console.log(`[generate-pack] Using Google Gemini API with gemini-3-pro-preview model`);
 
     // Build gender-specific instruction
     const genderInstruction = normalizedGender === "unisex" 
@@ -322,7 +322,7 @@ Output pure JSON only.`;
     // Add text prompt
     geminiParts.push({ text: userPrompt });
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
