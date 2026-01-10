@@ -3,19 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { getPackName, getPackDescription, formatCost } from "@/types/pack";
+import { Sparkles } from "lucide-react";
 
 // Components
-import { ImageGrid } from "@/components/ImageGrid";
-import { PackSidebar } from "@/components/PackSidebar";
-import { ControlsBar } from "@/components/ControlsBar";
+import { TopHeader } from "@/components/TopHeader";
+import { IconRail } from "@/components/IconRail";
+import { PackList, PackInfo } from "@/components/PackList";
+import { PackHeader } from "@/components/PackHeader";
+import { ScenesGrid } from "@/components/ScenesGrid";
+import { BottomBar } from "@/components/BottomBar";
 import { CloudOperationProgress } from "@/components/CloudOperationProgress";
-import { CostDisplay } from "@/components/CostDisplay";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Sparkles, Wand2, Menu, HelpCircle, Settings, Cloud, Home, DollarSign, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
 
 // Hooks
 import { usePacks } from "@/hooks/usePacks";
@@ -42,7 +42,6 @@ const Index = () => {
     setIsGeneratingAll,
     handlePacksLoad,
     deletePack,
-    deleteAllPacks,
     deleteMultiplePacks,
     getPackInfos,
   } = usePacks(user);
@@ -74,8 +73,6 @@ const Index = () => {
     generateSingleScene,
     generatePackScenes,
     generateAllPacks,
-    getPackTokenStats,
-    packTokenStats,
   } = useGeneration({
     user,
     packs,
@@ -84,23 +81,18 @@ const Index = () => {
     referenceImage2: coupleMode ? secondReferenceImage : undefined,
     selectedModel,
     aspectRatio,
-    imageSize: resolution, // For backward compatibility
+    imageSize: resolution,
     resolution,
   });
 
   const {
     downloadScene,
     downloadPackAsZip,
-    downloadPackOptimized,
-    downloadAllPacks,
-    downloadPacksByGender,
     downloadMultiplePacks,
   } = useDownload({ packs, selectedPackId });
 
   const {
     cloudOperation,
-    downloadAllCloudData,
-    deleteAllCloudData,
     handleCloudOperationClose,
     handleCloudOperationPause,
     handleCloudOperationResume,
@@ -139,6 +131,12 @@ const Index = () => {
     toast.success("Signed out successfully");
   };
 
+  const handleGenerateAllPacks = async () => {
+    setIsGeneratingAll(true);
+    await generateAllPacks();
+    setIsGeneratingAll(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -156,20 +154,6 @@ const Index = () => {
 
   const packInfos = getPackInfos();
   const canGenerate = selectedPack !== null && referenceImage !== null;
-  const currentPackTokenStats = selectedPackId ? getPackTokenStats(selectedPackId) : undefined;
-
-  const handleGenerateAllPacks = async () => {
-    setIsGeneratingAll(true);
-    await generateAllPacks();
-    setIsGeneratingAll(false);
-  };
-
-  // Navigation items for left rail
-  const navItems = [
-    { icon: Home, label: "Home", path: "/", active: true },
-    { icon: Wand2, label: "Pack Generator", path: "/generator" },
-    { icon: Cloud, label: "Cloud Files", path: "/cloud-files" },
-  ];
 
   return (
     <>
@@ -180,195 +164,76 @@ const Index = () => {
         onResume={handleCloudOperationResume}
         onConfirmContinue={handleCloudOperationConfirm}
       />
-      
-      {/* Google-style layout with left rail + gaps */}
-      <div className="h-screen bg-muted/30 flex overflow-hidden p-4 gap-4">
-        
-        {/* Left Navigation Rail - Google style */}
-        <nav className="hidden lg:flex w-16 flex-shrink-0 bg-card rounded-2xl border border-border/50 flex-col items-center py-4 gap-2">
-          {/* Logo */}
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-            <Sparkles className="w-5 h-5 text-primary" />
-          </div>
-          
-          {/* Nav Items */}
-          <div className="flex-1 flex flex-col gap-1">
-            {navItems.map((item) => (
-              <Tooltip key={item.path}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={item.active ? "secondary" : "ghost"}
-                    size="icon"
-                    className={`h-10 w-10 rounded-xl ${item.active ? 'bg-primary/10 text-primary' : ''}`}
-                    onClick={() => navigate(item.path)}
-                  >
-                    <item.icon className="w-5 h-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  {item.label}
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-          
-          {/* Bottom Actions */}
-          <div className="flex flex-col gap-1 mt-auto">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl">
-                  <HelpCircle className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Help</TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl">
-                  <Settings className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Settings</TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Avatar className="h-10 w-10 cursor-pointer" onClick={handleSignOut}>
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-secondary text-xs">
-                    {user.email?.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              <TooltipContent side="right">Sign Out</TooltipContent>
-            </Tooltip>
-          </div>
-        </nav>
 
-        {/* Mobile Header */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-card border-b border-border/50 px-4 flex items-center justify-between z-50">
-          <div className="flex items-center gap-3">
-            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[320px] p-0 bg-card overflow-hidden">
-                <PackSidebar
-                  packs={packInfos}
-                  selectedPackId={selectedPackId}
-                  onSelectPack={(packId) => {
-                    setSelectedPackId(packId);
-                    setSidebarOpen(false);
-                  }}
-                  onDeletePack={deletePack}
-                  onPacksLoad={handlePacksLoad}
-                  onGenerateAllPacks={handleGenerateAllPacks}
-                  onDownloadAllPacks={downloadAllPacks}
-                  onDownloadPacksByGender={downloadPacksByGender}
-                  onDownloadAllCloudData={downloadAllCloudData}
-                  onDeleteAllCloudData={deleteAllCloudData}
-                  onDeleteAllPacks={deleteAllPacks}
-                  onDownloadPackOptimized={downloadPackOptimized}
-                  onDeleteMultiplePacks={deleteMultiplePacks}
-                  onDownloadMultiplePacks={downloadMultiplePacks}
-                  isGeneratingAll={isGeneratingAll}
-                />
-              </SheetContent>
-            </Sheet>
-            
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <span className="text-base font-semibold">Lumra</span>
-            </div>
+      <div className="h-screen bg-muted/30 flex flex-col overflow-hidden">
+        {/* Top Header */}
+        <TopHeader
+          userEmail={user.email}
+          onSignOut={handleSignOut}
+          onMenuClick={() => setSidebarOpen(true)}
+        />
+
+        {/* Main Content */}
+        <div className="flex-1 flex overflow-hidden p-4 pt-0 gap-4">
+          {/* Icon Rail - Desktop */}
+          <div className="hidden lg:block">
+            <IconRail />
           </div>
 
-          <Avatar className="h-8 w-8 cursor-pointer" onClick={handleSignOut}>
-            <AvatarImage src="" />
-            <AvatarFallback className="bg-secondary text-xs">
-              {user.email?.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+          {/* Pack Sidebar - Desktop */}
+          <aside className="hidden lg:flex w-[280px] min-w-[260px] bg-card rounded-2xl border border-border/50 flex-col overflow-hidden">
+            <PackList
+              packs={packInfos}
+              selectedPackId={selectedPackId}
+              onSelectPack={setSelectedPackId}
+              onDeletePack={deletePack}
+              onDeleteMultiplePacks={deleteMultiplePacks}
+              onDownloadMultiplePacks={downloadMultiplePacks}
+              onGenerateAllPacks={handleGenerateAllPacks}
+              isGeneratingAll={isGeneratingAll}
+            />
+          </aside>
 
-        {/* Pack Sidebar */}
-        <aside className="hidden lg:flex w-[300px] min-w-[280px] bg-card rounded-2xl border border-border/50 flex-col overflow-hidden">
-          <PackSidebar
-            packs={packInfos}
-            selectedPackId={selectedPackId}
-            onSelectPack={setSelectedPackId}
-            onDeletePack={deletePack}
-            onPacksLoad={handlePacksLoad}
-            onGenerateAllPacks={handleGenerateAllPacks}
-            onDownloadAllPacks={downloadAllPacks}
-            onDownloadPacksByGender={downloadPacksByGender}
-            onDownloadAllCloudData={downloadAllCloudData}
-            onDeleteAllCloudData={deleteAllCloudData}
-            onDeleteAllPacks={deleteAllPacks}
-            onDownloadPackOptimized={downloadPackOptimized}
-            onDeleteMultiplePacks={deleteMultiplePacks}
-            onDownloadMultiplePacks={downloadMultiplePacks}
-            isGeneratingAll={isGeneratingAll}
-          />
-        </aside>
+          {/* Mobile Sidebar */}
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetContent side="left" className="w-[300px] p-0 bg-card overflow-hidden">
+              <PackList
+                packs={packInfos}
+                selectedPackId={selectedPackId}
+                onSelectPack={(packId) => {
+                  setSelectedPackId(packId);
+                  setSidebarOpen(false);
+                }}
+                onDeletePack={deletePack}
+                onDeleteMultiplePacks={deleteMultiplePacks}
+                onDownloadMultiplePacks={downloadMultiplePacks}
+                onGenerateAllPacks={handleGenerateAllPacks}
+                isGeneratingAll={isGeneratingAll}
+              />
+            </SheetContent>
+          </Sheet>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col gap-4 min-w-0 lg:pt-0 pt-14">
-          {/* Content Panel */}
-          <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
+          {/* Main Content Area */}
+          <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col min-w-0">
             {selectedPack ? (
               <>
                 {/* Pack Header */}
-                <div className="p-4 border-b border-border/50 flex-shrink-0">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-sm font-semibold">
-                        {getPackName(selectedPack.pack) || 'Unnamed Pack'}
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedPack.scenes.filter(s => s.status === 'success').length}/{selectedPack.scenes.length} scenes completed
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {/* Real-time Cost Display */}
-                      {currentPackTokenStats && currentPackTokenStats.imagesGenerated > 0 && (
-                        <div className="flex items-center gap-1.5 text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-3 py-1.5 rounded-lg border border-green-500/20">
-                          <DollarSign className="w-3.5 h-3.5" />
-                          <span className="font-medium">{formatCost(currentPackTokenStats.cost.totalCost)}</span>
-                          <span className="text-muted-foreground">({currentPackTokenStats.imagesGenerated} img)</span>
-                        </div>
-                      )}
-                      {getPackDescription(selectedPack.pack) && (
-                        <p className="text-xs text-muted-foreground max-w-md truncate hidden md:block">
-                          {getPackDescription(selectedPack.pack)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Content with optional cost sidebar */}
-                <div className="flex-1 flex overflow-hidden">
-                  {/* Image Grid */}
-                  <div className="flex-1 overflow-y-auto">
-                    <ImageGrid
-                      shots={selectedPack.scenes}
-                      onGenerateShot={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
-                      onDownloadShot={downloadScene}
-                    />
-                  </div>
-                  
-                  {/* Cost Panel - shows during generation or after */}
-                  {currentPackTokenStats && currentPackTokenStats.imagesGenerated > 0 && (
-                    <div className="hidden xl:block w-64 border-l border-border/50 p-4 overflow-y-auto">
-                      <CostDisplay 
-                        stats={currentPackTokenStats} 
-                        isGenerating={selectedPack.isGenerating}
-                      />
-                    </div>
-                  )}
+                <PackHeader
+                  pack={selectedPack.pack}
+                  completedCount={selectedPack.scenes.filter(s => s.status === 'success').length}
+                  onRegenerate={() => selectedPackId && generatePackScenes(selectedPackId)}
+                  onDelete={() => selectedPackId && deletePack(selectedPackId)}
+                  onDownload={() => selectedPackId && downloadPackAsZip(selectedPackId)}
+                  isGenerating={selectedPack.isGenerating}
+                />
+
+                {/* Scenes Grid */}
+                <div className="flex-1 overflow-y-auto pb-24">
+                  <ScenesGrid
+                    scenes={selectedPack.scenes}
+                    onGenerateScene={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
+                    onDownloadScene={downloadScene}
+                  />
                 </div>
               </>
             ) : (
@@ -381,8 +246,8 @@ const Index = () => {
                   <p className="text-sm text-muted-foreground mb-4">
                     Create stunning images with AI
                   </p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="lg:hidden rounded-xl"
                     onClick={() => setSidebarOpen(true)}
                   >
@@ -393,34 +258,26 @@ const Index = () => {
               </div>
             )}
           </main>
-
-          {/* Bottom Controls Bar */}
-          <div className="flex-shrink-0 bg-card rounded-2xl border border-border/50 p-3">
-            <div className="max-w-4xl mx-auto">
-              <ControlsBar
-                aspectRatio={aspectRatio}
-                onAspectRatioChange={setAspectRatio}
-                resolution={resolution}
-                onResolutionChange={setResolution}
-                selectedModel={selectedModel}
-                onModelChange={setSelectedModel}
-                coupleMode={coupleMode}
-                onCoupleModeChange={setCoupleMode}
-                previewUrl={referencePreviewUrl}
-                secondPreviewUrl={secondReferencePreviewUrl}
-                onImageUpload={handleImageUpload}
-                onImageClear={handleImageClear}
-                onSecondImageUpload={handleSecondImageUpload}
-                onSecondImageClear={handleSecondImageClear}
-                onGenerate={() => selectedPackId && generatePackScenes(selectedPackId)}
-                onDownload={() => selectedPackId && downloadPackAsZip(selectedPackId)}
-                isGenerating={selectedPack?.isGenerating || false}
-                canGenerate={canGenerate}
-                hasSelectedPack={selectedPack !== null}
-              />
-            </div>
-          </div>
         </div>
+
+        {/* Bottom Bar */}
+        <BottomBar
+          aspectRatio={aspectRatio}
+          onAspectRatioChange={setAspectRatio}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
+          coupleMode={coupleMode}
+          onCoupleModeChange={setCoupleMode}
+          previewUrl={referencePreviewUrl}
+          secondPreviewUrl={secondReferencePreviewUrl}
+          onImageUpload={handleImageUpload}
+          onImageClear={handleImageClear}
+          onSecondImageUpload={handleSecondImageUpload}
+          onSecondImageClear={handleSecondImageClear}
+          onGenerate={() => selectedPackId && generatePackScenes(selectedPackId)}
+          isGenerating={selectedPack?.isGenerating || false}
+          canGenerate={canGenerate}
+        />
       </div>
     </>
   );
