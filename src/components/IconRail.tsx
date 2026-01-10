@@ -1,0 +1,45 @@
+import { useNavigate, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sparkles, Wand2, FolderOpen } from "lucide-react";
+
+const navItems = [
+  { icon: Sparkles, label: "Generator", path: "/" },
+  { icon: Wand2, label: "Pack Editor", path: "/pack-editor" },
+  { icon: FolderOpen, label: "Cloud Files", path: "/cloud-files" },
+];
+
+export const IconRail = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  return (
+    <nav className="w-14 flex-shrink-0 bg-card rounded-2xl border border-border/50 flex flex-col items-center py-4">
+      {navItems.map((item) => {
+        const isActive = location.pathname === item.path;
+        
+        return (
+          <Tooltip key={item.path}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-10 w-10 rounded-xl mb-1 ${
+                  isActive 
+                    ? 'bg-primary/10 text-primary' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                onClick={() => navigate(item.path)}
+              >
+                <item.icon className="w-5 h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {item.label}
+            </TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </nav>
+  );
+};
