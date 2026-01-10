@@ -500,11 +500,122 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
     [packs]
   );
 
+  // Download multiple selected packs as a single ZIP
+  const downloadMultiplePacks = useCallback(
+    async (packIds: string[]) => {
+      if (packIds.length === 0) {
+        toast.error("No packs selected");
+        return;
+      }
+
+      type DownloadItem = {
+        packName: string;
+        packData: PackData;
+        sceneId: string;
+        imageUrl: string;
+      };
+
+      const items: DownloadItem[] = [];
+
+      for (const packId of packIds) {
+        const packData = packs.get(packId);
+        if (!packData) continue;
+
+        const packName = String(
+          getPackId(packData.pack) || getPackName(packData.pack) || "pack"
+        );
+
+        const scenes = packData.scenes.filter((s) => s.status === "success" && s.imageUrl);
+        for (const scene of scenes) {
+          items.push({
+            packName,
+            packData,
+            sceneId: String(normalizeSceneId(scene.id)).padStart(2, "0"),
+            imageUrl: scene.imageUrl!,
+          });
+        }
+      }
+
+      if (items.length === 0) {
+        toast.error("No images in selected packs");
+        return;
+      }
+
+      const maxPerZip = getMaxZipImagesPerPart();
+      const parts = chunkArray(items, maxPerZip);
+
+      try {
+        toast.info(
+          `Preparing ZIP... (${packIds.length} packs, ${items.length} images)`
+        );
+
+        for (let partIndex = 0; partIndex < parts.length; partIndex++) {
+          const zip = new JSZip();
+          const folderByPack = new Map<string, JSZip>();
+
+          const ensureFolder = (packName: string, packData: PackData) => {
+            const existing = folderByPack.get(packName);
+            if (existing) return existing;
+            const folder = zip.folder(packName) as JSZip;
+            folder.file(`${packName}.json`, JSON.stringify(packData.pack, null, 2));
+            folderByPack.set(packName, folder);
+            return folder;
+          };
+
+          await mapLimit(parts[partIndex], 4, async (item) => {
+            const response = await fetch(item.imageUrl, { cache: "no-store" });
+            if (!response.ok) {
+              throw new Error(
+                `Failed to fetch image for ${item.packName} scene ${item.sceneId}: ${response.status}`
+              );
+            }
+            const blob = await response.blob();
+            const folder = ensureFolder(item.packName, item.packData);
+            folder.file(`${item.sceneId}.jpg`, blob);
+          });
+
+          const zipBlob = await zip.generateAsync({
+            type: "blob",
+            compression: "STORE",
+            streamFiles: true,
+          });
+
+          const url = URL.createObjectURL(zipBlob);
+          const filename =
+            parts.length > 1
+              ? `selected-packs-part-${partIndex + 1}-of-${parts.length}.zip`
+              : `selected-packs-${Date.now()}.zip`;
+
+          triggerDownload(url, filename);
+          
+          toast.success(
+            `${packIds.length} pack(s) downloaded`,
+            { duration: 5000 }
+          );
+
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+
+        if (error instanceof RangeError) {
+          toast.error("Failed to create ZIP: Browser memory exhausted.");
+        } else {
+          toast.error(`Failed to create ZIP file: ${message}`);
+        }
+
+        console.error(error);
+      }
+    },
+    [packs]
+  );
+
   return {
     downloadScene,
     downloadPackAsZip,
     downloadPackOptimized,
     downloadAllPacks,
     downloadPacksByGender,
+    downloadMultiplePacks,
   };
 };
