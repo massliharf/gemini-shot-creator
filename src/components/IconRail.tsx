@@ -1,9 +1,10 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Sparkles, Wand2, FolderOpen } from "lucide-react";
+import { Sparkles, Wand2, FolderOpen, Palette } from "lucide-react";
 
 const navItems = [
+  { icon: Palette, label: "Styles", path: "/styles" },
   { icon: Sparkles, label: "Generator", path: "/" },
   { icon: Wand2, label: "Pack Editor", path: "/pack-editor" },
   { icon: FolderOpen, label: "Cloud Files", path: "/cloud-files" },

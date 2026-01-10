@@ -27,7 +27,7 @@ const DEMO_CATEGORIES: StyleCategory[] = [
       id: `photo-${i}`,
       name: "Pack Name",
       sceneCount: 12,
-      thumbnailUrl: i === 0 ? undefined : undefined, // First one could have a thumbnail
+      thumbnailUrl: undefined,
     })),
   },
   {
@@ -96,6 +96,16 @@ function StylePackCard({ pack, isSelected, onSelect }: {
 }
 
 function CategorySection({ category }: { category: StyleCategory }) {
+  const [selectedPacks, setSelectedPacks] = useState<string[]>([]);
+
+  const togglePack = (packId: string) => {
+    setSelectedPacks(prev => 
+      prev.includes(packId) 
+        ? prev.filter(id => id !== packId)
+        : [...prev, packId]
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -108,8 +118,8 @@ function CategorySection({ category }: { category: StyleCategory }) {
           <StylePackCard 
             key={pack.id} 
             pack={pack} 
-            isSelected={false}
-            onSelect={() => {}}
+            isSelected={selectedPacks.includes(pack.id)}
+            onSelect={() => togglePack(pack.id)}
           />
         ))}
       </div>
@@ -121,7 +131,6 @@ export default function Styles() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
-  const [selectedPacks, setSelectedPacks] = useState<string[]>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -155,7 +164,7 @@ export default function Styles() {
         </div>
 
         {/* Bottom Action Bar */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 z-50">
           <Button 
             variant="outline" 
             size="lg"
