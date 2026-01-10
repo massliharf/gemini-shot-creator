@@ -45,7 +45,7 @@ export const SceneCard = ({
 
   return (
     <div
-      className="relative bg-muted rounded-xl overflow-hidden group cursor-pointer"
+      className="relative bg-muted overflow-hidden group cursor-pointer"
       onClick={() => hasImage && onClick?.()}
     >
       {/* Scene Label */}

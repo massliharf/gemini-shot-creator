@@ -71,7 +71,7 @@ export const ScenesGrid = ({
         sceneId={regenerateConfirm.sceneId ?? undefined}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1 p-1">
         {scenes.map((scene, index) => {
           const sceneId = getSceneId(scene);
           const hasImage = scene.status === "success" && scene.imageUrl;
