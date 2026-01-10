@@ -6,15 +6,32 @@ import { SmartImage } from "@/components/SmartImage";
 interface SceneCardProps {
   scene: SceneWithStatus;
   index: number;
+  aspectRatio?: string;
   onGenerate: () => void;
   onDownload: () => void;
   onDelete?: () => void;
   onClick?: () => void;
 }
 
+// Convert aspect ratio string to CSS aspect-ratio value
+const getAspectRatioClass = (ratio: string): string => {
+  const ratioMap: Record<string, string> = {
+    "1:1": "aspect-square",
+    "16:9": "aspect-video",
+    "9:16": "aspect-[9/16]",
+    "4:3": "aspect-[4/3]",
+    "3:4": "aspect-[3/4]",
+    "3:2": "aspect-[3/2]",
+    "2:3": "aspect-[2/3]",
+    "21:9": "aspect-[21/9]",
+  };
+  return ratioMap[ratio] || "aspect-square";
+};
+
 export const SceneCard = ({
   scene,
   index,
+  aspectRatio = "1:1",
   onGenerate,
   onDownload,
   onDelete,
@@ -24,6 +41,7 @@ export const SceneCard = ({
   const isGenerating = scene.status === "generating";
   const hasImage = scene.status === "success" && scene.imageUrl;
   const isError = scene.status === "error";
+  const aspectClass = getAspectRatioClass(aspectRatio);
 
   return (
     <div
@@ -39,7 +57,7 @@ export const SceneCard = ({
 
       {hasImage ? (
         <>
-          <div className="aspect-[4/5]">
+          <div className={aspectClass}>
             <SmartImage
               src={scene.imageUrl!}
               alt={`Scene ${sceneId}`}
@@ -92,7 +110,7 @@ export const SceneCard = ({
           </div>
         </>
       ) : (
-        <div className="aspect-[4/5] flex flex-col items-center justify-center">
+        <div className={`${aspectClass} flex flex-col items-center justify-center`}>
           {isGenerating ? (
             <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
           ) : (
