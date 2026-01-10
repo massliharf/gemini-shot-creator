@@ -27,6 +27,7 @@ export interface PackInfo {
   completedShots: number;
   failedShots: number;
   generatingShots: number;
+  thumbnailUrl?: string;
 }
 
 type PacksLoadResult = {
@@ -494,14 +495,22 @@ export const usePacks = (user: User | null) => {
   );
 
   const getPackInfos = useCallback((): PackInfo[] => {
-    return Array.from(packs.values()).map((packData) => ({
-      pack: packData.pack,
-      packId: packData.packId,
-      totalShots: packData.scenes.length,
-      completedShots: packData.scenes.filter((s) => s.status === "success").length,
-      failedShots: packData.scenes.filter((s) => s.status === "error").length,
-      generatingShots: packData.scenes.filter((s) => s.status === "generating").length,
-    }));
+    return Array.from(packs.values()).map((packData) => {
+      // Find the first successful scene with an image for thumbnail
+      const firstSuccessScene = packData.scenes.find(
+        (s) => s.status === "success" && s.imageUrl
+      );
+
+      return {
+        pack: packData.pack,
+        packId: packData.packId,
+        totalShots: packData.scenes.length,
+        completedShots: packData.scenes.filter((s) => s.status === "success").length,
+        failedShots: packData.scenes.filter((s) => s.status === "error").length,
+        generatingShots: packData.scenes.filter((s) => s.status === "generating").length,
+        thumbnailUrl: firstSuccessScene?.imageUrl,
+      };
+    });
   }, [packs]);
 
   const navigatePack = useCallback(
