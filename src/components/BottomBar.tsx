@@ -65,8 +65,8 @@ export const BottomBar = ({
   const modelLabel = selectedModel === "gemini-3-pro-image-preview" ? "PRO" : "FLASH";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex justify-center p-4 pointer-events-none z-50">
-      <div className="flex items-center gap-3 bg-card/95 backdrop-blur-lg rounded-full px-4 py-2.5 border border-border/50 shadow-lg pointer-events-auto">
+    <div className="fixed bottom-0 left-0 right-0 flex justify-center p-6 pointer-events-none z-50">
+      <div className="flex items-center gap-3 bg-background border border-border rounded-full px-4 py-2.5 shadow-md pointer-events-auto">
         {/* Reference Image */}
         <div className="relative group">
           <input
@@ -81,19 +81,19 @@ export const BottomBar = ({
               <img
                 src={previewUrl}
                 alt="Reference"
-                className="w-10 h-10 rounded-full object-cover ring-2 ring-primary"
+                className="w-10 h-10 rounded-full object-cover ring-2 ring-foreground"
               />
               <button
                 onClick={onImageClear}
                 className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <X className="w-2.5 h-2.5 text-white" />
+                <X className="w-2.5 h-2.5 text-destructive-foreground" />
               </button>
             </div>
           ) : (
             <label
               htmlFor="bottom-ref-image"
-              className="w-10 h-10 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+              className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-muted-foreground transition-colors"
             >
               <User className="w-4 h-4 text-muted-foreground" />
             </label>
@@ -115,19 +115,19 @@ export const BottomBar = ({
                 <img
                   src={secondPreviewUrl}
                   alt="Reference 2"
-                  className="w-10 h-10 rounded-full object-cover ring-2 ring-secondary"
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-muted-foreground"
                 />
                 <button
                   onClick={onSecondImageClear}
                   className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <X className="w-2.5 h-2.5 text-white" />
+                  <X className="w-2.5 h-2.5 text-destructive-foreground" />
                 </button>
               </div>
             ) : (
               <label
                 htmlFor="bottom-ref-image-2"
-                className="w-10 h-10 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-secondary/50 transition-colors"
+                className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-muted-foreground transition-colors"
               >
                 <User className="w-4 h-4 text-muted-foreground" />
               </label>
@@ -163,7 +163,7 @@ export const BottomBar = ({
 
         {/* Aspect Ratio */}
         <Select value={aspectRatio} onValueChange={onAspectRatioChange}>
-          <SelectTrigger className="w-auto h-10 px-4 rounded-full border-0 bg-secondary/50 text-sm font-medium gap-1">
+          <SelectTrigger className="w-auto h-10 px-4 rounded-full border border-border bg-background text-sm font-medium gap-2">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -182,7 +182,7 @@ export const BottomBar = ({
 
         {/* Model Selector */}
         <Select value={selectedModel} onValueChange={onModelChange}>
-          <SelectTrigger className="w-auto h-10 px-4 rounded-full border-0 bg-secondary/50 text-sm font-medium gap-1">
+          <SelectTrigger className="w-auto h-10 px-4 rounded-full border border-border bg-background text-sm font-medium gap-2">
             <span>{modelLabel}</span>
             <ChevronDown className="w-3.5 h-3.5 opacity-50" />
           </SelectTrigger>
