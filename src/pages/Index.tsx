@@ -2,20 +2,15 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 
 // Components
-import { TopHeader } from "@/components/TopHeader";
-import { IconRail } from "@/components/IconRail";
-import { PackList, PackInfo } from "@/components/PackList";
+import { AppLayout } from "@/components/AppLayout";
+import { PackList } from "@/components/PackList";
 import { PackHeader } from "@/components/PackHeader";
 import { ScenesGrid } from "@/components/ScenesGrid";
 import { BottomBar } from "@/components/BottomBar";
 import { CloudOperationProgress } from "@/components/CloudOperationProgress";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
 
 // Hooks
 import { usePacks } from "@/hooks/usePacks";
@@ -28,7 +23,6 @@ import { useCloudOperations } from "@/hooks/useCloudOperations";
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
   // Custom Hooks
@@ -40,7 +34,6 @@ const Index = () => {
     selectedPack,
     isGeneratingAll,
     setIsGeneratingAll,
-    handlePacksLoad,
     deletePack,
     deleteMultiplePacks,
     getPackInfos,
@@ -69,11 +62,7 @@ const Index = () => {
     setResolution,
   } = useGenerationSettings();
 
-  const {
-    generateSingleScene,
-    generatePackScenes,
-    generateAllPacks,
-  } = useGeneration({
+  const { generateSingleScene, generatePackScenes, generateAllPacks } = useGeneration({
     user,
     packs,
     setPacks,
@@ -85,11 +74,10 @@ const Index = () => {
     resolution,
   });
 
-  const {
-    downloadScene,
-    downloadPackAsZip,
-    downloadMultiplePacks,
-  } = useDownload({ packs, selectedPackId });
+  const { downloadScene, downloadPackAsZip, downloadMultiplePacks } = useDownload({
+    packs,
+    selectedPackId,
+  });
 
   const {
     cloudOperation,
@@ -115,7 +103,9 @@ const Index = () => {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (!session) {
         navigate("/auth");
@@ -124,12 +114,6 @@ const Index = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-    toast.success("Signed out successfully");
-  };
 
   const handleGenerateAllPacks = async () => {
     setIsGeneratingAll(true);
@@ -165,102 +149,54 @@ const Index = () => {
         onConfirmContinue={handleCloudOperationConfirm}
       />
 
-      <div className="h-screen bg-background flex flex-col overflow-hidden">
-        {/* Top Header */}
-        <TopHeader
-          userEmail={user.email}
-          onSignOut={handleSignOut}
-          onMenuClick={() => setSidebarOpen(true)}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Icon Rail - Desktop */}
-          <div className="hidden lg:block">
-            <IconRail />
-          </div>
-
-          {/* Pack Sidebar - Desktop */}
-          <aside className="hidden lg:flex w-[280px] min-w-[260px] flex-col overflow-hidden">
-            <PackList
-              packs={packInfos}
-              selectedPackId={selectedPackId}
-              onSelectPack={setSelectedPackId}
-              onDeletePack={deletePack}
-              onDeleteMultiplePacks={deleteMultiplePacks}
-              onDownloadMultiplePacks={downloadMultiplePacks}
-              onGenerateAllPacks={handleGenerateAllPacks}
-              isGeneratingAll={isGeneratingAll}
-            />
-          </aside>
-
-          {/* Mobile Sidebar */}
-          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetContent side="left" className="w-[300px] p-0 bg-background overflow-hidden">
-              <PackList
-                packs={packInfos}
-                selectedPackId={selectedPackId}
-                onSelectPack={(packId) => {
-                  setSelectedPackId(packId);
-                  setSidebarOpen(false);
-                }}
-                onDeletePack={deletePack}
-                onDeleteMultiplePacks={deleteMultiplePacks}
-                onDownloadMultiplePacks={downloadMultiplePacks}
-                onGenerateAllPacks={handleGenerateAllPacks}
-                isGeneratingAll={isGeneratingAll}
+      <AppLayout
+        userEmail={user.email}
+        sidebar={
+          <PackList
+            packs={packInfos}
+            selectedPackId={selectedPackId}
+            onSelectPack={setSelectedPackId}
+            onDeletePack={deletePack}
+            onDeleteMultiplePacks={deleteMultiplePacks}
+            onDownloadMultiplePacks={downloadMultiplePacks}
+            onGenerateAllPacks={handleGenerateAllPacks}
+            isGeneratingAll={isGeneratingAll}
+          />
+        }
+      >
+        <main className="flex-1 overflow-hidden flex flex-col min-w-0 bg-background">
+          {selectedPack ? (
+            <>
+              <PackHeader
+                pack={selectedPack.pack}
+                completedCount={selectedPack.scenes.filter((s) => s.status === "success").length}
+                onRegenerate={() => selectedPackId && generatePackScenes(selectedPackId)}
+                onDelete={() => selectedPackId && deletePack(selectedPackId)}
+                onDownload={() => selectedPackId && downloadPackAsZip(selectedPackId)}
+                isGenerating={selectedPack.isGenerating}
               />
-            </SheetContent>
-          </Sheet>
 
-          {/* Main Content Area */}
-          <main className="flex-1 overflow-hidden flex flex-col min-w-0 bg-background">
-            {selectedPack ? (
-              <>
-                {/* Pack Header */}
-                <PackHeader
-                  pack={selectedPack.pack}
-                  completedCount={selectedPack.scenes.filter(s => s.status === 'success').length}
-                  onRegenerate={() => selectedPackId && generatePackScenes(selectedPackId)}
-                  onDelete={() => selectedPackId && deletePack(selectedPackId)}
-                  onDownload={() => selectedPackId && downloadPackAsZip(selectedPackId)}
-                  isGenerating={selectedPack.isGenerating}
+              <div className="flex-1 overflow-y-auto pb-24">
+                <ScenesGrid
+                  scenes={selectedPack.scenes}
+                  onGenerateScene={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
+                  onDownloadScene={downloadScene}
                 />
-
-                {/* Scenes Grid */}
-                <div className="flex-1 overflow-y-auto pb-24">
-                  <ScenesGrid
-                    scenes={selectedPack.scenes}
-                    onGenerateScene={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
-                    onDownloadScene={downloadScene}
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground/20" />
-                  <h3 className="text-lg font-medium text-foreground/80 mb-2">
-                    {packs.size === 0 ? "Start by uploading a pack" : "Select a pack"}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Create stunning images with AI
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="lg:hidden rounded-xl"
-                    onClick={() => setSidebarOpen(true)}
-                  >
-                    <Menu className="w-4 h-4 mr-2" />
-                    Open Menu
-                  </Button>
-                </div>
               </div>
-            )}
-          </main>
-        </div>
+            </>
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground/20" />
+                <h3 className="text-lg font-medium text-foreground/80 mb-2">
+                  {packs.size === 0 ? "Start by uploading a pack" : "Select a pack"}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">Create stunning images with AI</p>
+              </div>
+            </div>
+          )}
+        </main>
 
-        {/* Bottom Bar */}
         <BottomBar
           aspectRatio={aspectRatio}
           onAspectRatioChange={setAspectRatio}
@@ -278,9 +214,10 @@ const Index = () => {
           isGenerating={selectedPack?.isGenerating || false}
           canGenerate={canGenerate}
         />
-      </div>
+      </AppLayout>
     </>
   );
 };
 
 export default Index;
+

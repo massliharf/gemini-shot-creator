@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Upload, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { AppLayout } from "@/components/AppLayout";
 import { PackFile, getPackId, getPackName, hasScenes } from "@/types/pack";
 
 interface PacksLoadResult {
@@ -19,6 +22,29 @@ const PackEditor = ({ onPacksLoad }: PackEditorProps) => {
   const [jsonText, setJsonText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [authChecking, setAuthChecking] = useState(true);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setUserEmail(session?.user?.email || "");
+      setAuthChecking(false);
+      if (!session) navigate("/auth");
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setUserEmail(session?.user?.email || "");
+      if (!session) navigate("/auth");
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const extractJsonSlice = (raw: string) => {
     let s = raw.trim();
@@ -122,81 +148,97 @@ const PackEditor = ({ onPacksLoad }: PackEditorProps) => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-background p-4 lg:p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="rounded-xl"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-semibold">Pack Editor</h1>
-            <p className="text-sm text-muted-foreground">Paste JSON to create a new pack</p>
-          </div>
-        </div>
-
-        {/* JSON Input Area */}
-        <div className="bg-card rounded-2xl border border-border/50 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Upload className="w-5 h-5 text-primary" />
-            <h2 className="font-medium">Paste JSON Pack</h2>
-          </div>
-
-          <textarea
-            value={jsonText}
-            onChange={(e) => {
-              setJsonText(e.target.value);
-              setError(null);
-            }}
-            placeholder='{"meta": {...}, "global_style_anchor": "...", "scenes": [...]}'
-            className="w-full h-96 p-4 text-sm font-mono bg-secondary border-0 rounded-xl focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
-            disabled={isUploading}
-          />
-
-          {error && (
-            <div className="flex items-center gap-2 text-destructive text-sm mt-3">
-              <AlertCircle className="w-4 h-4" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/")}
-              disabled={isUploading}
-              className="rounded-xl"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handlePaste}
-              disabled={isUploading || !jsonText.trim()}
-              className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Pack
-                </>
-              )}
-            </Button>
-          </div>
+  if (authChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading...
         </div>
       </div>
-    </div>
+    );
+  }
+
+  if (!user) return null;
+
+  return (
+    <AppLayout userEmail={userEmail}>
+      <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/")}
+              className="rounded-xl"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-semibold">Pack Editor</h1>
+              <p className="text-sm text-muted-foreground">Paste JSON to create a new pack</p>
+            </div>
+          </div>
+
+          {/* JSON Input Area */}
+          <div className="bg-card rounded-2xl border border-border/50 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Upload className="w-5 h-5 text-primary" />
+              <h2 className="font-medium">Paste JSON Pack</h2>
+            </div>
+
+            <textarea
+              value={jsonText}
+              onChange={(e) => {
+                setJsonText(e.target.value);
+                setError(null);
+              }}
+              placeholder='{"meta": {...}, "global_style_anchor": "...", "scenes": [...]} '
+              className="w-full h-96 p-4 text-sm font-mono bg-secondary border-0 rounded-xl focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
+              disabled={isUploading}
+            />
+
+            {error && (
+              <div className="flex items-center gap-2 text-destructive text-sm mt-3">
+                <AlertCircle className="w-4 h-4" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/")}
+                disabled={isUploading}
+                className="rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePaste}
+                disabled={isUploading || !jsonText.trim()}
+                className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Pack
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </AppLayout>
   );
 };
 
 export default PackEditor;
+
