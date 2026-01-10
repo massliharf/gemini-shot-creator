@@ -53,7 +53,7 @@ export const useGeneration = ({
   // Token usage tracking per pack
   const [packTokenStats, setPackTokenStats] = useState<Map<string, PackGenerationStats>>(new Map());
   
-  const generateSingleScene = useCallback(async (packId: string, sceneId: string | number) => {
+  const generateSingleScene = useCallback(async (packId: string, sceneId: string | number, forceRegenerate: boolean = false) => {
     if (!user) {
       toast.error('Please sign in to generate scenes');
       return;
@@ -69,6 +69,20 @@ export const useGeneration = ({
     if (!scene) return;
 
     const sceneIdNum = normalizeSceneId(scene.id);
+
+    // Check if scene already has a successful generation (prevent accidental regeneration)
+    if (scene.status === 'success' && scene.imageUrl && !forceRegenerate) {
+      console.log(`Scene ${sceneId} already generated. Use forceRegenerate=true to regenerate.`);
+      toast.info(`Scene ${sceneId} already generated. Click regenerate button to replace.`);
+      return;
+    }
+
+    // Check if already generating
+    if (scene.status === 'generating') {
+      toast.info(`Scene ${sceneId} is already being generated.`);
+      return;
+    }
+
     const queueItem = {
       pack_id: packId,
       shot_id: sceneIdNum,
@@ -251,7 +265,7 @@ export const useGeneration = ({
     }
   }, [user, packs, referenceImage, referenceImage2, selectedModel, aspectRatio, imageSize, setPacks, resolution]);
 
-  const generatePackScenes = useCallback(async (packId: string) => {
+  const generatePackScenes = useCallback(async (packId: string, skipCompleted: boolean = true) => {
     if (!user) {
       toast.error('Please sign in to generate scenes');
       return;
@@ -261,6 +275,21 @@ export const useGeneration = ({
     if (!packData || !referenceImage) {
       toast.error('Please upload reference image');
       return;
+    }
+
+    // Filter scenes: skip already successful ones unless forced
+    const scenesToGenerate = skipCompleted 
+      ? packData.scenes.filter(s => s.status !== 'success' && s.status !== 'generating')
+      : packData.scenes.filter(s => s.status !== 'generating');
+
+    if (scenesToGenerate.length === 0) {
+      toast.info('All scenes are already generated. Use regenerate to replace them.');
+      return;
+    }
+
+    const skippedCount = packData.scenes.length - scenesToGenerate.length;
+    if (skippedCount > 0) {
+      toast.info(`Skipping ${skippedCount} already completed scene(s)`);
     }
 
     setPacks(prev => {
@@ -282,7 +311,7 @@ export const useGeneration = ({
     const selfie = await fileToBase64WithMime(referenceImage);
     const selfie2 = referenceImage2 ? await fileToBase64WithMime(referenceImage2) : undefined;
 
-    const queueItems = currentPack.scenes.map(scene => {
+    const queueItems = scenesToGenerate.map(scene => {
       const sceneIdNum = normalizeSceneId(scene.id);
       return {
         pack_id: packId,
