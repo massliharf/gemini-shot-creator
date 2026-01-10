@@ -14,18 +14,18 @@ export const IconRail = () => {
   const location = useLocation();
 
   return (
-    <nav className="w-16 flex-shrink-0 bg-background flex flex-col items-center pt-4">
+    <nav className="w-16 flex-shrink-0 bg-black flex flex-col items-center py-2 px-2">
       {/* Hamburger Menu */}
       <Button
         variant="ghost"
         size="icon"
-        className="h-10 w-10 rounded-lg mb-6 text-foreground hover:bg-muted"
+        className="h-12 w-12 rounded-xl mb-3 text-gray-400 hover:text-white hover:bg-gray-800"
       >
         <Menu className="w-5 h-5" />
       </Button>
 
       {/* Navigation Icons */}
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-3">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
 
@@ -35,10 +35,10 @@ export const IconRail = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-10 w-10 rounded-xl transition-all ${
+                  className={`h-12 w-12 rounded-xl transition-all ${
                     isActive
-                      ? "bg-warning text-warning-foreground hover:bg-warning"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "text-gray-400 hover:text-white hover:bg-gray-800"
                   }`}
                   onClick={() => navigate(item.path)}
                 >
