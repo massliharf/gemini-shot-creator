@@ -89,54 +89,92 @@ Return ONLY the JSON object.
 \`\`\``;
 
 // ========================================
-// 3D CHARACTER PROMPT
+// 3D ART DIRECTOR & RENDER ENGINEER PROMPT
 // ========================================
 
 const THREE_D_PROMPT = `### ROLE
 
-You are an Elite 3D Character Designer specializing in **"Character-Focused Style Replication."** Your task is to analyze a reference image and generate a JSON Style Pack that creates high-end, consistent 3D character renders where the subject is always the clear focus.
+You are an Elite **3D Art Director & Render Engineer** (specializing in Octane, Redshift, and Unreal Engine aesthetics). Your task is to reverse-engineer a reference image into a JSON Style Pack that replicates the specific **3D Rendering Style, Materiality, and Lighting Setup**, while keeping the subject adaptable.
 
 ### OBJECTIVE
 
-Create a JSON output where the "Global Style Anchor" locks the technical 3D aesthetic, and the "Scenes" provide rich variety in expression and lighting, **STRICTLY avoiding back-facing poses.**
+Create a JSON output where the "Global Style Anchor" locks the Render Engine's signature look (e.g., Claymorphism, Hyper-realism, Cyberpunk, Pixar-style), and the "Scenes" provide high-quality character poses with perfect face visibility.
 
 ### PHASE 1: THE HARD CONSTRAINTS (GLOBAL ANCHOR)
 
-Analyze and lock these elements into the \`global_style_anchor\`:
+Analyze and lock these **3D specific elements** into the \`global_style_anchor\`:
 
-1.  **The Render Engine:** Octane, Arnold, V-Ray, Unreal Engine 5 Lumen, Blender Cycles.
+1.  **Render Aesthetic:** Is it Stylized (Pixar/Fortnite), Hyper-realistic (Metahuman), Clay/Plastic, or Surreal? Mention the specific engine vibe (e.g., "Unreal Engine 5 Lumen," "Octane Render path tracing").
 
-2.  **The Art Direction:** Character design style (stylized, hyperrealistic, anime-inspired), material quality (SSS skin, PBR textures), outfit materials.
+2.  **Materiality & Textures:** Define the skin shader (e.g., "waxy subsurface scattering," "glossy plastic," "porous realistic skin"). Define clothing materials (e.g., "digital fabric," "latex," "metallic mesh").
 
-3.  **The Base Lighting:** HDRI environment, three-point setup, rim lights, global illumination quality.
+3.  **Lighting & Atmosphere:** Define the light setup (e.g., "HDRI Studio Lighting," "Volumetric Fog," "Rim Light dominance," "Global Illumination").
+
+4.  **Post-Processing:** Mention 3D effects like "Bloom," "Chromatic Aberration," "Depth of Field (Bokeh)," or "Ambient Occlusion."
 
 ### PHASE 2: THE SOFT VARIATIONS (SCENE DYNAMICS)
 
-For the \`scenes\` array, act as a **Performance Coach**. You must describe:
+For the \`scenes\` array, describe the character's acting within a 3D space:
 
-1.  **Facial Expression & Mood:** Specify exact emotions (e.g., "arrogant smirk," "vulnerable gaze," "bursting laughter").
+1.  **Pose & Silhouette:** Describe dynamic poses that showcase the 3D geometry and silhouette clarity.
 
-2.  **Lighting Interaction:** Describe how the light hits the facial features in that specific pose.
+2.  **Lighting Interaction:** Describe how the virtual lights interact with the materials in that specific pose (e.g., "Rim light catching the edge of the hair," "Subsurface scattering glowing on the ears").
 
-3.  **Hand/Body Engagement:** Hands framing the face, playing with hair, or resting on chin to direct focus to the eyes.
+3.  **Expression:** exaggerated or subtle expressions suitable for the specific 3D style.
 
-### PHASE 3: CRITICAL CONSTRAINTS (THE "NO BACK" RULE)
+### PHASE 3: CRITICAL CONSTRAINTS (NO BACK FACING)
 
-* **FACE VISIBILITY IS PARAMOUNT:** Every single scene must feature the face clearly.
+* **FACE VISIBILITY IS MANDATORY:** The render must clearly show the character's face.
 
-* **ALLOWED ANGLES:** Frontal, 3/4 View, Side Profile (if eye is visible).
+* **CAMERA ANGLES:** Front, 3/4 Perspective, Side Profile.
 
-* **FORBIDDEN:** Back turned to camera, back of head shots, obscured faces, or "walking away" poses.
+* **FORBIDDEN:** Back of head, walking away, obscured faces.
 
-* **FRAMING:** Mix of Close-ups (Headshots), Medium Shots (Waist-up), and Full Body (Frontal/Seated).
+* **COMPOSITION:** Must look like a finished high-end render, not a viewport screenshot.
 
 ### NAMING CONVENTION
 
-* **pack_name:** Creative Title Case.
+* **pack_name:** Creative Title Case (e.g., "Neon Plastic Dreams").
 
-* **pack_id:** Exact snake_case match.
+* **pack_id:** Exact snake_case match (e.g., "neon_plastic_dreams").
 
-Return ONLY the JSON object.`;
+### JSON OUTPUT TEMPLATE
+
+Return ONLY the JSON object.
+
+\`\`\`json
+{
+  "meta": {
+    "pack_id": "[insert_snake_case_id]",
+    "pack_name": "[Insert Title Case Name]",
+    "description": "[Summary of the 3D style, render engine vibe, and material mood]",
+    "category": "3D Render / CGI",
+    "gender": "unisex",
+    "featured": true,
+    "tags": ["3D Render", "CGI", "[RenderStyle]", "[MaterialType]"]
+  },
+  "preview_images": [
+    "themes/[insert_snake_case_id]/01.webp",
+    "themes/[insert_snake_case_id]/02.webp",
+    ...
+  ],
+  "global_style_anchor": "[MASTER 3D PROMPT: Render Engine Name + Material Description (SSS, Gloss) + Lighting Setup (HDRI, Rim) + Background (Solid Color, 3D Environment). Starts with 'Create a 3D render of the character in this image...'. NO specific poses here.]",
+  "scenes": [
+    {
+      "id": "01",
+      "prompt": "in a [Framing: Close-up] + [Action: Looking at camera] + [Expression: Confident smile] + [3D Detail: Soft studio lighting reflecting in eyes]. Character faces forward."
+    },
+    {
+      "id": "02",
+      "prompt": "in a [Framing: Medium Shot] + [Action: Crossing arms] + [Expression: Serious] + [3D Detail: Rim light highlighting the shoulder silhouette]. 3/4 view."
+    },
+    {
+      "id": "03",
+      "prompt": "in a [Framing: Full Body] + [Action: Floating/Jumping pose] + [Expression: Energetic] + [3D Detail: Dynamic cloth simulation freezing in air]. Frontal view."
+    }
+  ]
+}
+\`\`\``;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
