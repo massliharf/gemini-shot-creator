@@ -179,7 +179,6 @@ const Index = () => {
               <div className="flex-1 overflow-y-auto pb-24">
                 <ScenesGrid
                   scenes={selectedPack.scenes}
-                  aspectRatio={aspectRatio}
                   onGenerateScene={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
                   onDownloadScene={downloadScene}
                 />

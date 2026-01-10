@@ -8,7 +8,6 @@ interface ScenesGridProps {
   scenes: SceneWithStatus[];
   onGenerateScene: (sceneId: string | number) => void;
   onDownloadScene: (sceneId: string | number) => void;
-  aspectRatio?: string;
 }
 
 const getSceneId = (scene: SceneWithStatus): string | number => {
@@ -19,7 +18,6 @@ export const ScenesGrid = ({
   scenes,
   onGenerateScene,
   onDownloadScene,
-  aspectRatio = "1:1",
 }: ScenesGridProps) => {
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
   const [regenerateConfirm, setRegenerateConfirm] = useState<{
@@ -81,7 +79,6 @@ export const ScenesGrid = ({
               key={sceneId}
               scene={scene}
               index={index}
-              aspectRatio={aspectRatio}
               onGenerate={() => handleRegenerateClick(sceneId, !!hasImage)}
               onDownload={() => onDownloadScene(sceneId)}
               onClick={() => hasImage && handleOpenFullscreen(scene)}
