@@ -157,10 +157,10 @@ serve(async (req) => {
     const validGenders = ["male", "female", "unisex"];
     const normalizedGender = validGenders.includes(gender) ? gender : "unisex";
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
+        JSON.stringify({ error: "GEMINI_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -172,7 +172,7 @@ serve(async (req) => {
 
     console.log(`[generate-pack] Starting ${styleType} pack generation with ${sceneCount} scenes, gender=${normalizedGender}...`);
     console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}, gender=${normalizedGender}`);
-    console.log(`[generate-pack] Using Lovable AI Gateway with google/gemini-3-pro-preview model`);
+    console.log(`[generate-pack] Using Google Gemini API with gemini-2.5-pro-preview-05-06 model`);
 
     // Build gender-specific instruction
     const genderInstruction = normalizedGender === "unisex" 
@@ -301,23 +301,46 @@ Output pure JSON only.`;
       });
     }
 
-    console.log("[generate-pack] Calling Lovable AI Gateway with gemini-3-pro-preview...");
+    console.log("[generate-pack] Calling Google Gemini API with gemini-2.5-pro-preview-05-06...");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Build Gemini API request format
+    const geminiParts: Array<{ text?: string; inline_data?: { mime_type: string; data: string } }> = [];
+    
+    if (imageBase64) {
+      // Add image first
+      const base64Data = imageBase64.startsWith("data:") 
+        ? imageBase64.split(",")[1] 
+        : imageBase64;
+      geminiParts.push({
+        inline_data: {
+          mime_type: "image/jpeg",
+          data: base64Data
+        }
+      });
+    }
+    
+    // Add text prompt
+    geminiParts.push({ text: userPrompt });
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-preview",
-        messages: messages,
+        contents: [{
+          parts: geminiParts
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 8192,
+        }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[generate-pack] Lovable AI Gateway error:", response.status, errorText);
+      console.error("[generate-pack] Google Gemini API error:", response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -325,23 +348,24 @@ Output pure JSON only.`;
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
+      if (response.status === 403) {
         return new Response(
-          JSON.stringify({ error: "Payment required. Please add credits to your workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "API key invalid or quota exceeded." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
       return new Response(
-        JSON.stringify({ error: `AI Gateway error: ${response.status}` }),
+        JSON.stringify({ error: `Gemini API error: ${response.status}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    console.log("[generate-pack] Lovable AI Gateway response received");
+    console.log("[generate-pack] Google Gemini API response received");
 
-    const textContent = data.choices?.[0]?.message?.content;
+    // Extract text from Gemini response format
+    const textContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!textContent) {
       console.error("[generate-pack] No text content in response:", JSON.stringify(data));
