@@ -200,6 +200,8 @@ const Index = () => {
         <BottomBar
           aspectRatio={aspectRatio}
           onAspectRatioChange={setAspectRatio}
+          resolution={resolution}
+          onResolutionChange={setResolution}
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
           coupleMode={coupleMode}
