@@ -75,8 +75,10 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar (desktop) */}
           {sidebar && (
-            <aside className="hidden lg:flex w-[300px] min-w-[280px] bg-background border-r border-border flex-col overflow-hidden">
-              {sidebar}
+            <aside className="hidden lg:flex w-[300px] min-w-[280px] bg-background border-r border-border flex-col overflow-hidden h-full">
+              <div className="flex flex-col h-full overflow-hidden">
+                {sidebar}
+              </div>
             </aside>
           )}
 
