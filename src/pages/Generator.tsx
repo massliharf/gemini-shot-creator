@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,19 +51,6 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "male", label: "Male" },
   { value: "female", label: "Female" },
   { value: "unisex", label: "Unisex" },
-];
-
-const CATEGORY_OPTIONS = [
-  "Portrait",
-  "Fashion",
-  "Editorial",
-  "Commercial",
-  "Lifestyle",
-  "Beauty",
-  "Artistic",
-  "Corporate",
-  "Street",
-  "Studio",
 ];
 
 export default function Generator() {
@@ -345,22 +333,13 @@ export default function Generator() {
               
               <div className="flex items-center gap-2">
                 <Label className="text-xs font-medium whitespace-nowrap">Category:</Label>
-                <Select
+                <Input
                   value={category}
-                  onValueChange={setCategory}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="e.g. Portrait, Fashion..."
                   disabled={isGenerating}
-                >
-                  <SelectTrigger className="w-28 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORY_OPTIONS.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  className="w-32 h-8 text-xs"
+                />
               </div>
 
               <div className="flex items-center gap-2">
