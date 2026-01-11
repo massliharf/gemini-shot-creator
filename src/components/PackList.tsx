@@ -3,6 +3,7 @@ import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getSc
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SmartImage } from "@/components/SmartImage";
 import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, CheckCircle2, Circle, XCircle, Image as ImageIcon } from "lucide-react";
 export interface PackInfo {
   pack: PackFile;
@@ -75,9 +76,19 @@ const PackItem = ({
   return <div onClick={handleClick} className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all ${isSelected && !isSelectionMode ? "bg-secondary" : isChecked && isSelectionMode ? "bg-secondary" : "hover:bg-secondary/50"}`}>
       {/* Thumbnail */}
       <div className="w-11 h-11 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
-        {pack.thumbnailUrl ? <img src={pack.thumbnailUrl} alt={packName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted flex items-center justify-center">
+        {pack.thumbnailUrl ? (
+          <SmartImage
+            src={pack.thumbnailUrl}
+            alt={packName}
+            fit="cover"
+            loading="lazy"
+            className="w-full h-full"
+          />
+        ) : (
+          <div className="w-full h-full bg-muted flex items-center justify-center">
             <ImageIcon className="w-5 h-5 text-muted-foreground/40" />
-          </div>}
+          </div>
+        )}
         
         {/* Selection checkbox overlay */}
         {isSelectionMode && <div className="absolute inset-0 bg-foreground/30 flex items-center justify-center">
