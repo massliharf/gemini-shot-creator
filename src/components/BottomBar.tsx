@@ -17,6 +17,8 @@ import { User, Plus, ChevronDown, X, Users } from "lucide-react";
 interface BottomBarProps {
   aspectRatio: string;
   onAspectRatioChange: (value: string) => void;
+  resolution: string;
+  onResolutionChange: (value: string) => void;
   selectedModel: string;
   onModelChange: (value: string) => void;
   coupleMode: boolean;
@@ -35,6 +37,8 @@ interface BottomBarProps {
 export const BottomBar = ({
   aspectRatio,
   onAspectRatioChange,
+  resolution,
+  onResolutionChange,
   selectedModel,
   onModelChange,
   coupleMode,
@@ -62,7 +66,8 @@ export const BottomBar = ({
     }
   };
 
-  const modelLabel = selectedModel === "gemini-3-pro-image-preview" ? "PRO" : "FLASH";
+  const isProModel = selectedModel === "gemini-3-pro-image-preview";
+  const modelLabel = isProModel ? "PRO" : "FLASH";
 
   return (
     <div className="fixed bottom-0 left-0 right-0 flex justify-center p-6 pointer-events-none z-50">
@@ -191,6 +196,21 @@ export const BottomBar = ({
             <SelectItem value="gemini-3-pro-image-preview">PRO</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Resolution Selector - Only for PRO model */}
+        {isProModel && (
+          <Select value={resolution} onValueChange={onResolutionChange}>
+            <SelectTrigger className="w-auto h-10 px-4 rounded-full border border-border bg-background text-sm font-medium gap-2">
+              <span>{resolution}</span>
+              <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1K">1K</SelectItem>
+              <SelectItem value="2K">2K</SelectItem>
+              <SelectItem value="4K">4K</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Generate Button */}
         <Button
