@@ -52,12 +52,26 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: "unisex", label: "Unisex" },
 ];
 
+const CATEGORY_OPTIONS = [
+  "Portrait",
+  "Fashion",
+  "Editorial",
+  "Commercial",
+  "Lifestyle",
+  "Beauty",
+  "Artistic",
+  "Corporate",
+  "Street",
+  "Studio",
+];
+
 export default function Generator() {
   const navigate = useNavigate();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sceneCount, setSceneCount] = useState<number>(8);
   const [packType, setPackType] = useState<PackType>("photography");
+  const [category, setCategory] = useState<string>("Portrait");
   const [gender, setGender] = useState<Gender>("unisex");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("");
@@ -188,7 +202,7 @@ export default function Generator() {
       pendingImages.map(async (img) => {
         try {
           const { data, error } = await supabase.functions.invoke("generate-pack", {
-            body: { imageBase64: img.base64, sceneCount, packType, gender },
+            body: { imageBase64: img.base64, sceneCount, packType, gender, category },
           });
 
           if (error) throw error;
@@ -329,6 +343,26 @@ export default function Generator() {
                 </Select>
               </div>
               
+              <div className="flex items-center gap-2">
+                <Label className="text-xs font-medium whitespace-nowrap">Category:</Label>
+                <Select
+                  value={category}
+                  onValueChange={setCategory}
+                  disabled={isGenerating}
+                >
+                  <SelectTrigger className="w-28 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORY_OPTIONS.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-center gap-2">
                 <Label className="text-xs font-medium whitespace-nowrap">Gender:</Label>
                 <Select
