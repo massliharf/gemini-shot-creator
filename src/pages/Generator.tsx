@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Wand2, Loader2, X, Check, Home, Camera, Box } from "lucide-react";
+import { Upload, Wand2, Loader2, X, Check, Home, Camera, Box, Aperture } from "lucide-react";
 import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
@@ -29,7 +29,7 @@ interface UploadedImage {
 
 const SCENE_COUNT_OPTIONS = [4, 8, 12, 16];
 
-type PackType = "photography" | "3d";
+type PackType = "photography" | "3d" | "photo";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
@@ -38,6 +38,12 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
     label: "Photography", 
     icon: <Camera className="h-4 w-4" />,
     description: "Realistic photography styles"
+  },
+  { 
+    value: "photo", 
+    label: "Photo (Dense)", 
+    icon: <Aperture className="h-4 w-4" />,
+    description: "Dense Anchor Protocol - Maximum consistency"
   },
   { 
     value: "3d", 
@@ -284,7 +290,7 @@ export default function Generator() {
             {/* Pack Type Selector */}
             <div className="space-y-2">
               <Label className="text-xs font-medium">Pack Type</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {PACK_TYPE_OPTIONS.map((option) => (
                   <button
                     key={option.value}
