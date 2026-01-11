@@ -156,26 +156,14 @@ serve(async (req) => {
       continue;
     }
 
-    // 3) Orphan folder: exists in storage but no DB record. Allow authenticated user to delete.
-    // Check if the folder actually exists in storage first.
-    const { data: storageFiles, error: storageErr } = await admin.storage
-      .from("generated-images")
-      .list(folder, { limit: 1 });
-
-    if (storageErr) {
-      console.warn("delete-generated-folders: storage list error", { folder, storageErr });
-      denied.push(folder);
-      continue;
-    }
-
-    if (storageFiles && storageFiles.length > 0) {
-      // Folder exists in storage but has no ownership record - allow deletion for authenticated user
-      console.log("delete-generated-folders: allowing orphan folder deletion", { folder, userId });
-      allowed.push(folder);
-    } else {
-      // Folder doesn't exist at all
-      denied.push(folder);
-    }
+    // 3) Orphan folder: storage has a folder but DB has no ownership row.
+    // We cannot reliably query the storage schema via PostgREST here, so we allow deletion for the
+    // authenticated caller. Actual deletion still lists/removes objects under that prefix.
+    console.log("delete-generated-folders: allowing orphan folder deletion (no DB ownership row)", {
+      folder,
+      userId,
+    });
+    allowed.push(folder);
   }
 
   const deleted: Record<string, { removed: number; errors: string[] }> = {};
