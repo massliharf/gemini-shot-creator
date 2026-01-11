@@ -155,7 +155,15 @@ export const PackList = ({
     });
     return groups;
   }, [filteredPacks]);
-  const categoryOrder = ["photography", "3d", "illustration", "art"];
+  
+  // Dynamic category order - includes all categories from packs
+  const categoryOrder = useMemo(() => {
+    const allCategories = Object.keys(groupedPacks);
+    const knownOrder = ["photography", "3d", "illustration", "art"];
+    const sorted = knownOrder.filter(c => allCategories.includes(c));
+    const custom = allCategories.filter(c => !knownOrder.includes(c)).sort();
+    return [...sorted, ...custom];
+  }, [groupedPacks]);
   return <div className="h-full min-h-0 flex flex-col bg-background border-r border-border overflow-hidden">
       {/* Header */}
       <div className="px-4 py-4">
