@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Download, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 
@@ -30,36 +30,42 @@ export const FullscreenImageView = ({
   hasPrevious,
   hasNext,
 }: FullscreenImageViewProps) => {
-  
   // Keyboard navigation
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!isOpen) return;
-    
-    switch (e.key) {
-      case 'ArrowLeft':
-        if (hasPrevious && onPrevious) onPrevious();
-        break;
-      case 'ArrowRight':
-        if (hasNext && onNext) onNext();
-        break;
-      case 'Escape':
-        onClose();
-        break;
-    }
-  }, [isOpen, hasPrevious, hasNext, onPrevious, onNext, onClose]);
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      switch (e.key) {
+        case "ArrowLeft":
+          if (hasPrevious && onPrevious) onPrevious();
+          break;
+        case "ArrowRight":
+          if (hasNext && onNext) onNext();
+          break;
+        case "Escape":
+          onClose();
+          break;
+      }
+    },
+    [isOpen, hasPrevious, hasNext, onPrevious, onNext, onClose],
+  );
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
   if (!imageUrl) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent 
-        className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 bg-black/95 border-none rounded-2xl overflow-hidden [&>button]:hidden"
-      >
+      <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 bg-black/95 border-none rounded-2xl overflow-hidden [&>button]:hidden">
+        {/* a11y requirements for Radix Dialog */}
+        <DialogTitle className="sr-only">Fullscreen image preview</DialogTitle>
+        <DialogDescription className="sr-only">
+          Preview for {sceneName || `Scene ${sceneId}`}. Use left and right arrow keys to navigate.
+        </DialogDescription>
+
         <div className="relative flex items-center justify-center w-full h-full">
           {/* Close button */}
           <Button
@@ -96,24 +102,14 @@ export const FullscreenImageView = ({
           )}
 
           {/* Image */}
-          <img
-            src={imageUrl}
-            alt={sceneName || `Scene ${sceneId}`}
-            className="max-w-[90vw] max-h-[85vh] object-contain"
-          />
+          <img src={imageUrl} alt={sceneName || `Scene ${sceneId}`} className="max-w-[90vw] max-h-[85vh] object-contain" />
 
           {/* Bottom info bar */}
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
             <div className="flex items-center justify-between">
               <div>
-                {sceneId && (
-                  <span className="text-white/80 text-sm font-medium">
-                    Scene #{sceneId}
-                  </span>
-                )}
-                {sceneName && (
-                  <p className="text-white/60 text-xs">{sceneName}</p>
-                )}
+                {sceneId && <span className="text-white/80 text-sm font-medium">Scene #{sceneId}</span>}
+                {sceneName && <p className="text-white/60 text-xs">{sceneName}</p>}
               </div>
               <div className="flex items-center gap-2">
                 {onRegenerate && (
