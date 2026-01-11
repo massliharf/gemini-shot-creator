@@ -176,7 +176,7 @@ const Index = () => {
                 isGenerating={selectedPack.isGenerating}
               />
 
-              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-24">
+              <div className="flex-1 min-h-0 overflow-hidden pb-24">
                 <ScenesGrid
                   scenes={selectedPack.scenes}
                   onGenerateScene={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
