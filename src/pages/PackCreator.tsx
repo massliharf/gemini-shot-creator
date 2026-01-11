@@ -13,12 +13,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Upload, Wand2, Loader2, X, Check, Home, Camera, Box, 
-  Sparkles, Palette, Sun, Layers, Eye, RefreshCw
+  Sparkles, Palette, Sun, Layers, Eye, RefreshCw, Trash2
 } from "lucide-react";
 import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
+
+interface UploadedImage {
+  id: string;
+  file: File;
+  preview: string;
+  base64: string;
+  status: 'pending' | 'generating' | 'success' | 'saved' | 'error';
+  pack?: PackFile;
+  error?: string;
+}
 
 interface GeneratedPack {
   id: string;
@@ -94,14 +104,14 @@ export default function PackCreator() {
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
   const [generatedPacks, setGeneratedPacks] = useState<GeneratedPack[]>([]);
   
   // Input mode
   const [inputMode, setInputMode] = useState<"image" | "text">("image");
   
-  // Image input
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  // Batch image input
+  const [images, setImages] = useState<UploadedImage[]>([]);
   
   // Text input
   const [textPrompt, setTextPrompt] = useState("");
@@ -131,30 +141,52 @@ export default function PackCreator() {
     });
   }, [navigate]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
-
-    const preview = URL.createObjectURL(file);
-    setImagePreview(preview);
-
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImageBase64(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
-  const clearImage = () => {
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
-    setImageBase64(null);
+  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const validFiles = files.filter(f => f.type.startsWith("image/"));
+    if (validFiles.length !== files.length) {
+      toast.error("Some files were skipped (not images)");
+    }
+
+    const newImages: UploadedImage[] = await Promise.all(
+      validFiles.map(async (file) => {
+        const base64 = await fileToBase64(file);
+        return {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          file,
+          preview: URL.createObjectURL(file),
+          base64,
+          status: 'pending' as const,
+        };
+      })
+    );
+
+    setImages(prev => [...prev, ...newImages]);
+    toast.success(`${newImages.length} image(s) added`);
+  };
+
+  const removeImage = (id: string) => {
+    setImages(prev => {
+      const img = prev.find(i => i.id === id);
+      if (img) URL.revokeObjectURL(img.preview);
+      return prev.filter(i => i.id !== id);
+    });
+  };
+
+  const clearAllImages = () => {
+    images.forEach(img => URL.revokeObjectURL(img.preview));
+    setImages([]);
   };
 
   const toggleInfluence = (influence: string) => {
@@ -211,13 +243,110 @@ export default function PackCreator() {
     }
   };
 
-  const handleGenerate = async () => {
-    // Validate inputs
-    if (inputMode === "image" && !imageBase64) {
-      toast.error("Please upload a reference image");
+  const handleGenerateBatch = async () => {
+    const pendingImages = images.filter(img => img.status === 'pending' || img.status === 'error');
+    if (pendingImages.length === 0) {
+      toast.error("No images to generate");
       return;
     }
-    if (inputMode === "text" && !textPrompt.trim()) {
+
+    setIsGenerating(true);
+    setCompletedCount(0);
+
+    // Mark all pending as generating
+    setImages(prev => prev.map(p => 
+      pendingImages.find(pi => pi.id === p.id) 
+        ? { ...p, status: 'generating' as const } 
+        : p
+    ));
+
+    // Process all images in parallel
+    const results = await Promise.allSettled(
+      pendingImages.map(async (img) => {
+        try {
+          const { data, error } = await supabase.functions.invoke("generate-pack-v2", {
+            body: {
+              imageBase64: img.base64,
+              sceneCount,
+              packType,
+              gender,
+              category,
+              subcategory,
+              styleInfluences: selectedInfluences,
+              lightingPreference,
+              colorPalette,
+            },
+          });
+
+          if (error) throw error;
+
+          if (data.success && data.pack) {
+            const pack = data.pack as PackFile;
+            const saved = await savePackToDatabase(pack);
+            
+            setCompletedCount(prev => prev + 1);
+            
+            return { id: img.id, pack, saved };
+          } else {
+            throw new Error(data.error || "Failed to create pack");
+          }
+        } catch (error) {
+          setCompletedCount(prev => prev + 1);
+          throw { id: img.id, error };
+        }
+      })
+    );
+
+    // Update all image statuses based on results
+    setImages(prev => prev.map(p => {
+      const result = results.find(r => {
+        if (r.status === "fulfilled") return r.value.id === p.id;
+        if (r.status === "rejected") return r.reason?.id === p.id;
+        return false;
+      });
+
+      if (!result) return p;
+
+      if (result.status === "fulfilled") {
+        // Add to generated packs list
+        setGeneratedPacks(prevPacks => [{
+          id: result.value.id,
+          pack: result.value.pack,
+          saved: result.value.saved,
+        }, ...prevPacks]);
+
+        return {
+          ...p,
+          status: result.value.saved ? 'saved' as const : 'success' as const,
+          pack: result.value.pack,
+        };
+      } else {
+        return {
+          ...p,
+          status: 'error' as const,
+          error: result.reason?.error?.message || "Unknown error",
+        };
+      }
+    }));
+
+    setIsGenerating(false);
+
+    const successCount = results.filter(r => r.status === "fulfilled").length;
+    const savedCount = results.filter(r => r.status === "fulfilled" && r.value.saved).length;
+    const failCount = results.filter(r => r.status === "rejected").length;
+
+    if (savedCount > 0) {
+      toast.success(`${savedCount} pack(s) created and saved!`);
+    } else if (successCount > 0) {
+      toast.warning(`${successCount} pack(s) created but not saved`);
+    }
+    if (failCount > 0) {
+      toast.error(`${failCount} pack(s) failed`);
+    }
+  };
+
+  const handleGenerateText = async () => {
+    if (!textPrompt.trim()) {
       toast.error("Please enter a creative brief");
       return;
     }
@@ -228,8 +357,7 @@ export default function PackCreator() {
     try {
       const { data, error } = await supabase.functions.invoke("generate-pack-v2", {
         body: {
-          imageBase64: inputMode === "image" ? imageBase64 : undefined,
-          textPrompt: inputMode === "text" ? textPrompt : undefined,
+          textPrompt,
           sceneCount,
           packType,
           gender,
@@ -265,6 +393,20 @@ export default function PackCreator() {
     }
   };
 
+  const handleGenerate = () => {
+    if (inputMode === "image") {
+      handleGenerateBatch();
+    } else {
+      handleGenerateText();
+    }
+  };
+
+  const pendingCount = images.filter(i => i.status === 'pending').length;
+  const savedCount = images.filter(i => i.status === 'saved').length;
+  const errorCount = images.filter(i => i.status === 'error').length;
+  const generatingCount = images.filter(i => i.status === 'generating').length;
+  const progress = generatingCount > 0 ? (completedCount / generatingCount) * 100 : 0;
+
   if (!isAuthenticated) return null;
 
   return (
@@ -277,9 +419,17 @@ export default function PackCreator() {
               <Sparkles className="h-5 w-5 text-primary" />
               <h1 className="text-lg font-semibold">Omniscient Visual Architect</h1>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              7-layer prompt architecture with face-blind technique
-            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+              <span>7-layer prompt architecture</span>
+              {images.length > 0 && (
+                <>
+                  <span>•</span>
+                  <span>{images.length} images</span>
+                  {savedCount > 0 && <span className="text-green-500">• {savedCount} saved</span>}
+                  {errorCount > 0 && <span className="text-red-500">• {errorCount} failed</span>}
+                </>
+              )}
+            </div>
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
             <Home className="h-4 w-4 mr-1" />
@@ -326,7 +476,7 @@ export default function PackCreator() {
               <TabsList className="grid grid-cols-2 w-full">
                 <TabsTrigger value="image" className="flex items-center gap-2">
                   <Eye className="h-4 w-4" />
-                  Reference Image
+                  Reference Images
                 </TabsTrigger>
                 <TabsTrigger value="text" className="flex items-center gap-2">
                   <Wand2 className="h-4 w-4" />
@@ -335,34 +485,89 @@ export default function PackCreator() {
               </TabsList>
 
               <TabsContent value="image" className="mt-4 space-y-4">
-                {imagePreview ? (
-                  <div className="relative group">
-                    <img
-                      src={imagePreview}
-                      alt="Reference"
-                      className="w-full max-h-64 object-contain rounded-xl border border-border/50"
-                    />
-                    <button
-                      onClick={clearImage}
+                {/* Upload Area */}
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Batch Upload (unlimited)</Label>
+                  {images.length > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearAllImages} 
+                      className="text-xs h-6" 
                       disabled={isGenerating}
-                      className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm border border-border p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <X className="h-4 w-4" />
-                    </button>
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Clear All
+                    </Button>
+                  )}
+                </div>
+
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
+                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-sm text-muted-foreground">Drop images or click to upload</span>
+                  <span className="text-xs text-muted-foreground/70 mt-1">Upload as many as you want - parallel processing</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImagesUpload}
+                    className="hidden"
+                    disabled={isGenerating}
+                  />
+                </label>
+
+                {/* Image Grid */}
+                {images.length > 0 && (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                    {images.map(img => (
+                      <div key={img.id} className="relative group">
+                        <img
+                          src={img.preview}
+                          alt="Reference"
+                          className={`w-full aspect-square object-cover rounded-lg border-2 ${
+                            img.status === 'saved' ? 'border-green-500' :
+                            img.status === 'success' ? 'border-blue-500' :
+                            img.status === 'error' ? 'border-red-500' :
+                            img.status === 'generating' ? 'border-yellow-500 animate-pulse' :
+                            'border-border/50'
+                          }`}
+                        />
+                        {img.status === 'generating' && (
+                          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                            <Loader2 className="h-4 w-4 animate-spin text-white" />
+                          </div>
+                        )}
+                        {img.status === 'saved' && (
+                          <div className="absolute inset-0 bg-green-500/20 rounded-lg flex items-center justify-center">
+                            <Check className="h-4 w-4 text-green-500" />
+                          </div>
+                        )}
+                        {img.status === 'error' && (
+                          <div className="absolute inset-0 bg-red-500/20 rounded-lg flex items-center justify-center">
+                            <X className="h-4 w-4 text-red-500" />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => removeImage(img.id)}
+                          disabled={isGenerating}
+                          className="absolute -top-1 -right-1 bg-background border border-border w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
-                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                    <span className="text-sm text-muted-foreground">Upload reference image</span>
-                    <span className="text-xs text-muted-foreground/70 mt-1">AI will extract the complete visual DNA</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      disabled={isGenerating}
-                    />
-                  </label>
+                )}
+
+                {/* Progress */}
+                {isGenerating && generatingCount > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span>Generating in parallel... {completedCount} / {generatingCount}</span>
+                      <span>{Math.round(progress)}%</span>
+                    </div>
+                    <Progress value={progress} className="h-1" />
+                  </div>
                 )}
               </TabsContent>
 
@@ -516,19 +721,22 @@ export default function PackCreator() {
           {/* Generate Button */}
           <Button
             onClick={handleGenerate}
-            disabled={isGenerating || (inputMode === "image" ? !imageBase64 : !textPrompt.trim())}
+            disabled={isGenerating || (inputMode === "image" ? images.filter(i => i.status === 'pending' || i.status === 'error').length === 0 : !textPrompt.trim())}
             className="w-full h-12 text-base font-medium"
             size="lg"
           >
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Creating Visual Universe...
+                Creating Visual Universe{generatingCount > 1 ? `s (${completedCount}/${generatingCount})` : ''}...
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-5 w-5" />
-                Generate Style Pack ({sceneCount} scenes)
+                {inputMode === "image" 
+                  ? `Generate ${images.filter(i => i.status === 'pending' || i.status === 'error').length} Pack(s) (${sceneCount} scenes each)`
+                  : `Generate Style Pack (${sceneCount} scenes)`
+                }
               </>
             )}
           </Button>
@@ -536,8 +744,8 @@ export default function PackCreator() {
           {/* Generated Packs */}
           {generatedPacks.length > 0 && (
             <Card className="p-4 border-border/50 space-y-3">
-              <Label className="text-sm font-medium">Generated Packs</Label>
-              <div className="space-y-2">
+              <Label className="text-sm font-medium">Generated Packs ({generatedPacks.length})</Label>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
                 {generatedPacks.map((gen) => (
                   <div
                     key={gen.id}
