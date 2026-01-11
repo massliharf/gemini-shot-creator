@@ -39,7 +39,7 @@ interface GeneratedPack {
 
 const SCENE_COUNT_OPTIONS = [8, 12, 16, 20];
 
-type PackType = "photography" | "god-eye" | "artist" | "3d";
+type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
@@ -60,6 +60,12 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
     label: "Artist v1", 
     icon: <Palette className="h-5 w-5" />,
     description: "Technical DNA + scene continuation"
+  },
+  { 
+    value: "eye", 
+    label: "Eye", 
+    icon: <Eye className="h-5 w-5" />,
+    description: "Photoshoot session with 12 moments"
   },
   { 
     value: "3d", 
@@ -432,6 +438,7 @@ export default function PackCreator() {
               <h1 className="text-lg font-semibold">
                 {packType === "god-eye" ? "God-Eye Photography Director" : 
                  packType === "artist" ? "Artist v1" :
+                 packType === "eye" ? "Eye Portrait Director" :
                  packType === "3d" ? "3D Visual Architect" : 
                  "Omniscient Visual Architect"}
               </h1>
@@ -440,6 +447,7 @@ export default function PackCreator() {
               <span>
                 {packType === "god-eye" ? "2-layer style system" : 
                  packType === "artist" ? "Technical DNA + scene continuation" :
+                 packType === "eye" ? "Photoshoot session logic" :
                  packType === "3d" ? "Render engine aesthetics" : 
                  "7-layer prompt architecture"}
               </span>
