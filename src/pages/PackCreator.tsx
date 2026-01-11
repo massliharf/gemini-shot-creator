@@ -39,7 +39,7 @@ interface GeneratedPack {
 
 const SCENE_COUNT_OPTIONS = [8, 12, 16, 20];
 
-type PackType = "photography" | "god-eye" | "3d";
+type PackType = "photography" | "god-eye" | "artist" | "3d";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
@@ -56,10 +56,16 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
     description: "2-layer concise style anchor system"
   },
   { 
+    value: "artist", 
+    label: "Artist v1", 
+    icon: <Palette className="h-5 w-5" />,
+    description: "Technical DNA + scene continuation"
+  },
+  { 
     value: "3d", 
     label: "3D Character", 
     icon: <Box className="h-5 w-5" />,
-    description: "Render engine aesthetics with material consistency"
+    description: "Render engine aesthetics"
   },
 ];
 
@@ -425,6 +431,7 @@ export default function PackCreator() {
               <Sparkles className="h-5 w-5 text-primary" />
               <h1 className="text-lg font-semibold">
                 {packType === "god-eye" ? "God-Eye Photography Director" : 
+                 packType === "artist" ? "Artist v1" :
                  packType === "3d" ? "3D Visual Architect" : 
                  "Omniscient Visual Architect"}
               </h1>
@@ -432,6 +439,7 @@ export default function PackCreator() {
             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
               <span>
                 {packType === "god-eye" ? "2-layer style system" : 
+                 packType === "artist" ? "Technical DNA + scene continuation" :
                  packType === "3d" ? "Render engine aesthetics" : 
                  "7-layer prompt architecture"}
               </span>
@@ -458,7 +466,7 @@ export default function PackCreator() {
               <Layers className="h-4 w-4" />
               Visual Style
             </Label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {PACK_TYPE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
