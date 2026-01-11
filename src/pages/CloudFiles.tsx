@@ -75,30 +75,88 @@ interface BatchExportState {
 // 2GB size limit per batch (browser array buffer limit is ~2GB)
 const BATCH_SIZE_LIMIT = 2 * 1024 * 1024 * 1024; // 2GB in bytes
 
+// Storage keys
+const STORAGE_KEYS = {
+  folders: 'cloud-files-folders',
+  downloadedFolders: 'downloaded-folders',
+  scrollPosition: 'cloud-files-scroll',
+  expandedFolder: 'cloud-files-expanded',
+  hideDownloaded: 'cloud-files-hide-downloaded',
+  folderOffset: 'cloud-files-offset',
+  hasMoreFolders: 'cloud-files-has-more',
+};
+
 const CloudFiles = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [folders, setFolders] = useState<CloudFolder[]>([]);
+  
+  // Restore folders from localStorage on mount
+  const [folders, setFolders] = useState<CloudFolder[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.folders);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
-  const [expandedFolder, setExpandedFolder] = useState<string | null>(null);
+  
+  // Restore expanded folder
+  const [expandedFolder, setExpandedFolder] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.expandedFolder) || null;
+    } catch {
+      return null;
+    }
+  });
+  
   const [downloading, setDownloading] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [bulkAction, setBulkAction] = useState<"download" | "delete" | null>(null);
 
-  const [folderOffset, setFolderOffset] = useState(0);
-  const [hasMoreFolders, setHasMoreFolders] = useState(false);
+  // Restore pagination state
+  const [folderOffset, setFolderOffset] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.folderOffset);
+      return saved ? parseInt(saved, 10) : 0;
+    } catch {
+      return 0;
+    }
+  });
+  
+  const [hasMoreFolders, setHasMoreFolders] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.hasMoreFolders);
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
+  
   const [loadingMore, setLoadingMore] = useState(false);
 
   // Downloaded folders tracking (localStorage)
   const [downloadedFolders, setDownloadedFolders] = useState<Set<string>>(() => {
     try {
-      const saved = localStorage.getItem('downloaded-folders');
+      const saved = localStorage.getItem(STORAGE_KEYS.downloadedFolders);
       return saved ? new Set(JSON.parse(saved)) : new Set();
     } catch {
       return new Set();
     }
   });
-  const [hideDownloaded, setHideDownloaded] = useState(false);
+  
+  // Restore hideDownloaded preference
+  const [hideDownloaded, setHideDownloaded] = useState(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.hideDownloaded) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  
+  // Scroll container ref for persistence
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Batch export state
   const [batchExport, setBatchExport] = useState<BatchExportState>({
@@ -145,9 +203,64 @@ const CloudFiles = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Load cloud files and packs
+  // Persist folders to localStorage whenever they change
+  useEffect(() => {
+    if (folders.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.folders, JSON.stringify(folders));
+    }
+  }, [folders]);
+
+  // Persist pagination state
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.folderOffset, folderOffset.toString());
+  }, [folderOffset]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.hasMoreFolders, hasMoreFolders.toString());
+  }, [hasMoreFolders]);
+
+  // Persist expanded folder
+  useEffect(() => {
+    if (expandedFolder) {
+      localStorage.setItem(STORAGE_KEYS.expandedFolder, expandedFolder);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.expandedFolder);
+    }
+  }, [expandedFolder]);
+
+  // Persist hideDownloaded preference
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.hideDownloaded, hideDownloaded.toString());
+  }, [hideDownloaded]);
+
+  // Restore scroll position on mount
+  useEffect(() => {
+    const savedScroll = localStorage.getItem(STORAGE_KEYS.scrollPosition);
+    if (savedScroll && scrollContainerRef.current) {
+      // Small delay to ensure content is rendered
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = parseInt(savedScroll, 10);
+        }
+      }, 100);
+    }
+  }, []);
+
+  // Save scroll position on scroll
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      localStorage.setItem(STORAGE_KEYS.scrollPosition, scrollContainerRef.current.scrollTop.toString());
+    }
+  };
+
+  // Load cloud files and packs - only if no cached data
   useEffect(() => {
     if (!user) return;
+    // If we have cached folders, don't reload automatically
+    if (folders.length > 0) {
+      setLoading(false);
+      return;
+    }
     loadCloudData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -214,17 +327,22 @@ const CloudFiles = () => {
     return cloudFolders;
   };
 
-  const loadCloudData = async () => {
+  const loadCloudData = async (forceRefresh = false) => {
     if (!user) return;
     setLoading(true);
 
     try {
       await loadPackMap();
 
-      setFolders([]);
-      setSelectedFolders(new Set());
-      setExpandedFolder(null);
-      setFolderOffset(0);
+      if (forceRefresh) {
+        // Clear cached data when forcing refresh
+        localStorage.removeItem(STORAGE_KEYS.folders);
+        localStorage.removeItem(STORAGE_KEYS.scrollPosition);
+        setFolders([]);
+        setSelectedFolders(new Set());
+        setExpandedFolder(null);
+        setFolderOffset(0);
+      }
 
       const firstBatch = await loadFolderBatch(0);
 
@@ -341,7 +459,7 @@ const CloudFiles = () => {
     setDownloadedFolders(prev => {
       const next = new Set(prev);
       next.add(folderName);
-      localStorage.setItem('downloaded-folders', JSON.stringify([...next]));
+      localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
       return next;
     });
   };
@@ -350,14 +468,14 @@ const CloudFiles = () => {
     setDownloadedFolders(prev => {
       const next = new Set(prev);
       next.delete(folderName);
-      localStorage.setItem('downloaded-folders', JSON.stringify([...next]));
+      localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
       return next;
     });
   };
 
   const clearDownloadedMarks = () => {
     setDownloadedFolders(new Set());
-    localStorage.removeItem('downloaded-folders');
+    localStorage.removeItem(STORAGE_KEYS.downloadedFolders);
     toast.success('İndirildi işaretleri temizlendi');
   };
 
@@ -381,11 +499,27 @@ const CloudFiles = () => {
         throw new Error(denied ? `Silme yetkisi yok: ${denied}` : (errText || "Silme başarısız"));
       }
 
-      setFolders((prev) => prev.filter((f) => f.name !== folder.name));
+      setFolders((prev) => {
+        const updated = prev.filter((f) => f.name !== folder.name);
+        // Update localStorage cache
+        localStorage.setItem(STORAGE_KEYS.folders, JSON.stringify(updated));
+        return updated;
+      });
       setSelectedFolders((prev) => {
         const newSet = new Set(prev);
         newSet.delete(folder.name);
         return newSet;
+      });
+      
+      // Also remove from downloaded list if present
+      setDownloadedFolders(prev => {
+        if (prev.has(folder.name)) {
+          const next = new Set(prev);
+          next.delete(folder.name);
+          localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
+          return next;
+        }
+        return prev;
       });
 
       processedFolderNamesRef.current.add(folder.name);
@@ -442,7 +576,7 @@ const CloudFiles = () => {
       setDownloadedFolders(prev => {
         const next = new Set(prev);
         selectedFolderList.forEach(f => next.add(f.name));
-        localStorage.setItem('downloaded-folders', JSON.stringify([...next]));
+        localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
         return next;
       });
 
@@ -480,7 +614,28 @@ const CloudFiles = () => {
       }
 
       // Update UI
-      setFolders((prev) => prev.filter((f) => !selectedFolders.has(f.name)));
+      setFolders((prev) => {
+        const updated = prev.filter((f) => !selectedFolders.has(f.name));
+        localStorage.setItem(STORAGE_KEYS.folders, JSON.stringify(updated));
+        return updated;
+      });
+      
+      // Remove from downloaded list
+      setDownloadedFolders(prev => {
+        const next = new Set(prev);
+        let changed = false;
+        folderNames.forEach(name => {
+          if (next.has(name)) {
+            next.delete(name);
+            changed = true;
+          }
+        });
+        if (changed) {
+          localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
+        }
+        return next;
+      });
+      
       setSelectedFolders(new Set());
 
       folderNames.forEach((n) => processedFolderNamesRef.current.add(n));
@@ -756,10 +911,30 @@ const CloudFiles = () => {
       currentBatchFolders.forEach((f) => processedFolderNamesRef.current.add(f.name));
 
       // Reflect deletes in current UI list as well
-      setFolders((prev) => prev.filter((f) => !currentBatchFolders.some((b) => b.name === f.name)));
+      setFolders((prev) => {
+        const updated = prev.filter((f) => !currentBatchFolders.some((b) => b.name === f.name));
+        localStorage.setItem(STORAGE_KEYS.folders, JSON.stringify(updated));
+        return updated;
+      });
       setSelectedFolders((prev) => {
         const next = new Set(prev);
         currentBatchFolders.forEach((f) => next.delete(f.name));
+        return next;
+      });
+      
+      // Remove from downloaded tracking
+      setDownloadedFolders(prev => {
+        const next = new Set(prev);
+        let changed = false;
+        currentBatchFolders.forEach(f => {
+          if (next.has(f.name)) {
+            next.delete(f.name);
+            changed = true;
+          }
+        });
+        if (changed) {
+          localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
+        }
         return next;
       });
 
@@ -888,7 +1063,7 @@ const CloudFiles = () => {
               <Download className="w-3.5 h-3.5 mr-1" />
               <span className="hidden sm:inline">Export & Sil</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={loadCloudData} disabled={loading} className="h-8 w-8 p-0">
+            <Button variant="outline" size="sm" onClick={() => loadCloudData(true)} disabled={loading} className="h-8 w-8 p-0">
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
@@ -934,7 +1109,11 @@ const CloudFiles = () => {
         )}
 
         {/* Folder list */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div 
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4"
+        >
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
