@@ -6,6 +6,8 @@ type SmartImageProps = {
   src: string;
   alt: string;
   className?: string;
+  /** How the image should fit inside its box */
+  fit?: "contain" | "cover";
   loading?: "lazy" | "eager";
   maxRetries?: number;
 };
@@ -19,6 +21,7 @@ export function SmartImage({
   src,
   alt,
   className,
+  fit = "contain",
   loading = "eager",
   maxRetries = 3,
 }: SmartImageProps) {
@@ -61,7 +64,8 @@ export function SmartImage({
         alt={alt}
         loading={loading}
         className={cn(
-          "w-full h-full object-contain transition-opacity duration-150",
+          "w-full h-full transition-opacity duration-150",
+          fit === "cover" ? "object-cover" : "object-contain",
           loaded && !failed ? "opacity-100" : "opacity-0"
         )}
         onLoad={() => {
