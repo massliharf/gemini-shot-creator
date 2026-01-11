@@ -411,40 +411,79 @@ const CloudFiles = () => {
       // Always fetch fresh pack data from database to ensure JSON is included
       let packData = folder.pack?.pack_data;
       let packName = folder.pack?.pack_name || folder.name;
-      
-      if (!packData && user) {
-        // Try to fetch pack data from database
+      let packDbId = folder.pack?.id || "";
+
+      // Ensure we have packDbId + packData (cache can be stale/incomplete)
+      if ((!packDbId || !packData) && user) {
         const { data: packRecord } = await supabase
           .from("packs")
-          .select("pack_id, pack_name, pack_data")
+          .select("id, pack_id, pack_name, pack_data")
           .eq("pack_id", folder.name)
           .eq("user_id", user.id)
           .maybeSingle();
-        
+
         if (packRecord) {
+          packDbId = packRecord.id;
           packData = packRecord.pack_data as Record<string, unknown>;
           packName = packRecord.pack_name || folder.name;
-          
-          // Update folder in state with fresh pack data
-          setFolders(prev => prev.map(f => 
-            f.name === folder.name 
-              ? { ...f, pack: { id: '', pack_id: packRecord.pack_id, pack_name: packRecord.pack_name, pack_data: packData } }
-              : f
-          ));
+
+          // Update folder in state with fresh pack data (keeps future downloads correct)
+          setFolders((prev) =>
+            prev.map((f) =>
+              f.name === folder.name
+                ? {
+                    ...f,
+                    pack: {
+                      id: packRecord.id,
+                      pack_id: packRecord.pack_id,
+                      pack_name: packRecord.pack_name,
+                      pack_data: packData,
+                    },
+                  }
+                : f
+            )
+          );
         }
       }
 
       if (folderZip) {
         if (packData) {
-          const jsonContent = JSON.stringify(packData, null, 2);
-          folderZip.file(`${packName}.json`, jsonContent);
+          // 1) The original pack template JSON (meta + global_style_anchor + scenes)
+          folderZip.file(`${packName}.json`, JSON.stringify(packData, null, 2));
+
+          // 2) A generation manifest with the exact params used per image (shot_data)
+          if (packDbId && user) {
+            const { data: queueRows } = await supabase
+              .from("generation_queue")
+              .select("shot_id, status, image_path, error_message, shot_data, created_at, updated_at")
+              .eq("user_id", user.id)
+              .eq("pack_id", packDbId)
+              .order("updated_at", { ascending: true });
+
+            // Map storage files to shot_id if possible (scene-XX.ext)
+            const fileMap = folder.files.map((f) => {
+              const m = f.name.match(/scene-(\d{2})/i);
+              const shot_id = m ? parseInt(m[1], 10) : null;
+              return { filename: f.name, shot_id };
+            });
+
+            const manifest = {
+              pack_folder: folder.name,
+              pack_name: packName,
+              exported_at: new Date().toISOString(),
+              files: fileMap,
+              generations: queueRows || [],
+            };
+
+            folderZip.file(`${packName}.generation.json`, JSON.stringify(manifest, null, 2));
+          }
         } else {
           // Create basic metadata if no pack found
           const basicMeta = {
             folder_name: folder.name,
             file_count: folder.files.length,
-            files: folder.files.map(f => f.name),
-            exported_at: new Date().toISOString()
+            files: folder.files.map((f) => f.name),
+            exported_at: new Date().toISOString(),
           };
           folderZip.file(`${folder.name}_metadata.json`, JSON.stringify(basicMeta, null, 2));
         }
@@ -568,13 +607,61 @@ const CloudFiles = () => {
       const selectedFolderList = folders.filter(f => selectedFolders.has(f.name));
 
       for (const folder of selectedFolderList) {
-        const folderZip = zip.folder(folder.pack?.pack_name || folder.name);
+        let packName = folder.pack?.pack_name || folder.name;
+        let packDbId = folder.pack?.id || "";
+        let packData = folder.pack?.pack_data;
 
-        if (folder.pack?.pack_data && folderZip) {
-          const jsonContent = JSON.stringify(folder.pack.pack_data, null, 2);
-          folderZip.file(`${folder.pack.pack_name || folder.name}.json`, jsonContent);
+        // Ensure pack is present (cached folders may not include it)
+        if ((!packDbId || !packData) && user) {
+          const { data: packRecord } = await supabase
+            .from("packs")
+            .select("id, pack_id, pack_name, pack_data")
+            .eq("pack_id", folder.name)
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (packRecord) {
+            packDbId = packRecord.id;
+            packName = packRecord.pack_name || folder.name;
+            packData = packRecord.pack_data as Record<string, unknown>;
+          }
         }
 
+        const folderZip = zip.folder(packName);
+
+        if (packData && folderZip) {
+          folderZip.file(`${packName}.json`, JSON.stringify(packData, null, 2));
+
+          if (packDbId && user) {
+            const { data: queueRows } = await supabase
+              .from("generation_queue")
+              .select("shot_id, status, image_path, error_message, shot_data, created_at, updated_at")
+              .eq("user_id", user.id)
+              .eq("pack_id", packDbId)
+              .order("updated_at", { ascending: true });
+
+            const fileMap = folder.files.map((f) => {
+              const m = f.name.match(/scene-(\d{2})/i);
+              const shot_id = m ? parseInt(m[1], 10) : null;
+              return { filename: f.name, shot_id };
+            });
+
+            folderZip.file(
+              `${packName}.generation.json`,
+              JSON.stringify(
+                {
+                  pack_folder: folder.name,
+                  pack_name: packName,
+                  exported_at: new Date().toISOString(),
+                  files: fileMap,
+                  generations: queueRows || [],
+                },
+                null,
+                2
+              )
+            );
+          }
+        }
         for (const file of folder.files) {
           const { data, error } = await supabase.storage
             .from("generated-images")
@@ -823,9 +910,27 @@ const CloudFiles = () => {
         }
 
         const folder = batchFolders[i];
-        const folderName = folder.pack?.pack_name || folder.name;
+        let folderName = folder.pack?.pack_name || folder.name;
+        let packDbId = folder.pack?.id || "";
+        let packData = folder.pack?.pack_data;
 
-        setBatchExport(prev => ({
+        // Fallback: fetch pack data if missing
+        if ((!packDbId || !packData) && user) {
+          const { data: packRecord } = await supabase
+            .from("packs")
+            .select("id, pack_id, pack_name, pack_data")
+            .eq("pack_id", folder.name)
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (packRecord) {
+            packDbId = packRecord.id;
+            folderName = packRecord.pack_name || folder.name;
+            packData = packRecord.pack_data as Record<string, unknown>;
+          }
+        }
+
+        setBatchExport((prev) => ({
           ...prev,
           currentFolderName: folderName,
           processedFoldersInBatch: i,
@@ -833,12 +938,40 @@ const CloudFiles = () => {
 
         const folderZip = zip.folder(folderName);
 
-        // Add pack JSON if available
-        if (folder.pack?.pack_data && folderZip) {
-          const jsonContent = JSON.stringify(folder.pack.pack_data, null, 2);
-          folderZip.file(`${folderName}.json`, jsonContent);
-        }
+        // Add pack JSON + generation manifest
+        if (packData && folderZip) {
+          folderZip.file(`${folderName}.json`, JSON.stringify(packData, null, 2));
 
+          if (packDbId && user) {
+            const { data: queueRows } = await supabase
+              .from("generation_queue")
+              .select("shot_id, status, image_path, error_message, shot_data, created_at, updated_at")
+              .eq("user_id", user.id)
+              .eq("pack_id", packDbId)
+              .order("updated_at", { ascending: true });
+
+            const fileMap = folder.files.map((f) => {
+              const m = f.name.match(/scene-(\d{2})/i);
+              const shot_id = m ? parseInt(m[1], 10) : null;
+              return { filename: f.name, shot_id };
+            });
+
+            folderZip.file(
+              `${folderName}.generation.json`,
+              JSON.stringify(
+                {
+                  pack_folder: folder.name,
+                  pack_name: folderName,
+                  exported_at: new Date().toISOString(),
+                  files: fileMap,
+                  generations: queueRows || [],
+                },
+                null,
+                2
+              )
+            );
+          }
+        }
         // Download all files
         for (const file of folder.files) {
           if (cancelRef.current) {
