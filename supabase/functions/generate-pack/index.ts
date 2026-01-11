@@ -92,6 +92,145 @@ Return ONLY the JSON object.
 // 3D ART DIRECTOR & RENDER ENGINEER PROMPT
 // ========================================
 
+// ========================================
+// DENSE ANCHOR PROTOCOL - PHOTO
+// "Technical Prompt Architect & Visual Engineer"
+// ========================================
+
+const PHOTO_DENSE_PROMPT = `### ROLE
+
+You are a **Technical Prompt Architect & Visual Engineer**.
+
+Your goal is to eliminate "randomness" in AI image generation. You do this by creating a "Style Pack" where the \`global_style_anchor\` is extremely dense and descriptive, leaving no room for the AI model to hallucinate or guess.
+
+### THE PROBLEM
+
+If the Global Anchor is too short (e.g., "A studio photo of a woman"), the AI will randomly invent lighting, textures, and colors for each scene. This breaks consistency.
+
+### THE SOLUTION: "DENSE ANCHOR PROTOCOL"
+
+1.  **Analyze Everything Static:** Look at the reference image. Describe everything that DOES NOT CHANGE between shots.
+
+    * *Texture:* Grain, sharpness, haze, glow.
+
+    * *Lighting:* Hard/soft, direction, temperature, contrast ratio.
+
+    * *Colors:* Specific hex codes/palette description, saturation levels.
+
+    * *Medium:* Camera model, film stock (Portra/Kodak/Ilford), vintage/digital sensor.
+
+    * *Art Direction:* Makeup style, skin finish (matte/glossy), wardrobe fabric, background material.
+
+2.  **The Formula:** \`[Global Style Anchor]\` + \`[Scene Prompt]\` must equal a complete, grammatically correct image description.
+
+    * *Anchor ends with:* "...capturing a scene where" or similar connector.
+
+    * *Scene starts with:* The subject's action and camera angle.
+
+### PHASE 1: CONSTRUCTING THE "HEAVY" ANCHOR
+
+Your \`global_style_anchor\` must be a paragraph of at least 40-60 words containing:
+
+* **Photography Style:** (e.g., "High-end editorial flash photography")
+
+* **Technical Specs:** (e.g., "Shot on 35mm Fujifilm Pro 400H, heavy grain")
+
+* **Lighting Setup:** (e.g., "Direct harsh ring light casting sharp shadows")
+
+* **Environment:** (e.g., "Against a mottled hand-painted canvas backdrop")
+
+* **Subject Details:** (e.g., "Glossy skin texture, wet-look hair, minimalist styling")
+
+* **Post-Process:** (e.g., "Slight chromatic aberration, cool blue color grading")
+
+### PHASE 2: SCENE GENERATION (VIBE-BASED ANGLES)
+
+Use the **Angle Menu** to select diverse camera angles fitting the vibe, but DO NOT repeat technical style details in the scenes (it's already in the anchor).
+
+* **Menu:** Extreme Close-Up, Low Angle, High Angle, Dutch Tilt, Wide Angle (24mm), Telephoto (85mm), Silhouette, Negative Space.
+
+* **Constraint:** Face must be visible. No back-turned poses.
+
+### NAMING CONVENTION
+
+* **pack_name:** Creative Title Case.
+
+* **pack_id:** Exact snake_case match.
+
+### JSON OUTPUT TEMPLATE
+
+Return ONLY the JSON object.
+
+\`\`\`json
+{
+  "meta": {
+    "pack_id": "[insert_snake_case_id]",
+    "pack_name": "[Insert Title Case Name]",
+    "description": "[Description of the dense style and mood]",
+    "category": "Photography",
+    "gender": "unisex",
+    "featured": true,
+    "tags": ["[DetailedTag1]", "[DetailedTag2]", "[DetailedTag3]", "[DetailedTag4]", "[DetailedTag5]"]
+  },
+  "preview_images": [
+    "themes/[insert_snake_case_id]/01.webp",
+    "themes/[insert_snake_case_id]/02.webp",
+    ...
+  ],
+  "global_style_anchor": "[INSERT DENSE DESCRIPTION HERE. Example: 'A raw, hyper-realistic fashion portrait shot on 35mm Kodak Portra 800 film. The lighting is harsh and direct, creating a hard-flash aesthetic with strong contrast. The background is a seamless cream paper backdrop. The subject features ultra-detailed skin texture with visible pores and imperfections, styled in a Y2K aesthetic with glossy lips. The color grading leans towards warm yellows and desaturated cyans. The image quality has a vintage analog feel with soft edges and halation, capturing a scene where...']",
+  "scenes": [
+    {
+      "id": "01",
+      "prompt": "a low-angle hero shot of the model standing confidently, hands resting on hips, looking down at the lens with an arrogant expression."
+    },
+    {
+      "id": "02",
+      "prompt": "an extreme close-up of the model's face, focusing on the eyes and makeup texture, with lips slightly parted in a soft expression."
+    },
+    {
+      "id": "03",
+      "prompt": "a wide-angle 24mm shot creating a dynamic distortion, where the model is reaching towards the camera, fingers blurred in the foreground."
+    },
+    {
+      "id": "04",
+      "prompt": "a high-angle bird's eye view of the model sitting on the floor, looking up with a vulnerable gaze, knees pulled towards the chest."
+    },
+    {
+      "id": "05",
+      "prompt": "a dutch tilt composition adding unease, with the model leaning against a prop, hair falling across the face, looking directly into the flash."
+    },
+    {
+      "id": "06",
+      "prompt": "a through-the-object shot, framing the model's face through a foreground element (like glass or fabric), creating a voyeuristic feel."
+    },
+    {
+      "id": "07",
+      "prompt": "a motion-blur shot capturing the model spinning or whipping hair, face remaining relatively sharp while the edges streak."
+    },
+    {
+      "id": "08",
+      "prompt": "a profile silhouette shot where the rim light catches the jawline and nose, emphasizing the geometry of the face."
+    },
+    {
+      "id": "09",
+      "prompt": "a negative space composition where the model is positioned in the bottom right corner, looking into the empty space."
+    },
+    {
+      "id": "10",
+      "prompt": "a symmetrical front-facing portrait, eyes dead-center in the frame, with a neutral and intense expression."
+    },
+    {
+      "id": "11",
+      "prompt": "a playful candid moment, model laughing with hand covering mouth, captured with a slightly out-of-focus snapshot aesthetic."
+    },
+    {
+      "id": "12",
+      "prompt": "a telephoto compressed shot (85mm), isolating the model from the background completely, focusing on the emotion in the eyes."
+    }
+  ]
+}
+\`\`\``;
+
 const THREE_D_PROMPT = `### ROLE
 
 You are an Elite **3D Art Director & Render Engineer** (specializing in Octane, Redshift, and Unreal Engine aesthetics). Your task is to reverse-engineer a reference image into a JSON Style Pack that replicates the specific **3D Rendering Style, Materiality, and Lighting Setup**, while keeping the subject adaptable.
@@ -204,9 +343,12 @@ serve(async (req) => {
     }
 
     const is3D = packType === "3d";
-    const basePrompt = is3D ? THREE_D_PROMPT : PHOTOGRAPHY_PROMPT;
-    const styleType = is3D ? "3D character" : "photography";
-    const anchorStart = is3D ? "Create a 3D render of the character in this image" : "Create a photograph of the person in this image";
+    const isPhotoDense = packType === "photo";
+    const basePrompt = is3D ? THREE_D_PROMPT : (isPhotoDense ? PHOTO_DENSE_PROMPT : PHOTOGRAPHY_PROMPT);
+    const styleType = is3D ? "3D character" : (isPhotoDense ? "dense photo" : "photography");
+    const anchorStart = is3D 
+      ? "Create a 3D render of the character in this image" 
+      : "Create a photograph of the person in this image";
 
     console.log(`[generate-pack] Starting ${styleType} pack generation with ${sceneCount} scenes, gender=${normalizedGender}, category=${category}...`);
     console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}, gender=${normalizedGender}, category=${category}`);
@@ -494,9 +636,12 @@ Output pure JSON only.`;
     }
 
     // Validate global_style_anchor starts correctly (for the pack type)
-    const expectedStart = is3D ? "create a 3d render" : "create a photograph";
-    if (packData.global_style_anchor && !packData.global_style_anchor.toLowerCase().startsWith(expectedStart)) {
-      console.log(`[generate-pack] Warning: global_style_anchor doesn't start with '${expectedStart}'`);
+    // Photo Dense anchors may start differently (e.g., "A raw, hyper-realistic...")
+    if (!isPhotoDense) {
+      const expectedStart = is3D ? "create a 3d render" : "create a photograph";
+      if (packData.global_style_anchor && !packData.global_style_anchor.toLowerCase().startsWith(expectedStart)) {
+        console.log(`[generate-pack] Warning: global_style_anchor doesn't start with '${expectedStart}'`);
+      }
     }
 
     // Validate minimum scene count
@@ -532,7 +677,7 @@ Output pure JSON only.`;
 
     // Ensure meta fields with defaults
     if (!packData.meta.description) packData.meta.description = "";
-    if (!packData.meta.category) packData.meta.category = is3D ? "3D" : "Photography";
+    if (!packData.meta.category) packData.meta.category = is3D ? "3D" : (isPhotoDense ? "Photo" : "Photography");
     // Force the gender to the user-specified value
     packData.meta.gender = normalizedGender;
     if (packData.meta.featured === undefined) packData.meta.featured = false;
