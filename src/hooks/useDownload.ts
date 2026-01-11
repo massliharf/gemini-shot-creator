@@ -439,19 +439,23 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
           `Preparing ${gender} packs ZIP... (${packsArr.length} packs, ${items.length} images)`
         );
 
+        const toastId = toast.loading(`Preparing ${gender} packs... (${items.length} images)`);
+
         for (let partIndex = 0; partIndex < parts.length; partIndex++) {
           const zip = new JSZip();
-          const folderByPack = new Map<string, JSZip>();
+          const folderByPack = new Map<string, { folder: JSZip; originalsFolder: JSZip }>();
 
           const ensureFolder = (packName: string, packData: PackData) => {
             const existing = folderByPack.get(packName);
             if (existing) return existing;
             const folder = zip.folder(packName) as JSZip;
             folder.file(`${packName}.json`, JSON.stringify(packData.pack, null, 2));
-            folderByPack.set(packName, folder);
-            return folder;
+            const originalsFolder = folder.folder("originals") as JSZip;
+            folderByPack.set(packName, { folder, originalsFolder });
+            return { folder, originalsFolder };
           };
 
+          let completed = 0;
           await mapLimit(parts[partIndex], 4, async (item) => {
             const response = await fetch(item.imageUrl, { cache: "no-store" });
             if (!response.ok) {
@@ -459,14 +463,24 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
                 `Failed to fetch image for ${item.packName} scene ${item.sceneId}: ${response.status}`
               );
             }
-            const blob = await response.blob();
-            const folder = ensureFolder(item.packName, item.packData);
-            folder.file(`${item.sceneId}.jpg`, blob);
+            const originalBlob = await response.blob();
+            const { folder, originalsFolder } = ensureFolder(item.packName, item.packData);
+            
+            // Save original
+            originalsFolder.file(`${item.sceneId}.jpg`, originalBlob);
+            
+            // Convert to WebP
+            const webpBlob = await convertToWebP(originalBlob, 0.82);
+            folder.file(`${item.sceneId}.webp`, webpBlob);
+
+            completed++;
+            toast.loading(`Preparing ${gender} packs... (${completed}/${parts[partIndex].length})`, { id: toastId });
           });
 
           const zipBlob = await zip.generateAsync({
             type: "blob",
-            compression: "STORE",
+            compression: "DEFLATE",
+            compressionOptions: { level: 6 },
             streamFiles: true,
           });
 
@@ -478,8 +492,10 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
           triggerDownload(url, filename);
           
+          const sizeMB = (zipBlob.size / 1024 / 1024).toFixed(1);
+          toast.dismiss(toastId);
           toast.success(
-            `${gender} packs downloaded (${packsArr.length} packs)`,
+            `${gender} packs downloaded (${packsArr.length} packs, ${sizeMB} MB)`,
             { duration: 5000 }
           );
 
@@ -545,23 +561,23 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
       const parts = chunkArray(items, maxPerZip);
 
       try {
-        toast.info(
-          `Preparing ZIP... (${packIds.length} packs, ${items.length} images)`
-        );
+        const toastId = toast.loading(`Preparing ${packIds.length} packs... (${items.length} images)`);
 
         for (let partIndex = 0; partIndex < parts.length; partIndex++) {
           const zip = new JSZip();
-          const folderByPack = new Map<string, JSZip>();
+          const folderByPack = new Map<string, { folder: JSZip; originalsFolder: JSZip }>();
 
           const ensureFolder = (packName: string, packData: PackData) => {
             const existing = folderByPack.get(packName);
             if (existing) return existing;
             const folder = zip.folder(packName) as JSZip;
             folder.file(`${packName}.json`, JSON.stringify(packData.pack, null, 2));
-            folderByPack.set(packName, folder);
-            return folder;
+            const originalsFolder = folder.folder("originals") as JSZip;
+            folderByPack.set(packName, { folder, originalsFolder });
+            return { folder, originalsFolder };
           };
 
+          let completed = 0;
           await mapLimit(parts[partIndex], 4, async (item) => {
             const response = await fetch(item.imageUrl, { cache: "no-store" });
             if (!response.ok) {
@@ -569,14 +585,24 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
                 `Failed to fetch image for ${item.packName} scene ${item.sceneId}: ${response.status}`
               );
             }
-            const blob = await response.blob();
-            const folder = ensureFolder(item.packName, item.packData);
-            folder.file(`${item.sceneId}.jpg`, blob);
+            const originalBlob = await response.blob();
+            const { folder, originalsFolder } = ensureFolder(item.packName, item.packData);
+            
+            // Save original
+            originalsFolder.file(`${item.sceneId}.jpg`, originalBlob);
+            
+            // Convert to WebP
+            const webpBlob = await convertToWebP(originalBlob, 0.82);
+            folder.file(`${item.sceneId}.webp`, webpBlob);
+
+            completed++;
+            toast.loading(`Preparing packs... (${completed}/${parts[partIndex].length})`, { id: toastId });
           });
 
           const zipBlob = await zip.generateAsync({
             type: "blob",
-            compression: "STORE",
+            compression: "DEFLATE",
+            compressionOptions: { level: 6 },
             streamFiles: true,
           });
 
@@ -588,8 +614,10 @@ export const useDownload = ({ packs, selectedPackId }: UseDownloadProps) => {
 
           triggerDownload(url, filename);
           
+          const sizeMB = (zipBlob.size / 1024 / 1024).toFixed(1);
+          toast.dismiss(toastId);
           toast.success(
-            `${packIds.length} pack(s) downloaded`,
+            `${packIds.length} pack(s) downloaded (${sizeMB} MB)`,
             { duration: 5000 }
           );
 
