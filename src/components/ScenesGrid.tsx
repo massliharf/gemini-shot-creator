@@ -60,31 +60,6 @@ export const ScenesGrid = ({
     setRegenerateConfirm({ open: false, sceneId: null });
   };
 
-  // Calculate grid columns based on scene count to fit all on screen
-  const getGridClass = () => {
-    const count = scenes.length;
-    if (count <= 1) return "grid-cols-1";
-    if (count <= 2) return "grid-cols-2";
-    if (count <= 4) return "grid-cols-2";
-    if (count <= 6) return "grid-cols-3";
-    if (count <= 9) return "grid-cols-3";
-    if (count <= 12) return "grid-cols-4";
-    if (count <= 16) return "grid-cols-4";
-    return "grid-cols-5";
-  };
-
-  const getRowClass = () => {
-    const count = scenes.length;
-    if (count <= 1) return "grid-rows-1";
-    if (count <= 2) return "grid-rows-1";
-    if (count <= 4) return "grid-rows-2";
-    if (count <= 6) return "grid-rows-2";
-    if (count <= 9) return "grid-rows-3";
-    if (count <= 12) return "grid-rows-3";
-    if (count <= 16) return "grid-rows-4";
-    return "grid-rows-4";
-  };
-
   return (
     <>
       <RegenerateConfirmDialog
@@ -94,20 +69,50 @@ export const ScenesGrid = ({
         sceneId={regenerateConfirm.sceneId ?? undefined}
       />
 
-      <div className={`grid ${getGridClass()} ${getRowClass()} gap-1 p-1 h-full`}>
+      {/* Google Photos style justified layout */}
+      <div className="h-full w-full flex flex-wrap content-start gap-1 p-1 overflow-hidden">
         {scenes.map((scene, index) => {
           const sceneId = getSceneId(scene);
           const hasImage = scene.status === "success" && scene.imageUrl;
+          
+          // Calculate flex basis based on scene count for justified layout
+          const count = scenes.length;
+          const getItemStyle = (): React.CSSProperties => {
+            // Target row height based on scene count
+            let targetRows = 1;
+            if (count <= 2) targetRows = 1;
+            else if (count <= 6) targetRows = 2;
+            else if (count <= 12) targetRows = 3;
+            else targetRows = 4;
+            
+            const rowHeight = `calc((100% - ${(targetRows - 1) * 4}px) / ${targetRows})`;
+            
+            // Items per row based on aspect ratio (assume ~1.5 average)
+            let itemsPerRow = Math.ceil(count / targetRows);
+            itemsPerRow = Math.max(1, Math.min(itemsPerRow, 6));
+            
+            const itemWidth = `calc((100% - ${(itemsPerRow - 1) * 4}px) / ${itemsPerRow})`;
+            
+            return {
+              flexBasis: itemWidth,
+              flexGrow: 1,
+              flexShrink: 1,
+              height: rowHeight,
+              maxWidth: count === 1 ? '100%' : `calc(100% / ${Math.max(1, Math.floor(count / targetRows) - 1)})`,
+              minWidth: count <= 2 ? '45%' : count <= 4 ? '30%' : '20%',
+            };
+          };
 
           return (
-            <SceneCard
-              key={sceneId}
-              scene={scene}
-              index={index}
-              onGenerate={() => handleRegenerateClick(sceneId, !!hasImage)}
-              onDownload={() => onDownloadScene(sceneId)}
-              onClick={() => hasImage && handleOpenFullscreen(scene)}
-            />
+            <div key={sceneId} style={getItemStyle()} className="relative">
+              <SceneCard
+                scene={scene}
+                index={index}
+                onGenerate={() => handleRegenerateClick(sceneId, !!hasImage)}
+                onDownload={() => onDownloadScene(sceneId)}
+                onClick={() => hasImage && handleOpenFullscreen(scene)}
+              />
+            </div>
           );
         })}
       </div>
