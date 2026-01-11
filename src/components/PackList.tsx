@@ -201,7 +201,7 @@ export const PackList = ({
   const categoryOrder = ["photography", "3d", "illustration", "art"];
 
   return (
-    <div className="h-full flex flex-col bg-background border-r border-border">
+    <div className="h-full flex flex-col bg-background border-r border-border overflow-hidden">
       {/* Header */}
       <div className="px-4 py-4">
         <h2 className="font-semibold">Packs ({packs.length})</h2>
