@@ -370,6 +370,20 @@ export const usePacks = (user: User | null) => {
             continue;
           }
 
+          // Also store the exact uploaded pack JSON in storage next to generated images.
+          // This guarantees Cloud Files can always export the pack template.
+          try {
+            const jsonBlob = new Blob([JSON.stringify(item.pack, null, 2)], { type: "application/json" });
+            await supabase.storage
+              .from("generated-images")
+              .upload(`${item.packId}/pack.json`, jsonBlob, {
+                upsert: true,
+                contentType: "application/json",
+              });
+          } catch (e: any) {
+            console.warn("Failed to upload pack.json to storage:", e);
+          }
+
           inserted.push({ dbId: insertedPack.id, pack: item.pack });
         } catch (err: any) {
           failed.push({ index: item.index, message: err?.message || "Upload failed" });

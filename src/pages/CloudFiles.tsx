@@ -446,6 +446,28 @@ const CloudFiles = () => {
         }
       }
 
+      // Fallback: if pack is missing in DB, try to load the original template from storage
+      // (Generator now uploads `${packId}/pack.json`.)
+      if (!packData) {
+        try {
+          const { data: jsonBlob, error: jsonErr } = await supabase.storage
+            .from("generated-images")
+            .download(`${folder.name}/pack.json`);
+
+          if (!jsonErr && jsonBlob) {
+            const jsonText = await jsonBlob.text();
+            packData = JSON.parse(jsonText);
+            // If meta.pack_name exists, use it for nicer filenames
+            const metaName = (packData as any)?.meta?.pack_name;
+            if (typeof metaName === "string" && metaName.trim()) {
+              packName = metaName.trim();
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
       if (folderZip) {
         const safeBaseName = packName.replace(/[\\/\n\r\t]/g, "-").trim() || folder.name;
         const safeFolderBaseName = folder.name.replace(/[\\/\n\r\t]/g, "-").trim() || folder.name;
