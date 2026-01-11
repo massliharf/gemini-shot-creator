@@ -651,6 +651,114 @@ Create portrait packs where:
 Think like a master photographer with a signature style, shooting 12 different portraits of the same person.`;
 
 // ========================================
+// ARTIST v1 PROTOCOL
+// ========================================
+
+const ARTIST_V1_PROMPT = `### Agent Instructions: Artist v1
+
+## Core Principle
+
+- **Global Style Anchor** = Photoshoot'un teknik DNA'sı (kamera, lensler, ışık setup'ı, lokasyon tipi, wardrobe, renk yaklaşımı)
+- **Scene Prompts** = O karede ne oluyor (poz, ifade, hangi lens seçildi, ışıklar nasıl yönlendirildi, kompozisyon)
+
+**KURAL:** Scene prompts küçük harfle başlar ve style anchor'ın devamı gibi okunur.
+
+## Global Style Anchor Yapısı
+
+\`[Photography style/genre] drawing from [influences]. Shot on [camera body] with [lens 1], [lens 2], and [lens 3] available at [aperture range]. [Lighting equipment and setup description - ekipmanlar, ışık kaynakları]. [Location type and environment]. [Wardrobe: either fixed items OR flexibility statement]. [Color grading philosophy and film stock/digital look]. [Background treatment and depth of field approach].\`
+
+### Neleri İçermeli:
+✅ Kamera sistemi: Hangi body (sensor karakteristiği için)
+✅ Lens seçenekleri: Hangi focal length'ler mevcut (35mm, 50mm, 85mm vs)
+✅ Aperture range: Genel derinlik yaklaşımı (f/1.4-f/2.8 vs f/4-f/8)
+✅ Işık ekipmanı: Ne var (window light, LED panel, reflector, speedlight vs)
+✅ Lokasyon karakteri: Genel mekan (modern office, outdoor park, studio, industrial space)
+✅ Wardrobe durumu: Sabit (navy suit) VEYA esnek (varies while maintaining neutral tones)
+✅ Renk bilimi: Genel grading yaklaşımı, film stock emulation, color temp bias
+✅ Background treatment: Nasıl render edilecek (shallow DOF, bokeh, clean seamless)
+
+### Neleri İçermemeli:
+❌ Spesifik pozlar
+❌ Yüz ifadeleri
+❌ "Bu sahnede şu lens kullan" detayı
+❌ Işıkların exact yönleri (genel setup var ama her sahnedeki yön scene'de)
+❌ Kompozisyon detayları
+
+## Scene Prompt Yapısı
+
+\`[shot type], [subject position/action]. [Expression and eye direction]. [Which lens from the kit]. [How lights are directed for THIS shot]. [Specific background for this frame]. [Composition specifics]. [Any unique element for this scene].\`
+
+### Neleri İçermeli:
+✅ Shot type: close-up, medium close-up, bust shot
+✅ Pozisyon/aksiyon: standing arms crossed, leaning on desk, sitting, walking, holding phone
+✅ İfade: confident smile, serious focus, contemplative, playful
+✅ Lens seçimi: anchor'da "35mm, 50mm, 85mm available" dediyse → "85mm" der
+✅ Işık yönlendirmesi: anchor'da "window + LED available" dediyse → "window from right, LED from left at 45°" der
+✅ Background bu sahnede: glass partition behind, city view bokeh, office interior blur, conference room
+✅ Kompozisyon: centered, rule of thirds left, negative space right
+✅ Unique detay: holding coffee, touching glasses, hand on chin
+
+### Neleri İçermemeli:
+❌ Kamera body tekrarı
+❌ Wardrobe tekrarı (anchor'da söylenmişse)
+❌ Genel color grading (anchor'da var)
+❌ "Shot on..." "Captured with..." başlangıçları
+
+## JSON Template
+
+\`\`\`json
+{
+  "meta": {
+    "pack_id": "[style]_[context]_[variant]",
+    "pack_name": "[Style] [Context] [Variant]",
+    "description": "[One sentence selling the transformation]",
+    "category": "[Category]",
+    "subcategory": "[Subcategory]",
+    "gender": "unisex",
+    "featured": false,
+    "tags": ["[tag1]", "[tag2]", "[tag3]", "[tag4]", "[tag5]"]
+  },
+  "preview_images": [
+    "themes/[pack_id]/01.webp",
+    "themes/[pack_id]/02.webp",
+    "themes/[pack_id]/03.webp",
+    "themes/[pack_id]/04.webp",
+    "themes/[pack_id]/05.webp",
+    "themes/[pack_id]/06.webp",
+    "themes/[pack_id]/07.webp",
+    "themes/[pack_id]/08.webp",
+    "themes/[pack_id]/09.webp",
+    "themes/[pack_id]/10.webp",
+    "themes/[pack_id]/11.webp",
+    "themes/[pack_id]/12.webp"
+  ],
+  "global_style_anchor": "[Photography genre] drawing from [influences]. Shot on [camera] with [lens options] at [aperture range]. [Lighting equipment available]. [Location type]. [Wardrobe]. [Color grading]. [Background treatment].",
+  "scenes": [
+    {"id": "01", "prompt": "[shot type], [position/action]. [expression]. [lens]. [light direction]. [background]. [composition]."},
+    {"id": "02", "prompt": "[different variation following same structure]"},
+    {"id": "03", "prompt": "..."},
+    {"id": "04", "prompt": "..."},
+    {"id": "05", "prompt": "..."},
+    {"id": "06", "prompt": "..."},
+    {"id": "07", "prompt": "..."},
+    {"id": "08", "prompt": "..."},
+    {"id": "09", "prompt": "..."},
+    {"id": "10", "prompt": "..."},
+    {"id": "11", "prompt": "..."},
+    {"id": "12", "prompt": "..."}
+  ]
+}
+\`\`\`
+
+## Critical Rules
+
+1. Scene prompts start lowercase (they continue the anchor)
+2. No repetition of anchor elements in scenes
+3. Each scene uses different lens, lighting direction, composition
+4. Face always visible and sharp
+5. pack_name = title-case of pack_id`;
+
+// ========================================
 // 3D VISUAL ARCHITECT PROTOCOL
 // ========================================
 
@@ -772,26 +880,36 @@ serve(async (req) => {
     // Select the appropriate protocol based on packType
     const is3D = packType === "3d";
     const isGodEye = packType === "god-eye";
+    const isArtist = packType === "artist";
     
     let basePrompt: string;
     let styleType: string;
     let anchorStart: string;
+    let protocolName: string;
     
     if (is3D) {
       basePrompt = OMNISCIENT_3D_ARCHITECT_PROMPT;
       styleType = "3D character";
       anchorStart = "Create a 3D render close-up portrait of the character in this image";
+      protocolName = "3D Visual Architect";
     } else if (isGodEye) {
       basePrompt = GOD_EYE_PHOTOGRAPHY_DIRECTOR_PROMPT;
       styleType = "photography";
       anchorStart = "Create a close-up portrait photograph of the person in this image";
+      protocolName = "God-Eye Photography Director";
+    } else if (isArtist) {
+      basePrompt = ARTIST_V1_PROMPT;
+      styleType = "photography";
+      anchorStart = "Create a close-up portrait photograph of the person in this image";
+      protocolName = "Artist v1";
     } else {
       basePrompt = OMNISCIENT_VISUAL_ARCHITECT_PROMPT;
       styleType = "photography";
       anchorStart = "Create a close-up portrait photograph of the person in this image";
+      protocolName = "Omniscient Visual Architect v2.1";
     }
 
-    console.log(`[generate-pack-v2] Starting ${isGodEye ? "God-Eye Photography Director" : is3D ? "3D Visual Architect" : "Omniscient Visual Architect v2.1"} ${styleType} pack generation with ${sceneCount} scenes`);
+    console.log(`[generate-pack-v2] Starting ${protocolName} ${styleType} pack generation with ${sceneCount} scenes`);
     console.log(`[generate-pack-v2] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}, gender=${normalizedGender}, category=${category}`);
 
     // Build enhanced context from user inputs
