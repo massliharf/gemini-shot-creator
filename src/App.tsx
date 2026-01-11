@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Generator from "./pages/Generator";
+import PackCreator from "./pages/PackCreator";
 import Styles from "./pages/Styles";
 import PackEditor from "./pages/PackEditor";
 import CloudFiles from "./pages/CloudFiles";
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<Index />} />
           <Route path="/generator" element={<Generator />} />
+          <Route path="/pack-creator" element={<PackCreator />} />
           <Route path="/styles" element={<Styles />} />
           <Route path="/pack-editor" element={<PackEditor />} />
           <Route path="/cloud-files" element={<CloudFiles />} />
