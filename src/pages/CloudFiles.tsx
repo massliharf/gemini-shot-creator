@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   Filter,
   FilterX,
+  FileJson,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,6 +31,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import JSZip from "jszip";
 import { AppLayout } from "@/components/AppLayout";
 
@@ -174,6 +177,18 @@ const CloudFiles = () => {
     downloadUrl: null,
     downloadFilename: "",
   });
+
+  // JSON Archive tab state
+  const [activeTab, setActiveTab] = useState<string>("files");
+  const [jsonArchiveLoading, setJsonArchiveLoading] = useState(false);
+  const [dbPacks, setDbPacks] = useState<Array<{
+    id: string;
+    pack_id: string;
+    pack_name: string;
+    pack_data: Record<string, unknown>;
+    created_at: string;
+  }>>([]);
+  const [selectedJsonPacks, setSelectedJsonPacks] = useState<Set<string>>(new Set());
 
   const cancelRef = useRef(false);
   const packMapRef = useRef<Map<string, PackInfo>>(new Map());
@@ -1226,6 +1241,171 @@ const CloudFiles = () => {
     }
   };
 
+  // ============================================
+  // JSON ARCHIVE TAB FUNCTIONS
+  // ============================================
+  const loadDbPacks = async () => {
+    if (!user) return;
+    setJsonArchiveLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("packs")
+        .select("id, pack_id, pack_name, pack_data, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setDbPacks((data || []) as typeof dbPacks);
+    } catch (e) {
+      console.error("Failed to load packs for JSON archive:", e);
+      toast.error("Pack listesi yüklenemedi");
+    } finally {
+      setJsonArchiveLoading(false);
+    }
+  };
+
+  const toggleJsonPackSelection = (packId: string) => {
+    setSelectedJsonPacks((prev) => {
+      const next = new Set(prev);
+      if (next.has(packId)) {
+        next.delete(packId);
+      } else {
+        next.add(packId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllJsonPacks = () => {
+    if (selectedJsonPacks.size === dbPacks.length) {
+      setSelectedJsonPacks(new Set());
+    } else {
+      setSelectedJsonPacks(new Set(dbPacks.map((p) => p.id)));
+    }
+  };
+
+  const downloadSelectedJsonPacks = async () => {
+    if (selectedJsonPacks.size === 0) {
+      toast.error("Lütfen en az bir pack seçin");
+      return;
+    }
+
+    setJsonArchiveLoading(true);
+    try {
+      const zip = new JSZip();
+      const selectedPacks = dbPacks.filter((p) => selectedJsonPacks.has(p.id));
+
+      for (const pack of selectedPacks) {
+        const safeName = pack.pack_name.replace(/[\\/\n\r\t]/g, "-").trim() || pack.pack_id;
+        const safeId = pack.pack_id.replace(/[\\/\n\r\t]/g, "-").trim();
+
+        // Add pack JSON (template with scenes, global_style_anchor, etc.)
+        zip.file(`${safeName}.json`, JSON.stringify(pack.pack_data, null, 2));
+        zip.file(`${safeId}.json`, JSON.stringify(pack.pack_data, null, 2));
+
+        // Also try to fetch generation manifest from generation_queue
+        const { data: queueRows } = await supabase
+          .from("generation_queue")
+          .select("shot_id, status, image_path, error_message, shot_data, created_at, updated_at")
+          .eq("user_id", user!.id)
+          .eq("pack_id", pack.id)
+          .order("updated_at", { ascending: true });
+
+        if (queueRows && queueRows.length > 0) {
+          const manifest = {
+            pack_id: pack.pack_id,
+            pack_name: pack.pack_name,
+            db_id: pack.id,
+            exported_at: new Date().toISOString(),
+            generations: queueRows,
+          };
+          zip.file(`${safeName}.generation.json`, JSON.stringify(manifest, null, 2));
+          zip.file(`${safeId}.generation.json`, JSON.stringify(manifest, null, 2));
+        }
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pack-json-archive-${selectedPacks.length}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(`${selectedPacks.length} pack JSON indirildi`);
+    } catch (e) {
+      console.error("JSON archive download error:", e);
+      toast.error("JSON arşivi indirilemedi");
+    } finally {
+      setJsonArchiveLoading(false);
+    }
+  };
+
+  const downloadAllJsonPacks = async () => {
+    if (dbPacks.length === 0) {
+      toast.error("İndirilecek pack bulunamadı");
+      return;
+    }
+
+    setJsonArchiveLoading(true);
+    try {
+      const zip = new JSZip();
+
+      for (const pack of dbPacks) {
+        const safeName = pack.pack_name.replace(/[\\/\n\r\t]/g, "-").trim() || pack.pack_id;
+        const safeId = pack.pack_id.replace(/[\\/\n\r\t]/g, "-").trim();
+
+        // Add pack JSON
+        zip.file(`${safeName}.json`, JSON.stringify(pack.pack_data, null, 2));
+        if (safeName !== safeId) {
+          zip.file(`${safeId}.json`, JSON.stringify(pack.pack_data, null, 2));
+        }
+
+        // Generation manifest
+        const { data: queueRows } = await supabase
+          .from("generation_queue")
+          .select("shot_id, status, image_path, error_message, shot_data, created_at, updated_at")
+          .eq("user_id", user!.id)
+          .eq("pack_id", pack.id)
+          .order("updated_at", { ascending: true });
+
+        if (queueRows && queueRows.length > 0) {
+          const manifest = {
+            pack_id: pack.pack_id,
+            pack_name: pack.pack_name,
+            db_id: pack.id,
+            exported_at: new Date().toISOString(),
+            generations: queueRows,
+          };
+          zip.file(`${safeName}.generation.json`, JSON.stringify(manifest, null, 2));
+        }
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `all-pack-jsons-${dbPacks.length}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(`${dbPacks.length} pack JSON indirildi`);
+    } catch (e) {
+      console.error("JSON archive download error:", e);
+      toast.error("JSON arşivi indirilemedi");
+    } finally {
+      setJsonArchiveLoading(false);
+    }
+  };
+
+  // Load JSON archive data when tab changes
+  useEffect(() => {
+    if (activeTab === "json-archive" && dbPacks.length === 0 && user) {
+      loadDbPacks();
+    }
+  }, [activeTab, user]);
+
+
   const totalFiles = folders.reduce((sum, f) => sum + f.files.length, 0);
   const selectedCount = selectedFolders.size;
   const downloadedCount = [...downloadedFolders].filter(name => folders.some(f => f.name === name)).length;
@@ -1261,247 +1441,364 @@ const CloudFiles = () => {
           </div>
 
           <div className="flex gap-2">
-            <Button
-              variant={hideDownloaded ? "default" : "outline"}
-              size="sm"
-              onClick={() => setHideDownloaded(!hideDownloaded)}
-              className="gap-1 text-xs h-8"
-            >
-              {hideDownloaded ? <FilterX className="w-3.5 h-3.5" /> : <Filter className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{hideDownloaded ? 'Tümünü Göster' : 'Gizle'}</span>
-            </Button>
-            
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={startBatchExport}
-              disabled={loading || batchExport.isRunning}
-              className="text-xs h-8"
-            >
-              <Download className="w-3.5 h-3.5 mr-1" />
-              <span className="hidden sm:inline">Export & Sil</span>
-            </Button>
             <Button variant="outline" size="sm" onClick={() => loadCloudData(true)} disabled={loading} className="h-8 w-8 p-0">
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
 
-        {/* Bulk actions bar */}
-        {selectedCount > 0 && (
-          <div className="border-b border-border/50 bg-primary/5 px-4 py-2 flex items-center justify-between flex-shrink-0">
-            <span className="text-xs font-medium">
-              {selectedCount} klasör seçildi
-            </span>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleBulkDownload}
-                disabled={bulkAction !== null}
-                className="h-7 text-xs"
-              >
-                {bulkAction === 'download' ? (
-                  <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                ) : (
-                  <Download className="w-3.5 h-3.5 mr-1" />
-                )}
-                İndir
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={handleBulkDelete}
-                disabled={bulkAction !== null}
-                className="h-7 text-xs"
-              >
-                {bulkAction === 'delete' ? (
-                  <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                ) : (
-                  <Trash2 className="w-3.5 h-3.5 mr-1" />
-                )}
-                Sil
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="mx-4 mt-2 w-fit">
+            <TabsTrigger value="files" className="gap-1.5 text-xs">
+              <Folder className="w-3.5 h-3.5" />
+              Dosyalar
+            </TabsTrigger>
+            <TabsTrigger value="json-archive" className="gap-1.5 text-xs">
+              <FileJson className="w-3.5 h-3.5" />
+              Pack JSON Arşivi
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Folder list */}
-        <div 
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-4"
-        >
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : folders.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Folder className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Cloud'da dosya bulunamadı</p>
-            </div>
-          ) : displayedFolders.length === 0 && hideDownloaded ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
-              <p>Tüm klasörler indirildi!</p>
-              <Button variant="link" onClick={() => setHideDownloaded(false)} className="mt-2">
-                Tümünü göster
+          {/* FILES TAB */}
+          <TabsContent value="files" className="flex-1 flex flex-col overflow-hidden m-0">
+            {/* Action bar for files tab */}
+            <div className="px-4 py-2 border-b border-border/50 flex gap-2 flex-shrink-0">
+              <Button
+                variant={hideDownloaded ? "default" : "outline"}
+                size="sm"
+                onClick={() => setHideDownloaded(!hideDownloaded)}
+                className="gap-1 text-xs h-8"
+              >
+                {hideDownloaded ? <FilterX className="w-3.5 h-3.5" /> : <Filter className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{hideDownloaded ? 'Tümünü Göster' : 'Gizle'}</span>
+              </Button>
+              
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={startBatchExport}
+                disabled={loading || batchExport.isRunning}
+                className="text-xs h-8"
+              >
+                <Download className="w-3.5 h-3.5 mr-1" />
+                <span className="hidden sm:inline">Export & Sil</span>
               </Button>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {/* Select all */}
-              <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg">
-                <Checkbox
-                  checked={selectedFolders.size === displayedFolders.length && displayedFolders.length > 0}
-                  onCheckedChange={() => {
-                    if (selectedFolders.size === displayedFolders.length) {
-                      setSelectedFolders(new Set());
-                    } else {
-                      setSelectedFolders(new Set(displayedFolders.map(f => f.name)));
-                    }
-                  }}
-                />
-                <span className="text-xs text-muted-foreground">
-                  {selectedFolders.size === displayedFolders.length ? 'Tümünü kaldır' : 'Tümünü seç'}
+
+            {/* Bulk actions bar */}
+            {selectedCount > 0 && (
+              <div className="border-b border-border/50 bg-primary/5 px-4 py-2 flex items-center justify-between flex-shrink-0">
+                <span className="text-xs font-medium">
+                  {selectedCount} klasör seçildi
                 </span>
-                {hideDownloaded && (
-                  <Badge variant="secondary" className="ml-auto text-[10px]">
-                    {folders.length - displayedFolders.length} gizli
-                  </Badge>
-                )}
-              </div>
-
-              {displayedFolders.map(folder => {
-                const isExpanded = expandedFolder === folder.name;
-                const isSelected = selectedFolders.has(folder.name);
-                const isDownloaded = downloadedFolders.has(folder.name);
-                const displayName = folder.pack?.pack_name || folder.name;
-
-                return (
-                  <div 
-                    key={folder.name} 
-                    className={`border rounded-xl bg-secondary/30 overflow-hidden ${
-                      isDownloaded ? 'border-green-500/50 bg-green-500/5' : 'border-border/50'
-                    }`}
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBulkDownload}
+                    disabled={bulkAction !== null}
+                    className="h-7 text-xs"
                   >
-                    <div className="flex items-center gap-3 p-3">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleSelectFolder(folder.name)}
-                      />
-                      
-                      {isDownloaded && (
-                        <button
-                          onClick={() => unmarkAsDownloaded(folder.name)}
-                          className="text-green-500 hover:text-green-600"
-                          title="İndirildi - tıkla kaldır"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </button>
-                      )}
-                      
-                      <button
-                        className="flex-1 flex items-center gap-3 text-left hover:bg-accent/50 rounded p-1 -m-1"
-                        onClick={() => setExpandedFolder(isExpanded ? null : folder.name)}
-                      >
-                        {isExpanded ? (
-                          <FolderOpen className="w-4 h-4 text-primary" />
-                        ) : (
-                          <Folder className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{displayName}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {folder.files.length} dosya
-                          </p>
-                        </div>
-                      </button>
+                    {bulkAction === 'download' ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    İndir
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleBulkDelete}
+                    disabled={bulkAction !== null}
+                    className="h-7 text-xs"
+                  >
+                    {bulkAction === 'delete' ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    Sil
+                  </Button>
+                </div>
+              </div>
+            )}
 
-                      <div className="flex gap-1">
-                        {!isDownloaded && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => markAsDownloaded(folder.name)}
-                            title="İndirildi olarak işaretle"
-                            className="h-7 w-7 text-muted-foreground hover:text-green-500"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => downloadFolder(folder)}
-                          disabled={downloading === folder.name}
-                          className="h-7 w-7"
-                        >
-                          {downloading === folder.name ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Download className="w-3.5 h-3.5" />
-                          )}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => deleteFolder(folder)}
-                          disabled={deleting === folder.name}
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                        >
-                          {deleting === folder.name ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {isExpanded && (
-                      <div className="border-t border-border/50 bg-background/50 p-3">
-                        <ScrollArea className="max-h-48">
-                          <div className="space-y-1">
-                            {folder.files.map(file => (
-                              <div
-                                key={file.path}
-                                className="flex items-center gap-2 text-xs p-1.5 rounded hover:bg-accent/50"
-                              >
-                                <Image className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span className="flex-1 truncate">{file.name}</span>
-                                {file.size && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    {formatFileSize(file.size)}
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      </div>
+            {/* Folder list */}
+            <div 
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto p-4"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : folders.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Folder className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Cloud'da dosya bulunamadı</p>
+                </div>
+              ) : displayedFolders.length === 0 && hideDownloaded ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+                  <p>Tüm klasörler indirildi!</p>
+                  <Button variant="link" onClick={() => setHideDownloaded(false)} className="mt-2">
+                    Tümünü göster
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {/* Select all */}
+                  <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg">
+                    <Checkbox
+                      checked={selectedFolders.size === displayedFolders.length && displayedFolders.length > 0}
+                      onCheckedChange={() => {
+                        if (selectedFolders.size === displayedFolders.length) {
+                          setSelectedFolders(new Set());
+                        } else {
+                          setSelectedFolders(new Set(displayedFolders.map(f => f.name)));
+                        }
+                      }}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {selectedFolders.size === displayedFolders.length ? 'Tümünü kaldır' : 'Tümünü seç'}
+                    </span>
+                    {hideDownloaded && (
+                      <Badge variant="secondary" className="ml-auto text-[10px]">
+                        {folders.length - displayedFolders.length} gizli
+                      </Badge>
                     )}
                   </div>
-                );
-              })}
 
-              {hasMoreFolders && (
-                <div className="flex justify-center pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={loadMoreFolders}
-                    disabled={loadingMore}
-                  >
-                    {loadingMore && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Daha fazla yükle
-                  </Button>
+                  {displayedFolders.map(folder => {
+                    const isExpanded = expandedFolder === folder.name;
+                    const isSelected = selectedFolders.has(folder.name);
+                    const isDownloaded = downloadedFolders.has(folder.name);
+                    const displayName = folder.pack?.pack_name || folder.name;
+
+                    return (
+                      <div 
+                        key={folder.name} 
+                        className={`border rounded-xl bg-secondary/30 overflow-hidden ${
+                          isDownloaded ? 'border-green-500/50 bg-green-500/5' : 'border-border/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 p-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelectFolder(folder.name)}
+                          />
+                          
+                          {isDownloaded && (
+                            <button
+                              onClick={() => unmarkAsDownloaded(folder.name)}
+                              className="text-green-500 hover:text-green-600"
+                              title="İndirildi - tıkla kaldır"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          
+                          <button
+                            className="flex-1 flex items-center gap-3 text-left hover:bg-accent/50 rounded p-1 -m-1"
+                            onClick={() => setExpandedFolder(isExpanded ? null : folder.name)}
+                          >
+                            {isExpanded ? (
+                              <FolderOpen className="w-4 h-4 text-primary" />
+                            ) : (
+                              <Folder className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate">{displayName}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {folder.files.length} dosya
+                              </p>
+                            </div>
+                          </button>
+
+                          <div className="flex gap-1">
+                            {!isDownloaded && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => markAsDownloaded(folder.name)}
+                                title="İndirildi olarak işaretle"
+                                className="h-7 w-7 text-muted-foreground hover:text-green-500"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => downloadFolder(folder)}
+                              disabled={downloading === folder.name}
+                              className="h-7 w-7"
+                            >
+                              {downloading === folder.name ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => deleteFolder(folder)}
+                              disabled={deleting === folder.name}
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                            >
+                              {deleting === folder.name ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="border-t border-border/50 bg-background/50 p-3">
+                            <ScrollArea className="max-h-48">
+                              <div className="space-y-1">
+                                {folder.files.map(file => (
+                                  <div
+                                    key={file.path}
+                                    className="flex items-center gap-2 text-xs p-1.5 rounded hover:bg-accent/50"
+                                  >
+                                    <Image className="w-3.5 h-3.5 text-muted-foreground" />
+                                    <span className="flex-1 truncate">{file.name}</span>
+                                    {file.size && (
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {formatFileSize(file.size)}
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {hasMoreFolders && (
+                    <div className="flex justify-center pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={loadMoreFolders}
+                        disabled={loadingMore}
+                      >
+                        {loadingMore && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Daha fazla yükle
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </TabsContent>
+
+          {/* JSON ARCHIVE TAB */}
+          <TabsContent value="json-archive" className="flex-1 flex flex-col overflow-hidden m-0">
+            {/* Action bar */}
+            <div className="px-4 py-2 border-b border-border/50 flex gap-2 flex-shrink-0">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={downloadAllJsonPacks}
+                disabled={jsonArchiveLoading || dbPacks.length === 0}
+                className="text-xs h-8 gap-1"
+              >
+                <Archive className="w-3.5 h-3.5" />
+                Tümünü İndir ({dbPacks.length})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadSelectedJsonPacks}
+                disabled={jsonArchiveLoading || selectedJsonPacks.size === 0}
+                className="text-xs h-8 gap-1"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Seçilenleri İndir ({selectedJsonPacks.size})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadDbPacks}
+                disabled={jsonArchiveLoading}
+                className="h-8 w-8 p-0 ml-auto"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${jsonArchiveLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+
+            {/* Pack list */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {jsonArchiveLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : dbPacks.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileJson className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Veritabanında pack bulunamadı</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {/* Select all */}
+                  <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg">
+                    <Checkbox
+                      checked={selectedJsonPacks.size === dbPacks.length && dbPacks.length > 0}
+                      onCheckedChange={selectAllJsonPacks}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {selectedJsonPacks.size === dbPacks.length ? 'Tümünü kaldır' : 'Tümünü seç'}
+                    </span>
+                    <Badge variant="secondary" className="ml-auto text-[10px]">
+                      {dbPacks.length} pack
+                    </Badge>
+                  </div>
+
+                  {dbPacks.map((pack) => {
+                    const isSelected = selectedJsonPacks.has(pack.id);
+                    const createdAt = new Date(pack.created_at).toLocaleDateString('tr-TR', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    });
+
+                    return (
+                      <div
+                        key={pack.id}
+                        className={`border rounded-xl bg-secondary/30 overflow-hidden p-3 flex items-center gap-3 ${
+                          isSelected ? 'border-primary/50 bg-primary/5' : 'border-border/50'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleJsonPackSelection(pack.id)}
+                        />
+                        <FileJson className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{pack.pack_name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {pack.pack_id} • {createdAt}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Batch Export Dialog */}
