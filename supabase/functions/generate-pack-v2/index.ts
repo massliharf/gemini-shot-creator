@@ -723,26 +723,47 @@ Output pure JSON only.`;
       );
     }
 
-    // Parse JSON from response
+    // Parse JSON from response with robust error handling
     let pack;
-    try {
-      // Try direct parse first
-      pack = JSON.parse(textContent);
-    } catch {
-      // Try extracting from markdown code block
-      const jsonMatch = textContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        pack = JSON.parse(jsonMatch[1].trim());
-      } else {
-        // Try finding JSON object directly
-        const jsonStart = textContent.indexOf("{");
-        const jsonEnd = textContent.lastIndexOf("}");
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          pack = JSON.parse(textContent.slice(jsonStart, jsonEnd + 1));
-        } else {
-          throw new Error("Could not extract JSON from response");
-        }
+    let jsonToParse = textContent;
+    
+    // First, try to extract from markdown code block
+    const jsonMatch = textContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      jsonToParse = jsonMatch[1].trim();
+    } else {
+      // Try finding JSON object directly
+      const jsonStart = textContent.indexOf("{");
+      const jsonEnd = textContent.lastIndexOf("}");
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        jsonToParse = textContent.slice(jsonStart, jsonEnd + 1);
       }
+    }
+    
+    // Clean up common JSON issues from AI responses
+    jsonToParse = jsonToParse
+      .replace(/,\s*}/g, '}')  // Remove trailing commas before }
+      .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
+      .replace(/[\x00-\x1F\x7F]/g, (char: string) => {
+        // Preserve newlines and tabs in a JSON-safe way, remove other control chars
+        if (char === '\n' || char === '\r' || char === '\t') return char;
+        return '';
+      });
+    
+    try {
+      pack = JSON.parse(jsonToParse);
+    } catch (parseError) {
+      console.error("[generate-pack-v2] JSON parse error:", parseError);
+      console.error("[generate-pack-v2] Failed JSON (first 2000 chars):", jsonToParse.substring(0, 2000));
+      console.error("[generate-pack-v2] Failed JSON (last 500 chars):", jsonToParse.substring(jsonToParse.length - 500));
+      
+      return new Response(
+        JSON.stringify({ 
+          error: parseError instanceof Error ? parseError.message : "JSON parse error",
+          hint: "The AI returned malformed JSON. Please try again."
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Validate and normalize pack structure
