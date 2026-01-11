@@ -50,7 +50,7 @@ export const SceneCard = ({
           <img
             src={scene.imageUrl!}
             alt={`Scene ${sceneId}`}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain bg-black/20"
             loading="lazy"
             onLoad={handleImageLoad}
           />
