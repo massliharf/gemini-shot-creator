@@ -35,8 +35,7 @@ export const SceneCard = ({
 
   return (
     <div
-      className="relative bg-muted overflow-hidden group cursor-pointer"
-      style={{ aspectRatio: hasImage ? aspectRatio : 1 }}
+      className="relative bg-muted overflow-hidden group cursor-pointer h-full w-full"
       onClick={() => hasImage && onClick?.()}
     >
       {/* Scene Label */}

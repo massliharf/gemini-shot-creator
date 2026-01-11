@@ -60,6 +60,31 @@ export const ScenesGrid = ({
     setRegenerateConfirm({ open: false, sceneId: null });
   };
 
+  // Calculate grid columns based on scene count to fit all on screen
+  const getGridClass = () => {
+    const count = scenes.length;
+    if (count <= 1) return "grid-cols-1";
+    if (count <= 2) return "grid-cols-2";
+    if (count <= 4) return "grid-cols-2";
+    if (count <= 6) return "grid-cols-3";
+    if (count <= 9) return "grid-cols-3";
+    if (count <= 12) return "grid-cols-4";
+    if (count <= 16) return "grid-cols-4";
+    return "grid-cols-5";
+  };
+
+  const getRowClass = () => {
+    const count = scenes.length;
+    if (count <= 1) return "grid-rows-1";
+    if (count <= 2) return "grid-rows-1";
+    if (count <= 4) return "grid-rows-2";
+    if (count <= 6) return "grid-rows-2";
+    if (count <= 9) return "grid-rows-3";
+    if (count <= 12) return "grid-rows-3";
+    if (count <= 16) return "grid-rows-4";
+    return "grid-rows-4";
+  };
+
   return (
     <>
       <RegenerateConfirmDialog
@@ -69,7 +94,7 @@ export const ScenesGrid = ({
         sceneId={regenerateConfirm.sceneId ?? undefined}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1 p-1">
+      <div className={`grid ${getGridClass()} ${getRowClass()} gap-1 p-1 h-full`}>
         {scenes.map((scene, index) => {
           const sceneId = getSceneId(scene);
           const hasImage = scene.status === "success" && scene.imageUrl;
