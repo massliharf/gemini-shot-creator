@@ -27,13 +27,13 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex w-full overflow-hidden">
+    <div className="h-screen bg-background flex w-full overflow-hidden">
       {/* Left Navigation Rail (desktop) */}
       <div className="hidden lg:block">
         <IconRail />
       </div>
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
         {/* Top Header (all pages) */}
         <TopHeader
           userEmail={userEmail}
@@ -72,11 +72,11 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
         </Sheet>
 
         {/* Content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Sidebar (desktop) */}
           {sidebar && (
-            <aside className="hidden lg:flex w-[300px] min-w-[280px] bg-background border-r border-border flex-col overflow-hidden h-full">
-              <div className="flex flex-col h-full overflow-hidden">
+            <aside className="hidden lg:flex w-[300px] min-w-[280px] bg-background border-r border-border flex-col overflow-hidden h-full min-h-0">
+              <div className="flex flex-col h-full min-h-0 overflow-hidden">
                 {sidebar}
               </div>
             </aside>
