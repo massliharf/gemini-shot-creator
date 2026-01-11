@@ -14,7 +14,7 @@ export const IconRail = () => {
   const location = useLocation();
 
   return (
-    <nav className="w-16 flex-shrink-0 bg-black flex flex-col items-center py-2 px-2">
+    <nav className="w-16 h-full flex-shrink-0 bg-black flex flex-col items-center py-2 px-2">
       {/* Hamburger Menu */}
       <Button
         variant="ghost"
