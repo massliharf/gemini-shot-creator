@@ -11,7 +11,6 @@ interface ScenesGridProps {
 }
 
 const GAP_PX = 4; // gap-1
-const PADDING_PX = 4; // p-1
 
 const getSceneId = (scene: SceneWithStatus): string | number => {
   return scene.id ?? "0";
@@ -114,12 +113,8 @@ export const ScenesGrid = ({ scenes, onGenerateScene, onDownloadScene }: ScenesG
   const layout = useMemo(() => {
     const width = containerSize.width;
     const height = containerSize.height;
-
-    const contentW = Math.max(0, width - PADDING_PX * 2);
-    const contentH = Math.max(0, height - PADDING_PX * 2);
-
-    if (!contentW || !contentH || scenes.length === 0) {
-      return { rows: [] as LayoutRow[], rowHeights: [] as number[], contentW, contentH };
+    if (!width || !height || scenes.length === 0) {
+      return { rows: [] as LayoutRow[], rowHeights: [] as number[] };
     }
 
     const rowsCount = getTargetRows(scenes.length);
@@ -171,18 +166,18 @@ export const ScenesGrid = ({ scenes, onGenerateScene, onDownloadScene }: ScenesG
     // Compute justified row heights from width: rowHeight = availableWidth / sumAR
     const rawHeights = rows.map((row) => {
       const sumAR = row.reduce((sum, it) => sum + Math.max(0.35, Math.min(3.0, it.ar)), 0);
-      const availableW = contentW - GAP_PX * (row.length - 1);
+      const availableW = width - GAP_PX * (row.length - 1);
       return Math.max(60, availableW / Math.max(0.001, sumAR));
     });
 
     // Scale all rows to fit container height exactly (no scroll)
-    const availableH = contentH - GAP_PX * (rawHeights.length - 1);
+    const availableH = height - GAP_PX * (rawHeights.length - 1);
     const totalRawH = rawHeights.reduce((s, h) => s + h, 0);
     const scale = totalRawH > 0 ? availableH / totalRawH : 1;
 
     const rowHeights = rawHeights.map((h) => Math.max(48, h * scale));
 
-    return { rows, rowHeights, contentW, contentH };
+    return { rows, rowHeights };
   }, [aspectRatios, containerSize.height, containerSize.width, scenes]);
 
   return (
@@ -194,39 +189,35 @@ export const ScenesGrid = ({ scenes, onGenerateScene, onDownloadScene }: ScenesG
         sceneId={regenerateConfirm.sceneId ?? undefined}
       />
 
-      <div ref={containerRef} className="h-full w-full overflow-hidden">
-        <div className="h-full w-full p-1">
-          <div className="flex h-full w-full flex-col" style={{ gap: GAP_PX }}>
-            {layout.rows.map((row, rowIndex) => {
-              const rowH = layout.rowHeights[rowIndex] ?? 0;
-              const sumAR = row.reduce((sum, it) => sum + Math.max(0.35, Math.min(3.0, it.ar)), 0);
+      <div ref={containerRef} className="h-full w-full overflow-hidden p-1">
+        <div className="flex h-full w-full flex-col" style={{ gap: GAP_PX }}>
+          {layout.rows.map((row, rowIndex) => {
+            const rowH = layout.rowHeights[rowIndex] ?? 0;
 
-              const availableW = (layout.contentW ?? 0) - GAP_PX * (row.length - 1);
-              const naturalW = rowH * sumAR;
-              const widthScale = naturalW > 0 ? availableW / naturalW : 1;
+            return (
+              <div key={rowIndex} className="flex w-full" style={{ gap: GAP_PX, height: rowH }}>
+                {row.map(({ scene, index, id, ar, hasImage }) => {
+                  const boundedAR = Math.max(0.35, Math.min(3.0, ar));
+                  const w = rowH * boundedAR;
 
-              return (
-                <div key={rowIndex} className="flex w-full" style={{ gap: GAP_PX, height: rowH }}>
-                  {row.map(({ scene, index, id, ar, hasImage }) => {
-                    const boundedAR = Math.max(0.35, Math.min(3.0, ar));
-                    const w = rowH * boundedAR * widthScale;
+                  return (
+                    <div key={id} className="relative flex-shrink-0" style={{ width: w, height: rowH }}>
+                      <SceneCard
+                        scene={scene}
+                        index={index}
+                        onGenerate={() => handleRegenerateClick(id, hasImage)}
+                        onDownload={() => onDownloadScene(id)}
+                        onClick={() => hasImage && handleOpenFullscreen(scene)}
+                      />
+                    </div>
+                  );
+                })}
 
-                    return (
-                      <div key={id} className="relative flex-shrink-0" style={{ width: w, height: rowH }}>
-                        <SceneCard
-                          scene={scene}
-                          index={index}
-                          onGenerate={() => handleRegenerateClick(id, hasImage)}
-                          onDownload={() => onDownloadScene(id)}
-                          onClick={() => hasImage && handleOpenFullscreen(scene)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
+                {/* Fill remaining space in row */}
+                <div className="flex-1" />
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -248,5 +239,4 @@ export const ScenesGrid = ({ scenes, onGenerateScene, onDownloadScene }: ScenesG
     </>
   );
 };
-
 
