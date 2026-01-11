@@ -81,7 +81,7 @@ const BATCH_SIZE_LIMIT = 2 * 1024 * 1024 * 1024; // 2GB in bytes
 // Storage keys
 const STORAGE_KEYS = {
   folders: 'cloud-files-folders',
-  downloadedFolders: 'downloaded-folders',
+  downloadedFolders: 'downloaded-folders', // legacy localStorage (migrated to backend)
   scrollPosition: 'cloud-files-scroll',
   expandedFolder: 'cloud-files-expanded',
   hideDownloaded: 'cloud-files-hide-downloaded',
@@ -139,41 +139,9 @@ const CloudFiles = () => {
   
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Downloaded folders tracking (localStorage)
-  const [downloadedFolders, setDownloadedFolders] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.downloadedFolders);
-      if (!raw) return new Set();
-
-      const parsed: unknown = JSON.parse(raw);
-
-      // Backward compatible:
-      // - array of folder names (current)
-      // - object map { [folderName]: true } (older)
-      if (Array.isArray(parsed)) {
-        return new Set(parsed.filter((v): v is string => typeof v === "string"));
-      }
-      if (parsed && typeof parsed === "object") {
-        return new Set(Object.keys(parsed as Record<string, unknown>));
-      }
-
-      return new Set();
-    } catch {
-      return new Set();
-    }
-  });
-
-  // Normalize persisted format (helps if older versions stored an object map)
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        STORAGE_KEYS.downloadedFolders,
-        JSON.stringify([...downloadedFolders])
-      );
-    } catch {
-      // ignore
-    }
-  }, [downloadedFolders]);
+  // Downloaded folders tracking – synced with backend (downloaded_folders table)
+  const [downloadedFolders, setDownloadedFolders] = useState<Set<string>>(new Set());
+  const [downloadedFoldersLoaded, setDownloadedFoldersLoaded] = useState(false);
 
   // Restore hideDownloaded preference
   const [hideDownloaded, setHideDownloaded] = useState(() => {
@@ -293,6 +261,37 @@ const CloudFiles = () => {
       localStorage.setItem(STORAGE_KEYS.scrollPosition, scrollContainerRef.current.scrollTop.toString());
     }
   };
+
+  // Load downloaded folders from backend (runs once when user is available)
+  useEffect(() => {
+    if (!user || downloadedFoldersLoaded) return;
+    const loadDownloadedFolders = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("downloaded_folders")
+          .select("folder_name")
+          .eq("user_id", user.id);
+        if (error) throw error;
+        const names = (data || []).map((d) => d.folder_name);
+        setDownloadedFolders(new Set(names));
+      } catch (err) {
+        console.error("Failed to load downloaded folders from backend:", err);
+        // Fallback to localStorage if needed (temporary migration helper)
+        try {
+          const raw = localStorage.getItem(STORAGE_KEYS.downloadedFolders);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              setDownloadedFolders(new Set(parsed.filter((v): v is string => typeof v === "string")));
+            }
+          }
+        } catch {}
+      }
+      setDownloadedFoldersLoaded(true);
+    };
+    loadDownloadedFolders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, downloadedFoldersLoaded]);
 
   // Load cloud files and packs - only if no cached data
   useEffect(() => {
@@ -595,28 +594,52 @@ const CloudFiles = () => {
     }
   };
 
-  const markAsDownloaded = (folderName: string) => {
-    setDownloadedFolders(prev => {
+  const markAsDownloaded = async (folderName: string) => {
+    setDownloadedFolders((prev) => {
       const next = new Set(prev);
       next.add(folderName);
-      localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
       return next;
     });
+    // Persist to backend
+    if (user) {
+      try {
+        await supabase.from("downloaded_folders").upsert(
+          { user_id: user.id, folder_name: folderName, downloaded_at: new Date().toISOString() },
+          { onConflict: "user_id,folder_name" }
+        );
+      } catch (err) {
+        console.error("Failed to persist downloaded folder:", err);
+      }
+    }
   };
 
-  const unmarkAsDownloaded = (folderName: string) => {
-    setDownloadedFolders(prev => {
+  const unmarkAsDownloaded = async (folderName: string) => {
+    setDownloadedFolders((prev) => {
       const next = new Set(prev);
       next.delete(folderName);
-      localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
       return next;
     });
+    // Delete from backend
+    if (user) {
+      try {
+        await supabase.from("downloaded_folders").delete().eq("user_id", user.id).eq("folder_name", folderName);
+      } catch (err) {
+        console.error("Failed to delete downloaded folder mark:", err);
+      }
+    }
   };
 
-  const clearDownloadedMarks = () => {
+  const clearDownloadedMarks = async () => {
     setDownloadedFolders(new Set());
-    localStorage.removeItem(STORAGE_KEYS.downloadedFolders);
-    toast.success('İndirildi işaretleri temizlendi');
+    // Delete all from backend
+    if (user) {
+      try {
+        await supabase.from("downloaded_folders").delete().eq("user_id", user.id);
+      } catch (err) {
+        console.error("Failed to clear downloaded folder marks:", err);
+      }
+    }
+    toast.success("İndirildi işaretleri temizlendi");
   };
 
   const deleteFolder = async (folder: CloudFolder) => {
@@ -651,16 +674,10 @@ const CloudFiles = () => {
         return newSet;
       });
       
-      // Also remove from downloaded list if present
-      setDownloadedFolders(prev => {
-        if (prev.has(folder.name)) {
-          const next = new Set(prev);
-          next.delete(folder.name);
-          localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
-          return next;
-        }
-        return prev;
-      });
+      // Also remove from downloaded list if present (backend sync)
+      if (downloadedFolders.has(folder.name)) {
+        unmarkAsDownloaded(folder.name);
+      }
 
       processedFolderNamesRef.current.add(folder.name);
 
