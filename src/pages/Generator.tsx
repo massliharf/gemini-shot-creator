@@ -167,6 +167,21 @@ export default function Generator() {
         return false;
       }
 
+      // Also store the exact pack JSON next to generated images so Cloud Files can always include it
+      // (even if the packs table entry is missing later).
+      try {
+        const jsonBlob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
+        await supabase.storage
+          .from("generated-images")
+          .upload(`${packId}/pack.json`, jsonBlob, {
+            upsert: true,
+            contentType: "application/json",
+          });
+      } catch (e) {
+        // Non-fatal; pack is still saved in DB.
+        console.warn("Failed to upload pack.json to storage:", e);
+      }
+
       return true;
     } catch (err) {
       console.error("Error saving pack:", err);
