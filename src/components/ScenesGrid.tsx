@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { SceneWithStatus } from "@/types/pack";
 import { SceneCard } from "./SceneCard";
 import { FullscreenImageView } from "./FullscreenImageView";
@@ -14,6 +14,18 @@ const getSceneId = (scene: SceneWithStatus): string | number => {
   return scene.id ?? "0";
 };
 
+// Preload image and get its aspect ratio
+const getImageAspectRatio = (url: string): Promise<number> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve(img.naturalWidth / img.naturalHeight);
+    };
+    img.onerror = () => resolve(1); // Default to 1:1 on error
+    img.src = url;
+  });
+};
+
 export const ScenesGrid = ({
   scenes,
   onGenerateScene,
@@ -24,6 +36,30 @@ export const ScenesGrid = ({
     open: boolean;
     sceneId: string | number | null;
   }>({ open: false, sceneId: null });
+  const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
+
+  // Load aspect ratios for all images
+  useEffect(() => {
+    const loadAspectRatios = async () => {
+      const newRatios: Record<string, number> = {};
+      
+      await Promise.all(
+        scenes.map(async (scene) => {
+          const id = String(getSceneId(scene));
+          if (scene.status === "success" && scene.imageUrl && !aspectRatios[id]) {
+            const ratio = await getImageAspectRatio(scene.imageUrl);
+            newRatios[id] = ratio;
+          }
+        })
+      );
+      
+      if (Object.keys(newRatios).length > 0) {
+        setAspectRatios(prev => ({ ...prev, ...newRatios }));
+      }
+    };
+    
+    loadAspectRatios();
+  }, [scenes]);
 
   const successfulScenes = scenes.filter((s) => s.status === "success" && s.imageUrl);
   const currentFullscreenScene = fullscreenIndex !== null ? successfulScenes[fullscreenIndex] : null;
@@ -60,6 +96,15 @@ export const ScenesGrid = ({
     setRegenerateConfirm({ open: false, sceneId: null });
   };
 
+  // Calculate target row height based on scene count
+  const getTargetRows = () => {
+    const count = scenes.length;
+    if (count <= 2) return 1;
+    if (count <= 6) return 2;
+    if (count <= 12) return 3;
+    return 4;
+  };
+
   return (
     <>
       <RegenerateConfirmDialog
@@ -69,42 +114,34 @@ export const ScenesGrid = ({
         sceneId={regenerateConfirm.sceneId ?? undefined}
       />
 
-      {/* Google Photos style justified layout */}
+      {/* Google Photos style justified layout with real aspect ratios */}
       <div className="h-full w-full flex flex-wrap content-start gap-1 p-1 overflow-hidden">
         {scenes.map((scene, index) => {
           const sceneId = getSceneId(scene);
           const hasImage = scene.status === "success" && scene.imageUrl;
+          const aspectRatio = aspectRatios[String(sceneId)] || 1;
           
-          // Calculate flex basis based on scene count for justified layout
-          const count = scenes.length;
-          const getItemStyle = (): React.CSSProperties => {
-            // Target row height based on scene count
-            let targetRows = 1;
-            if (count <= 2) targetRows = 1;
-            else if (count <= 6) targetRows = 2;
-            else if (count <= 12) targetRows = 3;
-            else targetRows = 4;
-            
-            const rowHeight = `calc((100% - ${(targetRows - 1) * 4}px) / ${targetRows})`;
-            
-            // Items per row based on aspect ratio (assume ~1.5 average)
-            let itemsPerRow = Math.ceil(count / targetRows);
-            itemsPerRow = Math.max(1, Math.min(itemsPerRow, 6));
-            
-            const itemWidth = `calc((100% - ${(itemsPerRow - 1) * 4}px) / ${itemsPerRow})`;
-            
-            return {
-              flexBasis: itemWidth,
-              flexGrow: 1,
-              flexShrink: 1,
-              height: rowHeight,
-              maxWidth: count === 1 ? '100%' : `calc(100% / ${Math.max(1, Math.floor(count / targetRows) - 1)})`,
-              minWidth: count <= 2 ? '45%' : count <= 4 ? '30%' : '20%',
-            };
-          };
+          const targetRows = getTargetRows();
+          // Row height = (container height - gaps) / rows
+          const rowHeight = `calc((100% - ${(targetRows - 1) * 4}px) / ${targetRows})`;
+          
+          // Item width is proportional to aspect ratio
+          // wider images (aspect > 1) get more width, taller images (aspect < 1) get less
+          const baseWidth = hasImage ? aspectRatio : 1;
 
           return (
-            <div key={sceneId} style={getItemStyle()} className="relative">
+            <div 
+              key={sceneId} 
+              className="relative flex-shrink-0 flex-grow"
+              style={{
+                height: rowHeight,
+                // Use aspect ratio to determine flex-basis
+                flexBasis: hasImage ? `calc(${baseWidth} * ${rowHeight})` : `calc(1 * ${rowHeight})`,
+                aspectRatio: hasImage ? aspectRatio : 1,
+                minWidth: '100px',
+                maxWidth: '100%',
+              }}
+            >
               <SceneCard
                 scene={scene}
                 index={index}
