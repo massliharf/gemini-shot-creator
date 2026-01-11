@@ -201,7 +201,7 @@ export const PackList = ({
   const categoryOrder = ["photography", "3d", "illustration", "art"];
 
   return (
-    <div className="h-full flex flex-col bg-background border-r border-border overflow-hidden">
+    <div className="h-full min-h-0 flex flex-col bg-background border-r border-border overflow-hidden">
       {/* Header */}
       <div className="px-4 py-4">
         <h2 className="font-semibold">Packs ({packs.length})</h2>
@@ -302,7 +302,7 @@ export const PackList = ({
       </div>
 
       {/* Pack List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0 overscroll-contain">
         <div className="px-3 pb-3 space-y-4">
           {categoryOrder.map((category) => {
             const categoryPacks = groupedPacks[category];
