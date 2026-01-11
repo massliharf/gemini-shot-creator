@@ -142,13 +142,39 @@ const CloudFiles = () => {
   // Downloaded folders tracking (localStorage)
   const [downloadedFolders, setDownloadedFolders] = useState<Set<string>>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.downloadedFolders);
-      return saved ? new Set(JSON.parse(saved)) : new Set();
+      const raw = localStorage.getItem(STORAGE_KEYS.downloadedFolders);
+      if (!raw) return new Set();
+
+      const parsed: unknown = JSON.parse(raw);
+
+      // Backward compatible:
+      // - array of folder names (current)
+      // - object map { [folderName]: true } (older)
+      if (Array.isArray(parsed)) {
+        return new Set(parsed.filter((v): v is string => typeof v === "string"));
+      }
+      if (parsed && typeof parsed === "object") {
+        return new Set(Object.keys(parsed as Record<string, unknown>));
+      }
+
+      return new Set();
     } catch {
       return new Set();
     }
   });
-  
+
+  // Normalize persisted format (helps if older versions stored an object map)
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.downloadedFolders,
+        JSON.stringify([...downloadedFolders])
+      );
+    } catch {
+      // ignore
+    }
+  }, [downloadedFolders]);
+
   // Restore hideDownloaded preference
   const [hideDownloaded, setHideDownloaded] = useState(() => {
     try {
