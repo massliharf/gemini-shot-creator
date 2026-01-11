@@ -266,27 +266,67 @@ const CloudFiles = () => {
   useEffect(() => {
     if (!user || downloadedFoldersLoaded) return;
     const loadDownloadedFolders = async () => {
+      const readLegacy = (): string[] => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEYS.downloadedFolders);
+          if (!raw) return [];
+          const parsed: unknown = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            return parsed.filter((v): v is string => typeof v === "string");
+          }
+          if (parsed && typeof parsed === "object") {
+            return Object.keys(parsed as Record<string, unknown>);
+          }
+          return [];
+        } catch {
+          return [];
+        }
+      };
+
       try {
+        // 1) Load current marks from backend
         const { data, error } = await supabase
           .from("downloaded_folders")
           .select("folder_name")
           .eq("user_id", user.id);
         if (error) throw error;
-        const names = (data || []).map((d) => d.folder_name);
-        setDownloadedFolders(new Set(names));
+
+        const backendNames = (data || []).map((d) => d.folder_name);
+        const backendSet = new Set(backendNames);
+
+        // 2) One-time migrate legacy localStorage marks into backend
+        const legacyNames = readLegacy();
+        const toUpsert = legacyNames.filter((n) => !backendSet.has(n));
+
+        if (toUpsert.length > 0) {
+          const rows = toUpsert.map((folder_name) => ({
+            user_id: user.id,
+            folder_name,
+            downloaded_at: new Date().toISOString(),
+          }));
+          const { error: upsertErr } = await supabase
+            .from("downloaded_folders")
+            .upsert(rows, { onConflict: "user_id,folder_name" });
+          if (upsertErr) throw upsertErr;
+          toUpsert.forEach((n) => backendSet.add(n));
+        }
+
+        setDownloadedFolders(new Set(backendSet));
+
+        // 3) Cleanup legacy store to avoid future confusion
+        try {
+          localStorage.removeItem(STORAGE_KEYS.downloadedFolders);
+        } catch {
+          // ignore
+        }
       } catch (err) {
         console.error("Failed to load downloaded folders from backend:", err);
-        // Fallback to localStorage if needed (temporary migration helper)
-        try {
-          const raw = localStorage.getItem(STORAGE_KEYS.downloadedFolders);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              setDownloadedFolders(new Set(parsed.filter((v): v is string => typeof v === "string")));
-            }
-          }
-        } catch {}
+
+        // Fallback: show legacy marks if backend request fails
+        const legacyNames = readLegacy();
+        setDownloadedFolders(new Set(legacyNames));
       }
+
       setDownloadedFoldersLoaded(true);
     };
     loadDownloadedFolders();
@@ -797,13 +837,29 @@ const CloudFiles = () => {
       a.click();
       URL.revokeObjectURL(url);
 
-      // Mark all downloaded folders
-      setDownloadedFolders(prev => {
+      // Mark all downloaded folders (backend sync)
+      const namesToMark = selectedFolderList.map((f) => f.name);
+      setDownloadedFolders((prev) => {
         const next = new Set(prev);
-        selectedFolderList.forEach(f => next.add(f.name));
-        localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
+        namesToMark.forEach((n) => next.add(n));
         return next;
       });
+
+      if (user) {
+        try {
+          const rows = namesToMark.map((folder_name) => ({
+            user_id: user.id,
+            folder_name,
+            downloaded_at: new Date().toISOString(),
+          }));
+          const { error: upsertErr } = await supabase
+            .from("downloaded_folders")
+            .upsert(rows, { onConflict: "user_id,folder_name" });
+          if (upsertErr) throw upsertErr;
+        } catch (err) {
+          console.error("Failed to persist bulk downloaded folders:", err);
+        }
+      }
 
       toast.success(`${selectedFolders.size} klasör indirildi`);
     } catch (error) {
@@ -845,21 +901,24 @@ const CloudFiles = () => {
         return updated;
       });
       
-      // Remove from downloaded list
-      setDownloadedFolders(prev => {
+      // Remove from downloaded list (backend sync)
+      setDownloadedFolders((prev) => {
         const next = new Set(prev);
-        let changed = false;
-        folderNames.forEach(name => {
-          if (next.has(name)) {
-            next.delete(name);
-            changed = true;
-          }
-        });
-        if (changed) {
-          localStorage.setItem(STORAGE_KEYS.downloadedFolders, JSON.stringify([...next]));
-        }
+        folderNames.forEach((name) => next.delete(name));
         return next;
       });
+
+      if (user) {
+        try {
+          await supabase
+            .from("downloaded_folders")
+            .delete()
+            .eq("user_id", user.id)
+            .in("folder_name", folderNames);
+        } catch (err) {
+          console.error("Failed to remove downloaded marks for deleted folders:", err);
+        }
+      }
       
       setSelectedFolders(new Set());
 
