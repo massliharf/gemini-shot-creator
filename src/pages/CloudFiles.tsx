@@ -447,9 +447,14 @@ const CloudFiles = () => {
       }
 
       if (folderZip) {
+        const safeBaseName = packName.replace(/[\\/\n\r\t]/g, "-").trim() || folder.name;
+
         if (packData) {
           // 1) The original pack template JSON (meta + global_style_anchor + scenes)
-          folderZip.file(`${packName}.json`, JSON.stringify(packData, null, 2));
+          const packJson = JSON.stringify(packData, null, 2);
+          // Put it BOTH in the folder and at the ZIP root so it never "disappears"
+          folderZip.file(`${safeBaseName}.json`, packJson);
+          zip.file(`${safeBaseName}.json`, packJson);
 
           // 2) A generation manifest with the exact params used per image (shot_data)
           if (packDbId && user) {
@@ -475,7 +480,9 @@ const CloudFiles = () => {
               generations: queueRows || [],
             };
 
-            folderZip.file(`${packName}.generation.json`, JSON.stringify(manifest, null, 2));
+            const manifestJson = JSON.stringify(manifest, null, 2);
+            folderZip.file(`${safeBaseName}.generation.json`, manifestJson);
+            zip.file(`${safeBaseName}.generation.json`, manifestJson);
           }
         } else {
           // Create basic metadata if no pack found
