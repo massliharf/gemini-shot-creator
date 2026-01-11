@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      downloaded_folders: {
+        Row: {
+          created_at: string
+          downloaded_at: string
+          folder_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          downloaded_at?: string
+          folder_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          downloaded_at?: string
+          folder_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       generation_queue: {
         Row: {
           created_at: string | null
