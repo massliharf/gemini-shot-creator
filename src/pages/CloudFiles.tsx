@@ -1448,8 +1448,14 @@ const CloudFiles = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="mx-4 mt-2 w-fit">
+        <Tabs value={activeTab} onValueChange={(val) => {
+          setActiveTab(val);
+          // Load packs when switching to json-archive tab
+          if (val === "json-archive" && dbPacks.length === 0) {
+            loadDbPacks();
+          }
+        }} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="mx-4 mt-2 mb-0 w-fit flex-shrink-0">
             <TabsTrigger value="files" className="gap-1.5 text-xs">
               <Folder className="w-3.5 h-3.5" />
               Dosyalar
@@ -1461,7 +1467,7 @@ const CloudFiles = () => {
           </TabsList>
 
           {/* FILES TAB */}
-          <TabsContent value="files" className="flex-1 flex flex-col overflow-hidden m-0">
+          <TabsContent value="files" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Action bar for files tab */}
             <div className="px-4 py-2 border-b border-border/50 flex gap-2 flex-shrink-0">
               <Button
@@ -1704,7 +1710,7 @@ const CloudFiles = () => {
           </TabsContent>
 
           {/* JSON ARCHIVE TAB */}
-          <TabsContent value="json-archive" className="flex-1 flex flex-col overflow-hidden m-0">
+          <TabsContent value="json-archive" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Action bar */}
             <div className="px-4 py-2 border-b border-border/50 flex gap-2 flex-shrink-0">
               <Button
