@@ -3,20 +3,7 @@ import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getSc
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Play,
-  Trash2,
-  Download,
-  Upload,
-  Square,
-  SquareCheck,
-  Loader2,
-  CheckCircle2,
-  Circle,
-  XCircle,
-  Image as ImageIcon,
-} from "lucide-react";
-
+import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, CheckCircle2, Circle, XCircle, Image as ImageIcon } from "lucide-react";
 export interface PackInfo {
   pack: PackFile;
   packId: string;
@@ -26,15 +13,20 @@ export interface PackInfo {
   generatingShots: number;
   thumbnailUrl?: string;
 }
-
 type GenderFilter = "all" | "male" | "female";
-
-const GENDER_FILTERS: { value: GenderFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "female", label: "Female" },
-  { value: "male", label: "Male" },
-];
-
+const GENDER_FILTERS: {
+  value: GenderFilter;
+  label: string;
+}[] = [{
+  value: "all",
+  label: "All"
+}, {
+  value: "female",
+  label: "Female"
+}, {
+  value: "male",
+  label: "Male"
+}];
 interface PackListProps {
   packs: PackInfo[];
   selectedPackId: string | null;
@@ -45,7 +37,6 @@ interface PackListProps {
   onGenerateAllPacks?: () => void;
   isGeneratingAll?: boolean;
 }
-
 const genderLabels: Record<string, string> = {
   woman_only: "Female",
   man_only: "Male",
@@ -53,7 +44,7 @@ const genderLabels: Record<string, string> = {
   mixed: "Mixed",
   genderless: "Genderless",
   female: "Female",
-  male: "Male",
+  male: "Male"
 };
 
 // Pack Item Component
@@ -63,7 +54,7 @@ const PackItem = ({
   onSelect,
   isSelectionMode,
   isChecked,
-  onToggleCheck,
+  onToggleCheck
 }: {
   pack: PackInfo;
   isSelected: boolean;
@@ -74,7 +65,6 @@ const PackItem = ({
 }) => {
   const packName = getPackName(pack.pack);
   const gender = getPackGender(pack.pack);
-
   const handleClick = () => {
     if (isSelectionMode && onToggleCheck) {
       onToggleCheck();
@@ -82,43 +72,17 @@ const PackItem = ({
       onSelect();
     }
   };
-
-  return (
-    <div
-      onClick={handleClick}
-      className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all ${
-        isSelected && !isSelectionMode
-          ? "bg-secondary"
-          : isChecked && isSelectionMode
-            ? "bg-secondary"
-            : "hover:bg-secondary/50"
-      }`}
-    >
+  return <div onClick={handleClick} className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all ${isSelected && !isSelectionMode ? "bg-secondary" : isChecked && isSelectionMode ? "bg-secondary" : "hover:bg-secondary/50"}`}>
       {/* Thumbnail */}
       <div className="w-11 h-11 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
-        {pack.thumbnailUrl ? (
-          <img
-            src={pack.thumbnailUrl}
-            alt={packName}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
+        {pack.thumbnailUrl ? <img src={pack.thumbnailUrl} alt={packName} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-muted flex items-center justify-center">
             <ImageIcon className="w-5 h-5 text-muted-foreground/40" />
-          </div>
-        )}
+          </div>}
         
         {/* Selection checkbox overlay */}
-        {isSelectionMode && (
-          <div className="absolute inset-0 bg-foreground/30 flex items-center justify-center">
-            <Checkbox
-              checked={isChecked}
-              onClick={(e) => e.stopPropagation()}
-              onCheckedChange={onToggleCheck}
-              className="border-background data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-            />
-          </div>
-        )}
+        {isSelectionMode && <div className="absolute inset-0 bg-foreground/30 flex items-center justify-center">
+            <Checkbox checked={isChecked} onClick={e => e.stopPropagation()} onCheckedChange={onToggleCheck} className="border-background data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
+          </div>}
       </div>
 
       {/* Pack Info */}
@@ -128,10 +92,8 @@ const PackItem = ({
           {genderLabels[gender] || gender} · {pack.totalShots} Scenes
         </p>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export const PackList = ({
   packs,
   selectedPackId,
@@ -140,14 +102,13 @@ export const PackList = ({
   onDeleteMultiplePacks,
   onDownloadMultiplePacks,
   onGenerateAllPacks,
-  isGeneratingAll = false,
+  isGeneratingAll = false
 }: PackListProps) => {
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
   const toggleSelection = (id: string) => {
-    setSelectedIds((prev) => {
+    setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -157,19 +118,16 @@ export const PackList = ({
       return next;
     });
   };
-
   const exitSelectionMode = () => {
     setIsSelectionMode(false);
     setSelectedIds(new Set());
   };
-
   const handleBatchDelete = () => {
     if (onDeleteMultiplePacks && selectedIds.size > 0) {
       onDeleteMultiplePacks(Array.from(selectedIds));
       exitSelectionMode();
     }
   };
-
   const handleBatchDownload = () => {
     if (onDownloadMultiplePacks && selectedIds.size > 0) {
       onDownloadMultiplePacks(Array.from(selectedIds));
@@ -178,7 +136,7 @@ export const PackList = ({
 
   // Filter packs
   const filteredPacks = useMemo(() => {
-    return packs.filter((pack) => {
+    return packs.filter(pack => {
       if (genderFilter === "all") return true;
       const gender = getPackGender(pack.pack);
       if (genderFilter === "female") return gender === "woman_only" || gender === "female";
@@ -190,18 +148,15 @@ export const PackList = ({
   // Group by category
   const groupedPacks = useMemo(() => {
     const groups: Record<string, PackInfo[]> = {};
-    filteredPacks.forEach((pack) => {
+    filteredPacks.forEach(pack => {
       const category = getPackCategory(pack.pack);
       if (!groups[category]) groups[category] = [];
       groups[category].push(pack);
     });
     return groups;
   }, [filteredPacks]);
-
   const categoryOrder = ["photography", "3d", "illustration", "art"];
-
-  return (
-    <div className="h-full min-h-0 flex flex-col bg-background border-r border-border overflow-hidden">
+  return <div className="h-full min-h-0 flex flex-col bg-background border-r border-border overflow-hidden">
       {/* Header */}
       <div className="px-4 py-4">
         <h2 className="font-semibold">Packs ({packs.length})</h2>
@@ -209,128 +164,55 @@ export const PackList = ({
 
       {/* Gender Filter Tabs */}
       <div className="px-4 pb-3">
-        <div className="flex bg-muted rounded-lg p-1">
-          {GENDER_FILTERS.map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => setGenderFilter(filter.value)}
-              className={`flex-1 text-sm py-1.5 px-3 rounded-md transition-colors font-medium ${
-                genderFilter === filter.value
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
+        <div className="flex bg-muted p-1 rounded-full">
+          {GENDER_FILTERS.map(filter => <button key={filter.value} onClick={() => setGenderFilter(filter.value)} className={`flex-1 text-sm py-1.5 px-3 rounded-md transition-colors font-medium ${genderFilter === filter.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
               {filter.label}
-            </button>
-          ))}
+            </button>)}
         </div>
       </div>
 
       {/* Action Bar */}
       <div className="px-4 pb-3 flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 rounded-lg"
-          onClick={() => setIsSelectionMode(!isSelectionMode)}
-          title={isSelectionMode ? "Exit Selection" : "Select Multiple"}
-        >
-          {isSelectionMode ? (
-            <SquareCheck className="w-4 h-4 text-primary" />
-          ) : (
-            <Square className="w-4 h-4" />
-          )}
+        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setIsSelectionMode(!isSelectionMode)} title={isSelectionMode ? "Exit Selection" : "Select Multiple"}>
+          {isSelectionMode ? <SquareCheck className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
         </Button>
 
-        {isSelectionMode ? (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-lg"
-              onClick={handleBatchDownload}
-              disabled={selectedIds.size === 0}
-              title="Download Selected"
-            >
+        {isSelectionMode ? <>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={handleBatchDownload} disabled={selectedIds.size === 0} title="Download Selected">
               <Download className="w-4 h-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-lg"
-              onClick={handleBatchDelete}
-              disabled={selectedIds.size === 0}
-              title="Delete Selected"
-            >
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={handleBatchDelete} disabled={selectedIds.size === 0} title="Delete Selected">
               <Trash2 className="w-4 h-4 text-destructive" />
             </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-lg"
-              onClick={onGenerateAllPacks}
-              disabled={isGeneratingAll || packs.length === 0}
-              title="Generate All"
-            >
-              {isGeneratingAll ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Play className="w-4 h-4" />
-              )}
+          </> : <>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={onGenerateAllPacks} disabled={isGeneratingAll || packs.length === 0} title="Generate All">
+              {isGeneratingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-lg"
-              title="Delete All"
-            >
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Delete All">
               <Trash2 className="w-4 h-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-lg"
-              title="Upload"
-            >
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Upload">
               <Upload className="w-4 h-4" />
             </Button>
-          </>
-        )}
+          </>}
       </div>
 
       {/* Pack List */}
       <ScrollArea className="flex-1 min-h-0 overscroll-contain">
         <div className="px-3 pb-3 space-y-4">
-          {categoryOrder.map((category) => {
-            const categoryPacks = groupedPacks[category];
-            if (!categoryPacks || categoryPacks.length === 0) return null;
-
-            return (
-              <div key={category}>
+          {categoryOrder.map(category => {
+          const categoryPacks = groupedPacks[category];
+          if (!categoryPacks || categoryPacks.length === 0) return null;
+          return <div key={category}>
                 <h3 className="text-xs font-medium text-muted-foreground mb-2 px-1">
                   {category.charAt(0).toUpperCase() + category.slice(1)}
                 </h3>
                 <div className="space-y-1">
-                  {categoryPacks.map((pack) => (
-                    <PackItem
-                      key={pack.packId}
-                      pack={pack}
-                      isSelected={selectedPackId === pack.packId}
-                      onSelect={() => onSelectPack(pack.packId)}
-                      isSelectionMode={isSelectionMode}
-                      isChecked={selectedIds.has(pack.packId)}
-                      onToggleCheck={() => toggleSelection(pack.packId)}
-                    />
-                  ))}
+                  {categoryPacks.map(pack => <PackItem key={pack.packId} pack={pack} isSelected={selectedPackId === pack.packId} onSelect={() => onSelectPack(pack.packId)} isSelectionMode={isSelectionMode} isChecked={selectedIds.has(pack.packId)} onToggleCheck={() => toggleSelection(pack.packId)} />)}
                 </div>
-              </div>
-            );
-          })}
+              </div>;
+        })}
         </div>
       </ScrollArea>
-    </div>
-  );
+    </div>;
 };
