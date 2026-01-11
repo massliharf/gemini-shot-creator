@@ -6,15 +6,162 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Wand2, Loader2, X, Check, Home, Camera, Box, Aperture } from "lucide-react";
+import { Upload, Wand2, Loader2, X, Check, Home, Camera, Box, Aperture, AlertCircle, ClipboardPaste } from "lucide-react";
 import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
 import { ModelSelector } from "@/components/ModelSelector";
 import { useGenerationSettings } from "@/hooks/useGenerationSettings";
+
+// JSON Uploader Component
+const JsonUploader = ({ onPacksLoad, disabled }: { onPacksLoad: (packs: PackFile[]) => Promise<{ uploadedCount: number; failed: string[] }>; disabled?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [jsonText, setJsonText] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handlePaste = async () => {
+    if (!jsonText.trim()) {
+      setError("Please paste JSON content");
+      return;
+    }
+
+    const extractJsonSlice = (raw: string) => {
+      let s = raw.trim();
+      if (s.startsWith("```json")) s = s.slice(7);
+      else if (s.startsWith("```")) s = s.slice(3);
+      if (s.endsWith("```")) s = s.slice(0, -3);
+      s = s.trim();
+
+      const firstCurly = s.indexOf("{");
+      const firstSquare = s.indexOf("[");
+      const start = firstCurly === -1 ? firstSquare : firstSquare === -1 ? firstCurly : Math.min(firstCurly, firstSquare);
+      if (start === -1) return s;
+
+      const lastCurly = s.lastIndexOf("}");
+      const lastSquare = s.lastIndexOf("]");
+      const end = Math.max(lastCurly, lastSquare);
+      if (end === -1 || end <= start) return s.slice(start);
+      return s.slice(start, end + 1);
+    };
+
+    const normalizeToPacks = (parsed: any): PackFile[] => {
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        if (parsed.pack && typeof parsed.pack === "object") return [parsed.pack as PackFile];
+        if (Array.isArray(parsed.packs)) return parsed.packs as PackFile[];
+        if (Array.isArray(parsed.data)) return parsed.data as PackFile[];
+        if (parsed.data && typeof parsed.data === "object") {
+          if (parsed.data.pack) return [parsed.data.pack as PackFile];
+          if (Array.isArray(parsed.data.packs)) return parsed.data.packs as PackFile[];
+        }
+      }
+      if (Array.isArray(parsed)) return parsed as PackFile[];
+      return [parsed as PackFile];
+    };
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const slice = extractJsonSlice(jsonText);
+      const parsed = JSON.parse(slice);
+      const packs = normalizeToPacks(parsed);
+
+      for (const pack of packs) {
+        const packId = getPackId(pack);
+        const packName = getPackName(pack);
+        if (!packId || !packName) {
+          setError("Invalid JSON: missing pack_id or package_name");
+          setIsUploading(false);
+          return;
+        }
+        if (!hasScenes(pack)) {
+          setError("Invalid JSON: missing or empty scenes array");
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      const result = await onPacksLoad(packs);
+      if (result.uploadedCount > 0) {
+        setJsonText("");
+        setIsOpen(false);
+        toast.success(`${result.uploadedCount} pack(s) uploaded`);
+      }
+      if (result.failed.length > 0) {
+        setError(`${result.failed.length} pack(s) failed`);
+      }
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        setError("Invalid JSON syntax");
+      } else {
+        setError(err instanceof Error ? err.message : "Upload failed");
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline" size="sm" className="text-xs h-8" disabled={disabled}>
+          <ClipboardPaste className="h-3.5 w-3.5 mr-1.5" />
+          Paste JSON
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent className="max-w-lg">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Paste JSON Pack</AlertDialogTitle>
+          <AlertDialogDescription className="text-sm">
+            Paste your JSON pack content below.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        
+        <div className="space-y-3">
+          <textarea
+            value={jsonText}
+            onChange={(e) => {
+              setJsonText(e.target.value);
+              setError(null);
+            }}
+            placeholder='{"package_meta": {...}, "global_render_settings": {...}, "shots": [...]}'
+            className="w-full h-48 p-3 text-sm font-mono bg-secondary border-0 rounded-lg focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
+            disabled={isUploading}
+          />
+          {error && (
+            <div className="flex items-center gap-2 text-destructive text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isUploading}>Cancel</AlertDialogCancel>
+          <Button
+            onClick={handlePaste}
+            disabled={isUploading || !jsonText.trim()}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              "Upload"
+            )}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
 
 interface UploadedImage {
   id: string;
@@ -279,6 +426,22 @@ export default function Generator() {
     navigate("/");
   };
 
+  const handleJsonPacksLoad = async (packs: PackFile[]): Promise<{ uploadedCount: number; failed: string[] }> => {
+    const failed: string[] = [];
+    let uploadedCount = 0;
+
+    for (const pack of packs) {
+      const saved = await savePackToDatabase(pack);
+      if (saved) {
+        uploadedCount++;
+      } else {
+        failed.push(getPackName(pack) || "Unknown");
+      }
+    }
+
+    return { uploadedCount, failed };
+  };
+
   const pendingCount = images.filter(i => i.status === 'pending').length;
   const savedCount = images.filter(i => i.status === 'saved').length;
   const errorCount = images.filter(i => i.status === 'error').length;
@@ -399,11 +562,17 @@ export default function Generator() {
           <Card className="p-4 space-y-4 border-border/50">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-medium">Reference Images (max 10)</Label>
-              {images.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={clearAll} className="text-xs h-6" disabled={isGenerating}>
-                  Clear
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                <JsonUploader 
+                  onPacksLoad={handleJsonPacksLoad}
+                  disabled={isGenerating}
+                />
+                {images.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearAll} className="text-xs h-6" disabled={isGenerating}>
+                    Clear
+                  </Button>
+                )}
+              </div>
             </div>
 
             <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
