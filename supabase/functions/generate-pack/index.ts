@@ -182,7 +182,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, textPrompt, sceneCount = 12, packType = "photography", gender = "unisex" } = await req.json();
+    const { imageBase64, textPrompt, sceneCount = 12, packType = "photography", gender = "unisex", category = "Photography" } = await req.json();
 
     if (!imageBase64 && !textPrompt) {
       return new Response(
@@ -208,11 +208,12 @@ serve(async (req) => {
     const styleType = is3D ? "3D character" : "photography";
     const anchorStart = is3D ? "Create a 3D render of the character in this image" : "Create a photograph of the person in this image";
 
-    console.log(`[generate-pack] Starting ${styleType} pack generation with ${sceneCount} scenes, gender=${normalizedGender}...`);
-    console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}, gender=${normalizedGender}`);
+    console.log(`[generate-pack] Starting ${styleType} pack generation with ${sceneCount} scenes, gender=${normalizedGender}, category=${category}...`);
+    console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}, gender=${normalizedGender}, category=${category}`);
     console.log(`[generate-pack] Using Google Gemini API with gemini-3-pro-preview model`);
 
-    // Build gender-specific instruction
+    // Build gender and category specific instruction
+    const categoryInstruction = `The pack category MUST be set to "${category}" in meta.category field.`;
     const genderInstruction = normalizedGender === "unisex" 
       ? "The pack should be gender-neutral and suitable for any person."
       : `The pack is specifically designed for ${normalizedGender} subjects. Set meta.gender to "${normalizedGender}" and ensure all wardrobe, poses, and styling descriptions are appropriate for ${normalizedGender} subjects.`;
@@ -232,6 +233,9 @@ ${textPrompt}
 ## GENDER SPECIFICATION:
 ${genderInstruction}
 
+## CATEGORY SPECIFICATION:
+${categoryInstruction}
+
 ## YOUR TASK:
 Create a complete ${styleType} style pack with exactly ${sceneCount} scenes based on this description.
 
@@ -244,6 +248,7 @@ Apply the Portrait-Focused Style Replication Protocol:
 
 ## CRITICAL REMINDERS:
 - meta.gender MUST be set to "${normalizedGender}"
+- meta.category MUST be set to "${category}"
 - global_style_anchor starts with "${anchorStart}..."
 - Each scene prompt starts with lowercase "in a..." as continuation
 - ${sceneCount} meaningfully different scenes
@@ -306,8 +311,12 @@ Create ${sceneCount} scenes as a **Performance Coach**:
 ## GENDER SPECIFICATION:
 ${genderInstruction}
 
+## CATEGORY SPECIFICATION:
+${categoryInstruction}
+
 ## CRITICAL REMINDERS:
 - meta.gender MUST be set to "${normalizedGender}"
+- meta.category MUST be set to "${category}"
 - global_style_anchor is ONE complete technical paragraph starting with "${anchorStart}..."
 - Each scene prompt starts with lowercase "in a..." as continuation
 - Face must be clearly visible in ALL ${sceneCount} scenes
