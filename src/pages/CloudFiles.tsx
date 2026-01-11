@@ -448,13 +448,16 @@ const CloudFiles = () => {
 
       if (folderZip) {
         const safeBaseName = packName.replace(/[\\/\n\r\t]/g, "-").trim() || folder.name;
+        const safeFolderBaseName = folder.name.replace(/[\\/\n\r\t]/g, "-").trim() || folder.name;
 
         if (packData) {
           // 1) The original pack template JSON (meta + global_style_anchor + scenes)
           const packJson = JSON.stringify(packData, null, 2);
-          // Put it BOTH in the folder and at the ZIP root so it never "disappears"
+          // Put it in multiple predictable places/names so the user always finds it.
           folderZip.file(`${safeBaseName}.json`, packJson);
+          folderZip.file(`${safeFolderBaseName}.json`, packJson);
           zip.file(`${safeBaseName}.json`, packJson);
+          zip.file(`${safeFolderBaseName}.json`, packJson);
 
           // 2) A generation manifest with the exact params used per image (shot_data)
           if (packDbId && user) {
@@ -482,7 +485,9 @@ const CloudFiles = () => {
 
             const manifestJson = JSON.stringify(manifest, null, 2);
             folderZip.file(`${safeBaseName}.generation.json`, manifestJson);
+            folderZip.file(`${safeFolderBaseName}.generation.json`, manifestJson);
             zip.file(`${safeBaseName}.generation.json`, manifestJson);
+            zip.file(`${safeFolderBaseName}.generation.json`, manifestJson);
           }
         } else {
           // Create basic metadata if no pack found
@@ -634,10 +639,15 @@ const CloudFiles = () => {
           }
         }
 
+        const safeBaseName = packName.replace(/[\\/\n\r\t]/g, "-").trim() || folder.name;
+        const safeFolderBaseName = folder.name.replace(/[\\/\n\r\t]/g, "-").trim() || folder.name;
+
         const folderZip = zip.folder(packName);
 
         if (packData && folderZip) {
-          folderZip.file(`${packName}.json`, JSON.stringify(packData, null, 2));
+          const packJson = JSON.stringify(packData, null, 2);
+          folderZip.file(`${safeBaseName}.json`, packJson);
+          folderZip.file(`${safeFolderBaseName}.json`, packJson);
 
           if (packDbId && user) {
             const { data: queueRows } = await supabase
@@ -654,7 +664,22 @@ const CloudFiles = () => {
             });
 
             folderZip.file(
-              `${packName}.generation.json`,
+              `${safeBaseName}.generation.json`,
+              JSON.stringify(
+                {
+                  pack_folder: folder.name,
+                  pack_name: packName,
+                  exported_at: new Date().toISOString(),
+                  files: fileMap,
+                  generations: queueRows || [],
+                },
+                null,
+                2
+              )
+            );
+
+            folderZip.file(
+              `${safeFolderBaseName}.generation.json`,
               JSON.stringify(
                 {
                   pack_folder: folder.name,
@@ -937,6 +962,9 @@ const CloudFiles = () => {
           }
         }
 
+        const safeBaseName = folderName.replace(/[\\/\n\r\t]/g, "-").trim() || folder.name;
+        const safeFolderBaseName = folder.name.replace(/[\\/\n\r\t]/g, "-").trim() || folder.name;
+
         setBatchExport((prev) => ({
           ...prev,
           currentFolderName: folderName,
@@ -947,7 +975,9 @@ const CloudFiles = () => {
 
         // Add pack JSON + generation manifest
         if (packData && folderZip) {
-          folderZip.file(`${folderName}.json`, JSON.stringify(packData, null, 2));
+          const packJson = JSON.stringify(packData, null, 2);
+          folderZip.file(`${safeBaseName}.json`, packJson);
+          folderZip.file(`${safeFolderBaseName}.json`, packJson);
 
           if (packDbId && user) {
             const { data: queueRows } = await supabase
@@ -963,20 +993,20 @@ const CloudFiles = () => {
               return { filename: f.name, shot_id };
             });
 
-            folderZip.file(
-              `${folderName}.generation.json`,
-              JSON.stringify(
-                {
-                  pack_folder: folder.name,
-                  pack_name: folderName,
-                  exported_at: new Date().toISOString(),
-                  files: fileMap,
-                  generations: queueRows || [],
-                },
-                null,
-                2
-              )
+            const manifestJson = JSON.stringify(
+              {
+                pack_folder: folder.name,
+                pack_name: folderName,
+                exported_at: new Date().toISOString(),
+                files: fileMap,
+                generations: queueRows || [],
+              },
+              null,
+              2
             );
+
+            folderZip.file(`${safeBaseName}.generation.json`, manifestJson);
+            folderZip.file(`${safeFolderBaseName}.generation.json`, manifestJson);
           }
         }
         // Download all files
