@@ -408,10 +408,36 @@ const CloudFiles = () => {
       const zip = new JSZip();
       const folderZip = zip.folder(folder.name);
 
+      // Always fetch fresh pack data from database to ensure JSON is included
+      let packData = folder.pack?.pack_data;
+      let packName = folder.pack?.pack_name || folder.name;
+      
+      if (!packData && user) {
+        // Try to fetch pack data from database
+        const { data: packRecord } = await supabase
+          .from("packs")
+          .select("pack_id, pack_name, pack_data")
+          .eq("pack_id", folder.name)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        
+        if (packRecord) {
+          packData = packRecord.pack_data as Record<string, unknown>;
+          packName = packRecord.pack_name || folder.name;
+          
+          // Update folder in state with fresh pack data
+          setFolders(prev => prev.map(f => 
+            f.name === folder.name 
+              ? { ...f, pack: { id: '', pack_id: packRecord.pack_id, pack_name: packRecord.pack_name, pack_data: packData } }
+              : f
+          ));
+        }
+      }
+
       if (folderZip) {
-        if (folder.pack?.pack_data) {
-          const jsonContent = JSON.stringify(folder.pack.pack_data, null, 2);
-          folderZip.file(`${folder.pack.pack_name || folder.name}.json`, jsonContent);
+        if (packData) {
+          const jsonContent = JSON.stringify(packData, null, 2);
+          folderZip.file(`${packName}.json`, jsonContent);
         } else {
           // Create basic metadata if no pack found
           const basicMeta = {
@@ -439,14 +465,14 @@ const CloudFiles = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${folder.pack?.pack_name || folder.name}.zip`;
+      a.download = `${packName}.zip`;
       a.click();
       URL.revokeObjectURL(url);
 
       // Mark as downloaded
       markAsDownloaded(folder.name);
 
-      toast.success(`${folder.pack?.pack_name || folder.name} indirildi`);
+      toast.success(`${packName} indirildi`);
     } catch (error) {
       console.error("Download error:", error);
       toast.error("İndirme başarısız");
