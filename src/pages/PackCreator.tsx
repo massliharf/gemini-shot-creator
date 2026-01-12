@@ -63,9 +63,9 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
   },
   { 
     value: "eye", 
-    label: "Eye", 
+    label: "Eye Director", 
     icon: <Eye className="h-5 w-5" />,
-    description: "Photoshoot session with 12 moments"
+    description: "Complete photoshoot session - 12 moments"
   },
   { 
     value: "3d", 
