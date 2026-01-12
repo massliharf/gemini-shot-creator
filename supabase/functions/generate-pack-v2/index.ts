@@ -1759,7 +1759,7 @@ Create 12 distinctive moments.
 {
   "meta": {
     "pack_id": "smartly_generated_id",
-    "pack_name": "Evocative Title",
+    "pack_name": "Smartly Generated Id",
     "description": "Professional technical summary of the aesthetic.",
     "category": "Photography",
     "subcategory": "Portrait",
