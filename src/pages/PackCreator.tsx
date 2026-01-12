@@ -298,16 +298,29 @@ export default function PackCreator() {
 
           if (error) throw error;
 
-          if (data.success && data.pack) {
-            const pack = data.pack as PackFile;
-            const saved = await savePackToDatabase(pack);
-            
-            setCompletedCount(prev => prev + 1);
-            
-            return { id: img.id, pack, saved };
-          } else {
+          // Handle both single pack and multiple packs response
+          const packsToSave: PackFile[] = [];
+          if (data.success && data.packs && Array.isArray(data.packs)) {
+            packsToSave.push(...data.packs);
+          } else if (data.success && data.pack) {
+            packsToSave.push(data.pack as PackFile);
+          }
+
+          if (packsToSave.length === 0) {
             throw new Error(data.error || "Failed to create pack");
           }
+
+          // Save all packs
+          const savedResults = await Promise.all(
+            packsToSave.map(async (pack) => {
+              const saved = await savePackToDatabase(pack);
+              return { pack, saved };
+            })
+          );
+          
+          setCompletedCount(prev => prev + 1);
+          
+          return { id: img.id, packs: savedResults };
         } catch (error) {
           setCompletedCount(prev => prev + 1);
           throw { id: img.id, error };
@@ -316,6 +329,9 @@ export default function PackCreator() {
     );
 
     // Update all image statuses based on results
+    let totalSavedCount = 0;
+    let totalPackCount = 0;
+    
     setImages(prev => prev.map(p => {
       const result = results.find(r => {
         if (r.status === "fulfilled") return r.value.id === p.id;
@@ -326,17 +342,26 @@ export default function PackCreator() {
       if (!result) return p;
 
       if (result.status === "fulfilled") {
-        // Add to generated packs list
-        setGeneratedPacks(prevPacks => [{
-          id: result.value.id,
-          pack: result.value.pack,
-          saved: result.value.saved,
-        }, ...prevPacks]);
+        const packsData = result.value.packs;
+        totalPackCount += packsData.length;
+        
+        // Add all packs to generated packs list
+        for (const { pack, saved } of packsData) {
+          if (saved) totalSavedCount++;
+          setGeneratedPacks(prevPacks => [{
+            id: `${result.value.id}-${getPackId(pack)}`,
+            pack,
+            saved,
+          }, ...prevPacks]);
+        }
 
+        const allSaved = packsData.every(pd => pd.saved);
+        const firstPack = packsData[0]?.pack;
+        
         return {
           ...p,
-          status: result.value.saved ? 'saved' as const : 'success' as const,
-          pack: result.value.pack,
+          status: allSaved ? 'saved' as const : 'success' as const,
+          pack: firstPack,
         };
       } else {
         return {
@@ -349,17 +374,16 @@ export default function PackCreator() {
 
     setIsGenerating(false);
 
-    const successCount = results.filter(r => r.status === "fulfilled").length;
-    const savedCount = results.filter(r => r.status === "fulfilled" && r.value.saved).length;
+    const successImageCount = results.filter(r => r.status === "fulfilled").length;
     const failCount = results.filter(r => r.status === "rejected").length;
 
-    if (savedCount > 0) {
-      toast.success(`${savedCount} pack(s) created and saved!`);
-    } else if (successCount > 0) {
-      toast.warning(`${successCount} pack(s) created but not saved`);
+    if (totalSavedCount > 0) {
+      toast.success(`${totalSavedCount} pack(s) created and saved!`);
+    } else if (successImageCount > 0) {
+      toast.warning(`${totalPackCount} pack(s) created but not saved`);
     }
     if (failCount > 0) {
-      toast.error(`${failCount} pack(s) failed`);
+      toast.error(`${failCount} image(s) failed`);
     }
   };
 
@@ -389,20 +413,31 @@ export default function PackCreator() {
 
       if (error) throw error;
 
-      if (data.success && data.pack) {
-        const pack = data.pack as PackFile;
+      // Handle both single pack and multiple packs response
+      const packsToSave: PackFile[] = [];
+      if (data.success && data.packs && Array.isArray(data.packs)) {
+        packsToSave.push(...data.packs);
+      } else if (data.success && data.pack) {
+        packsToSave.push(data.pack as PackFile);
+      }
+
+      if (packsToSave.length === 0) {
+        throw new Error(data.error || "Failed to create pack");
+      }
+
+      let savedCount = 0;
+      for (const pack of packsToSave) {
         const saved = await savePackToDatabase(pack);
+        if (saved) savedCount++;
 
         setGeneratedPacks(prev => [{
-          id: genId,
+          id: `${genId}-${getPackId(pack)}`,
           pack,
           saved,
         }, ...prev]);
-
-        toast.success(saved ? "Pack created and saved!" : "Pack created (save failed)");
-      } else {
-        throw new Error(data.error || "Failed to create pack");
       }
+
+      toast.success(savedCount > 0 ? `${savedCount} pack(s) created and saved!` : "Pack(s) created (save failed)");
     } catch (error) {
       console.error("Generation error:", error);
       toast.error(error instanceof Error ? error.message : "Generation failed");
