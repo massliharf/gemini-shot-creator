@@ -1606,81 +1606,128 @@ Output pure JSON only.`;
     }
 
     // Parse JSON from response with robust error handling
-    let pack;
-    let jsonToParse = textContent;
+    // AI might return multiple JSON objects (not in array), so we need to extract them all
+    const extractMultipleJsonObjects = (text: string): string[] => {
+      const objects: string[] = [];
+      let depth = 0;
+      let start = -1;
+      
+      for (let i = 0; i < text.length; i++) {
+        if (text[i] === '{') {
+          if (depth === 0) start = i;
+          depth++;
+        } else if (text[i] === '}') {
+          depth--;
+          if (depth === 0 && start !== -1) {
+            objects.push(text.slice(start, i + 1));
+            start = -1;
+          }
+        }
+      }
+      
+      return objects;
+    };
     
-    // First, try to extract from markdown code block
-    const jsonMatch = textContent.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      jsonToParse = jsonMatch[1].trim();
-    } else {
-      // Try finding JSON object directly
-      const jsonStart = textContent.indexOf("{");
-      const jsonEnd = textContent.lastIndexOf("}");
-      if (jsonStart !== -1 && jsonEnd !== -1) {
-        jsonToParse = textContent.slice(jsonStart, jsonEnd + 1);
+    // Clean up common JSON issues from AI responses
+    const cleanJson = (json: string): string => {
+      return json
+        .replace(/,\s*}/g, '}')  // Remove trailing commas before }
+        .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
+        .replace(/[\x00-\x1F\x7F]/g, (char: string) => {
+          // Preserve newlines and tabs in a JSON-safe way, remove other control chars
+          if (char === '\n' || char === '\r' || char === '\t') return char;
+          return '';
+        });
+    };
+    
+    // First, try to extract from markdown code blocks (might be multiple)
+    let jsonStrings: string[] = [];
+    const codeBlockMatches = textContent.matchAll(/```(?:json)?\s*([\s\S]*?)```/g);
+    for (const match of codeBlockMatches) {
+      jsonStrings.push(...extractMultipleJsonObjects(match[1]));
+    }
+    
+    // If no code blocks found, try extracting JSON objects directly
+    if (jsonStrings.length === 0) {
+      jsonStrings = extractMultipleJsonObjects(textContent);
+    }
+    
+    if (jsonStrings.length === 0) {
+      console.error("[generate-pack-v2] No JSON objects found in response");
+      return new Response(
+        JSON.stringify({ error: "No JSON found in AI response" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Parse all JSON objects
+    const packs: unknown[] = [];
+    for (const jsonStr of jsonStrings) {
+      const cleaned = cleanJson(jsonStr);
+      try {
+        const parsed = JSON.parse(cleaned);
+        // Only include if it looks like a pack
+        if (parsed.meta && parsed.global_style_anchor && parsed.scenes) {
+          packs.push(parsed);
+        }
+      } catch (parseError) {
+        console.warn("[generate-pack-v2] Failed to parse one JSON object:", parseError);
+        console.warn("[generate-pack-v2] Failed JSON (first 500 chars):", cleaned.substring(0, 500));
       }
     }
     
-    // Clean up common JSON issues from AI responses
-    jsonToParse = jsonToParse
-      .replace(/,\s*}/g, '}')  // Remove trailing commas before }
-      .replace(/,\s*]/g, ']')  // Remove trailing commas before ]
-      .replace(/[\x00-\x1F\x7F]/g, (char: string) => {
-        // Preserve newlines and tabs in a JSON-safe way, remove other control chars
-        if (char === '\n' || char === '\r' || char === '\t') return char;
-        return '';
-      });
-    
-    try {
-      pack = JSON.parse(jsonToParse);
-    } catch (parseError) {
-      console.error("[generate-pack-v2] JSON parse error:", parseError);
-      console.error("[generate-pack-v2] Failed JSON (first 2000 chars):", jsonToParse.substring(0, 2000));
-      console.error("[generate-pack-v2] Failed JSON (last 500 chars):", jsonToParse.substring(jsonToParse.length - 500));
-      
+    if (packs.length === 0) {
+      console.error("[generate-pack-v2] No valid packs found in response");
       return new Response(
         JSON.stringify({ 
-          error: parseError instanceof Error ? parseError.message : "JSON parse error",
+          error: "No valid pack structure found",
           hint: "The AI returned malformed JSON. Please try again."
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // Normalize all packs
+    const normalizedPacks = packs.map((pack: any) => {
+      // Normalize scene IDs to "01", "02" format
+      pack.scenes = pack.scenes.map((scene: { id: string | number; prompt: string }, index: number) => ({
+        ...scene,
+        id: String(index + 1).padStart(2, "0"),
+      }));
 
-    // Validate and normalize pack structure
-    if (!pack.meta || !pack.global_style_anchor || !pack.scenes) {
+      // Ensure meta has required fields
+      pack.meta = {
+        ...pack.meta,
+        category: category,
+        gender: normalizedGender,
+        featured: pack.meta.featured ?? false,
+        tags: pack.meta.tags || [],
+        preview_paths: pack.scenes.map((_: unknown, i: number) => 
+          `themes/${pack.meta.pack_id}/${String(i + 1).padStart(2, "0")}.webp`
+        ),
+      };
+
+      // Remove preview_images if present (use preview_paths instead)
+      delete pack.preview_images;
+      
+      return pack;
+    });
+
+    console.log(`[generate-pack-v2] Created ${normalizedPacks.length} pack(s)`);
+    normalizedPacks.forEach((p: any) => {
+      console.log(`  - ${p.meta.pack_id} with ${p.scenes.length} scenes`);
+    });
+
+    // Return single pack or array based on count
+    if (normalizedPacks.length === 1) {
       return new Response(
-        JSON.stringify({ error: "Invalid pack structure", pack }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: true, pack: normalizedPacks[0] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Normalize scene IDs to "01", "02" format
-    pack.scenes = pack.scenes.map((scene: { id: string | number; prompt: string }, index: number) => ({
-      ...scene,
-      id: String(index + 1).padStart(2, "0"),
-    }));
-
-    // Ensure meta has required fields
-    pack.meta = {
-      ...pack.meta,
-      category: category,
-      gender: normalizedGender,
-      featured: pack.meta.featured ?? false,
-      tags: pack.meta.tags || [],
-      preview_paths: pack.scenes.map((_: unknown, i: number) => 
-        `themes/${pack.meta.pack_id}/${String(i + 1).padStart(2, "0")}.webp`
-      ),
-    };
-
-    // Remove preview_images if present (use preview_paths instead)
-    delete pack.preview_images;
-
-    console.log(`[generate-pack-v2] Pack created: ${pack.meta.pack_id} with ${pack.scenes.length} scenes`);
-
+    
     return new Response(
-      JSON.stringify({ success: true, pack }),
+      JSON.stringify({ success: true, packs: normalizedPacks }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
