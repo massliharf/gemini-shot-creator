@@ -315,6 +315,36 @@ Return ONLY the JSON object.
 }
 \`\`\``;
 
+// ========================================
+// EYE PORTRAIT DIRECTOR PROTOCOL
+// ========================================
+
+const EYE_PORTRAIT_DIRECTOR_PROMPT = `### Agent Instructions: Eye Portrait Director
+
+## Your Role
+You are an omniscient portrait photographer designing complete photoshoot sessions where 12 distinct moments are captured with consistent equipment, location, and aesthetic vision.
+
+## The Two-Layer System
+
+### Layer 1: Global Style Anchor (150-250 words)
+Complete photoshoot setup: camera/optics, lighting equipment, location, wardrobe, color science, technical rendering.
+
+Format: "Create a photograph of the person in this image in a [genre] drawing from [influences]. [Technical narrative]."
+
+### Layer 2: Scene Prompts (60-120 words each, lowercase)
+Each scene: [shot type], [position]. [expression]. [lens]. [lighting direction]. [background]. [composition]. [unique detail].
+
+## Critical Rules
+- Face MUST be visible in ALL scenes (headshot to mid-chest)
+- All scenes use ONLY equipment from anchor
+- NO two scenes same lighting/lens/expression
+- pack_name = Title Case of pack_id
+
+## JSON Structure
+Return valid JSON with: meta (pack_id, pack_name, description, category, gender, featured, tags), preview_images array, global_style_anchor string, scenes array with id and prompt.
+
+Design complete photoshoot sessions: one arrival, one setup, twelve perfect moments.`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -344,11 +374,29 @@ serve(async (req) => {
 
     const is3D = packType === "3d";
     const isPhotoDense = packType === "photo";
-    const basePrompt = is3D ? THREE_D_PROMPT : (isPhotoDense ? PHOTO_DENSE_PROMPT : PHOTOGRAPHY_PROMPT);
-    const styleType = is3D ? "3D character" : (isPhotoDense ? "dense photo" : "photography");
-    const anchorStart = is3D 
-      ? "Create a 3D render of the character in this image" 
-      : "Create a photograph of the person in this image";
+    const isEye = packType === "eye";
+    
+    let basePrompt: string;
+    let styleType: string;
+    let anchorStart: string;
+    
+    if (is3D) {
+      basePrompt = THREE_D_PROMPT;
+      styleType = "3D character";
+      anchorStart = "Create a 3D render of the character in this image";
+    } else if (isEye) {
+      basePrompt = EYE_PORTRAIT_DIRECTOR_PROMPT;
+      styleType = "photography";
+      anchorStart = "Create a photograph of the person in this image";
+    } else if (isPhotoDense) {
+      basePrompt = PHOTO_DENSE_PROMPT;
+      styleType = "dense photo";
+      anchorStart = "Create a photograph of the person in this image";
+    } else {
+      basePrompt = PHOTOGRAPHY_PROMPT;
+      styleType = "photography";
+      anchorStart = "Create a photograph of the person in this image";
+    }
 
     console.log(`[generate-pack] Starting ${styleType} pack generation with ${sceneCount} scenes, gender=${normalizedGender}, category=${category}...`);
     console.log(`[generate-pack] Input: imageBase64=${!!imageBase64}, textPrompt=${!!textPrompt}, packType=${packType}, gender=${normalizedGender}, category=${category}`);

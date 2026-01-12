@@ -176,7 +176,7 @@ interface UploadedImage {
 
 const SCENE_COUNT_OPTIONS = [4, 8, 12, 16];
 
-type PackType = "photography" | "3d" | "photo";
+type PackType = "photography" | "3d" | "photo" | "eye";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
@@ -187,9 +187,15 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
     description: "Realistic photography styles"
   },
   { 
+    value: "eye", 
+    label: "Eye Director", 
+    icon: <Aperture className="h-4 w-4" />,
+    description: "Complete photoshoot session - 12 moments"
+  },
+  { 
     value: "photo", 
     label: "Photo (Dense)", 
-    icon: <Aperture className="h-4 w-4" />,
+    icon: <Camera className="h-4 w-4" />,
     description: "Dense Anchor Protocol - Maximum consistency"
   },
   { 
