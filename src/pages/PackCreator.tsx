@@ -39,7 +39,7 @@ interface GeneratedPack {
 
 const SCENE_COUNT_OPTIONS = [8, 12, 16, 20];
 
-type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse";
+type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
@@ -84,6 +84,12 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
     label: "Reverse Engineer", 
     icon: <RefreshCw className="h-5 w-5" />,
     description: "Clone style from reference image"
+  },
+  { 
+    value: "portrait-clone", 
+    label: "Portrait Clone", 
+    icon: <Camera className="h-5 w-5" />,
+    description: "Style clone with close-up enforcement"
   },
 ];
 
@@ -489,6 +495,7 @@ export default function PackCreator() {
                  packType === "3d" ? "3D Visual Architect" : 
                  packType === "artisto" ? "Artisto Portrait Director" :
                  packType === "reverse" ? "Style Reverse Engineer" :
+                 packType === "portrait-clone" ? "Portrait Style Clone" :
                  "Omniscient Visual Architect"}
               </h1>
             </div>
@@ -500,6 +507,7 @@ export default function PackCreator() {
                  packType === "3d" ? "Render engine aesthetics" : 
                  packType === "artisto" ? "Art Director portrait system" :
                  packType === "reverse" ? "Visual forensics & style cloning" :
+                 packType === "portrait-clone" ? "Close-up enforced style transfer" :
                  "7-layer prompt architecture"}
               </span>
               {images.length > 0 && (
