@@ -39,7 +39,7 @@ interface GeneratedPack {
 
 const SCENE_COUNT_OPTIONS = [8, 12, 16, 20];
 
-type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto";
+type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
@@ -78,6 +78,12 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
     label: "Artisto", 
     icon: <Sparkles className="h-5 w-5" />,
     description: "Art Director portrait style system"
+  },
+  { 
+    value: "reverse", 
+    label: "Reverse Engineer", 
+    icon: <RefreshCw className="h-5 w-5" />,
+    description: "Clone style from reference image"
   },
 ];
 
@@ -482,6 +488,7 @@ export default function PackCreator() {
                  packType === "eye" ? "Eye Portrait Director" :
                  packType === "3d" ? "3D Visual Architect" : 
                  packType === "artisto" ? "Artisto Portrait Director" :
+                 packType === "reverse" ? "Style Reverse Engineer" :
                  "Omniscient Visual Architect"}
               </h1>
             </div>
@@ -492,6 +499,7 @@ export default function PackCreator() {
                  packType === "eye" ? "Photoshoot session logic" :
                  packType === "3d" ? "Render engine aesthetics" : 
                  packType === "artisto" ? "Art Director portrait system" :
+                 packType === "reverse" ? "Visual forensics & style cloning" :
                  "7-layer prompt architecture"}
               </span>
               {images.length > 0 && (
