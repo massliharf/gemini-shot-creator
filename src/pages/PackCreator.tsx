@@ -19,6 +19,7 @@ import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
+import { usePackCreatorState } from "@/hooks/usePackCreatorState";
 
 interface UploadedImage {
   id: string;
@@ -39,7 +40,7 @@ interface GeneratedPack {
 
 const SCENE_COUNT_OPTIONS = [8, 12, 16, 20];
 
-type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect";
+type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
@@ -97,6 +98,12 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
     icon: <Sun className="h-5 w-5" />,
     description: "Adaptive intelligence with wardrobe strategy"
   },
+  { 
+    value: "all-seeing-eye", 
+    label: "All Seeing Eye", 
+    icon: <Eye className="h-5 w-5" />,
+    description: "God Mode visual engineering"
+  },
 ];
 
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
@@ -144,32 +151,39 @@ export default function PackCreator() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
   
-  // Generation state
+  // Generation state (transient, not persisted)
   const [isGenerating, setIsGenerating] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
-  const [generatedPacks, setGeneratedPacks] = useState<GeneratedPack[]>([]);
   
-  // Input mode
-  const [inputMode, setInputMode] = useState<"image" | "text">("image");
-  
-  // Batch image input
-  const [images, setImages] = useState<UploadedImage[]>([]);
-  
-  // Text input
-  const [textPrompt, setTextPrompt] = useState("");
-  
-  // Pack settings
-  const [packType, setPackType] = useState<PackType>("photography");
-  const [sceneCount, setSceneCount] = useState<number>(12);
-  const [category, setCategory] = useState<string>("Portrait");
-  const [subcategory, setSubcategory] = useState<string>("");
-  const [gender, setGender] = useState<Gender>("unisex");
-  
-  // Advanced settings
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [selectedInfluences, setSelectedInfluences] = useState<string[]>([]);
-  const [lightingPreference, setLightingPreference] = useState<string>("");
-  const [colorPalette, setColorPalette] = useState<string>("");
+  // Persisted state from hook
+  const {
+    inputMode,
+    textPrompt,
+    packType,
+    sceneCount,
+    category,
+    subcategory,
+    gender,
+    showAdvanced,
+    selectedInfluences,
+    lightingPreference,
+    colorPalette,
+    generatedPacks,
+    images,
+    setInputMode,
+    setTextPrompt,
+    setPackType,
+    setSceneCount,
+    setCategory,
+    setSubcategory,
+    setGender,
+    setShowAdvanced,
+    setSelectedInfluences,
+    setLightingPreference,
+    setColorPalette,
+    setGeneratedPacks,
+    setImages,
+  } = usePackCreatorState();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -503,6 +517,7 @@ export default function PackCreator() {
                  packType === "reverse" ? "Style Reverse Engineer" :
                  packType === "portrait-clone" ? "Portrait Style Clone" :
                  packType === "dop-architect" ? "DoP Visual Architect" :
+                 packType === "all-seeing-eye" ? "All Seeing Eye" :
                  "Omniscient Visual Architect"}
               </h1>
             </div>
@@ -516,6 +531,7 @@ export default function PackCreator() {
                  packType === "reverse" ? "Visual forensics & style cloning" :
                  packType === "portrait-clone" ? "Close-up enforced style transfer" :
                  packType === "dop-architect" ? "Adaptive intelligence & wardrobe strategy" :
+                 packType === "all-seeing-eye" ? "God Mode visual engineering" :
                  "7-layer prompt architecture"}
               </span>
               {images.length > 0 && (
