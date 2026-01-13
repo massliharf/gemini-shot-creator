@@ -1,17 +1,68 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const COUPLE_MODE_KEY = "reference-images-couple-mode";
 
 export const useReferenceImages = () => {
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
   const [referencePreviewUrl, setReferencePreviewUrl] = useState<string | null>(null);
   const [secondReferenceImage, setSecondReferenceImage] = useState<File | null>(null);
   const [secondReferencePreviewUrl, setSecondReferencePreviewUrl] = useState<string | null>(null);
-  const [coupleMode, setCoupleMode] = useState(false);
+  const [coupleMode, setCoupleMode] = useState(() => {
+    try {
+      return localStorage.getItem(COUPLE_MODE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Persist couple mode to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(COUPLE_MODE_KEY, coupleMode ? "true" : "false");
+    } catch {
+      // Ignore storage errors
+    }
+  }, [coupleMode]);
+
+  // Restore reference images from Supabase storage on mount
+  useEffect(() => {
+    const restoreImages = async () => {
+      try {
+        // Check for primary reference image
+        const { data: primaryData } = await supabase.storage
+          .from('generated-images')
+          .createSignedUrl('reference/reference-face.jpg', 3600);
+
+        if (primaryData?.signedUrl) {
+          setReferencePreviewUrl(primaryData.signedUrl);
+        }
+
+        // Check for secondary reference image
+        const { data: secondaryData } = await supabase.storage
+          .from('generated-images')
+          .createSignedUrl('reference/reference-face-2.jpg', 3600);
+
+        if (secondaryData?.signedUrl) {
+          setSecondReferencePreviewUrl(secondaryData.signedUrl);
+        }
+      } catch (error) {
+        console.warn("Failed to restore reference images:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    restoreImages();
+  }, []);
 
   const handleImageUpload = useCallback(async (file: File) => {
     const previewUrl = URL.createObjectURL(file);
-    if (referencePreviewUrl) URL.revokeObjectURL(referencePreviewUrl);
+    if (referencePreviewUrl && referencePreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(referencePreviewUrl);
+    }
     setReferencePreviewUrl(previewUrl);
     setReferenceImage(file);
 
@@ -20,10 +71,14 @@ export const useReferenceImages = () => {
       .list('reference');
 
     if (existingFiles && existingFiles.length > 0) {
-      const filesToRemove = existingFiles.map(f => `reference/${f.name}`);
-      await supabase.storage
-        .from('generated-images')
-        .remove(filesToRemove);
+      const filesToRemove = existingFiles
+        .filter(f => f.name === 'reference-face.jpg')
+        .map(f => `reference/${f.name}`);
+      if (filesToRemove.length > 0) {
+        await supabase.storage
+          .from('generated-images')
+          .remove(filesToRemove);
+      }
     }
 
     const { error } = await supabase.storage
@@ -47,7 +102,9 @@ export const useReferenceImages = () => {
       .from('generated-images')
       .remove(['reference/reference-face.jpg']);
 
-    if (referencePreviewUrl) URL.revokeObjectURL(referencePreviewUrl);
+    if (referencePreviewUrl && referencePreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(referencePreviewUrl);
+    }
     setReferencePreviewUrl(null);
     setReferenceImage(null);
     toast.success('Reference image cleared');
@@ -55,7 +112,9 @@ export const useReferenceImages = () => {
 
   const handleSecondImageUpload = useCallback(async (file: File) => {
     const previewUrl = URL.createObjectURL(file);
-    if (secondReferencePreviewUrl) URL.revokeObjectURL(secondReferencePreviewUrl);
+    if (secondReferencePreviewUrl && secondReferencePreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(secondReferencePreviewUrl);
+    }
     setSecondReferencePreviewUrl(previewUrl);
     setSecondReferenceImage(file);
 
@@ -80,15 +139,26 @@ export const useReferenceImages = () => {
       .from('generated-images')
       .remove(['reference/reference-face-2.jpg']);
 
-    if (secondReferencePreviewUrl) URL.revokeObjectURL(secondReferencePreviewUrl);
+    if (secondReferencePreviewUrl && secondReferencePreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(secondReferencePreviewUrl);
+    }
     setSecondReferencePreviewUrl(null);
     setSecondReferenceImage(null);
     toast.success('Second reference image cleared');
   }, [secondReferencePreviewUrl]);
 
-  const clearAll = useCallback(() => {
-    if (referencePreviewUrl) URL.revokeObjectURL(referencePreviewUrl);
-    if (secondReferencePreviewUrl) URL.revokeObjectURL(secondReferencePreviewUrl);
+  const clearAll = useCallback(async () => {
+    // Clear from storage
+    await supabase.storage
+      .from('generated-images')
+      .remove(['reference/reference-face.jpg', 'reference/reference-face-2.jpg']);
+
+    if (referencePreviewUrl && referencePreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(referencePreviewUrl);
+    }
+    if (secondReferencePreviewUrl && secondReferencePreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(secondReferencePreviewUrl);
+    }
     setReferenceImage(null);
     setReferencePreviewUrl(null);
     setSecondReferenceImage(null);
@@ -107,5 +177,6 @@ export const useReferenceImages = () => {
     handleSecondImageUpload,
     handleSecondImageClear,
     clearAll,
+    isLoading,
   };
 };
