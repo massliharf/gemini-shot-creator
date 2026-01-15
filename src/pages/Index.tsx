@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles } from "lucide-react";
+import { getPackGender } from "@/types/pack";
 
 // Components
 import { AppLayout } from "@/components/AppLayout";
@@ -20,9 +21,12 @@ import { useGeneration } from "@/hooks/useGeneration";
 import { useDownload } from "@/hooks/useDownload";
 import { useCloudOperations } from "@/hooks/useCloudOperations";
 
+type GenerationGender = "male" | "female";
+
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generationGender, setGenerationGender] = useState<GenerationGender>("female");
   const navigate = useNavigate();
 
   // Custom Hooks
@@ -62,6 +66,10 @@ const Index = () => {
     setResolution,
   } = useGenerationSettings();
 
+  // Determine if current pack is unisex
+  const selectedPackGender = selectedPack ? getPackGender(selectedPack.pack) : null;
+  const isUnisexPack = selectedPackGender === "unisex";
+
   const { generateSingleScene, generatePackScenes, generateAllPacks } = useGeneration({
     user,
     packs,
@@ -72,6 +80,7 @@ const Index = () => {
     aspectRatio,
     imageSize: resolution,
     resolution,
+    generationGender: isUnisexPack ? generationGender : undefined,
   });
 
   const { downloadScene, downloadPackAsZip, downloadMultiplePacks } = useDownload({
@@ -215,6 +224,9 @@ const Index = () => {
           onGenerate={() => selectedPackId && generatePackScenes(selectedPackId)}
           isGenerating={selectedPack?.isGenerating || false}
           canGenerate={canGenerate}
+          isUnisexPack={isUnisexPack}
+          generationGender={generationGender}
+          onGenerationGenderChange={setGenerationGender}
         />
       </AppLayout>
     </>
