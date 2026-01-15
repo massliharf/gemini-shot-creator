@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/popover";
 import { User, Plus, ChevronDown, X, Users } from "lucide-react";
 
+type GenerationGender = "male" | "female";
+
 interface BottomBarProps {
   aspectRatio: string;
   onAspectRatioChange: (value: string) => void;
@@ -32,6 +34,10 @@ interface BottomBarProps {
   onGenerate: () => void;
   isGenerating: boolean;
   canGenerate: boolean;
+  // Unisex pack gender selection
+  isUnisexPack?: boolean;
+  generationGender?: GenerationGender;
+  onGenerationGenderChange?: (gender: GenerationGender) => void;
 }
 
 export const BottomBar = ({
@@ -52,6 +58,9 @@ export const BottomBar = ({
   onGenerate,
   isGenerating,
   canGenerate,
+  isUnisexPack = false,
+  generationGender = "female",
+  onGenerationGenderChange,
 }: BottomBarProps) => {
   const [showAddMenu, setShowAddMenu] = useState(false);
 
@@ -165,6 +174,20 @@ export const BottomBar = ({
             </Button>
           </PopoverContent>
         </Popover>
+
+        {/* Gender Selector - Only for Unisex Packs */}
+        {isUnisexPack && onGenerationGenderChange && (
+          <Select value={generationGender} onValueChange={(v) => onGenerationGenderChange(v as GenerationGender)}>
+            <SelectTrigger className="w-auto h-10 px-4 rounded-full border border-primary/50 bg-primary/10 text-sm font-medium gap-2">
+              <span>{generationGender === "male" ? "♂ Male" : "♀ Female"}</span>
+              <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="female">♀ Female</SelectItem>
+              <SelectItem value="male">♂ Male</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Aspect Ratio */}
         <Select value={aspectRatio} onValueChange={onAspectRatioChange}>

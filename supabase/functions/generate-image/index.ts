@@ -46,6 +46,7 @@ serve(async (req) => {
       model = "flash",
       aspectRatio = "4:5",
       resolution = "1K",
+      generationGender,
     } = await req.json();
 
     // Validate API key
@@ -100,6 +101,7 @@ serve(async (req) => {
     console.log("Resolution:", isProModel ? validResolution : "N/A (Flash)");
     console.log("Has Selfie:", !!selfieBase64);
     console.log("Has Selfie2:", !!selfie2Base64);
+    console.log("Generation Gender:", generationGender || "not specified");
 
     // Build request parts: images first, then text
     const parts: unknown[] = [
@@ -234,10 +236,23 @@ serve(async (req) => {
         );
       }
 
+      // Get pack info and determine folder name
       const packId = queueItem.packs.pack_id;
+      const packData = queueItem.packs.pack_data as Record<string, unknown>;
+      
+      // Check if pack is unisex - look in meta or package_meta
+      const meta = (packData.meta || packData.package_meta) as Record<string, unknown> | undefined;
+      const packGender = meta?.gender as string | undefined;
+      const isUnisex = packGender === "unisex";
+      
+      // For unisex packs with a generation gender, append gender suffix to folder name
+      const folderName = isUnisex && generationGender 
+        ? `${packId}-${generationGender}` 
+        : packId;
+      
       const sceneId = String(queueItem.shot_id).padStart(2, "0");
       const ext = extFromMime(mimeType);
-      const imagePath = `${packId}/scene-${sceneId}.${ext}`;
+      const imagePath = `${folderName}/scene-${sceneId}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("generated-images")

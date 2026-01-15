@@ -19,6 +19,7 @@ interface UseGenerationProps {
   aspectRatio: string;
   imageSize: string;
   resolution?: string;
+  generationGender?: "male" | "female";
 }
 
 // Convert File to base64 + keep MIME type
@@ -49,6 +50,7 @@ export const useGeneration = ({
   aspectRatio,
   imageSize,
   resolution = "1K",
+  generationGender,
 }: UseGenerationProps) => {
   // Token usage tracking per pack
   const [packTokenStats, setPackTokenStats] = useState<Map<string, PackGenerationStats>>(new Map());
@@ -149,6 +151,7 @@ export const useGeneration = ({
             topP: config.top_p,
             aspectRatio,
             resolution,
+            generationGender,
           },
         });
 
@@ -412,6 +415,7 @@ export const useGeneration = ({
               topP: config.top_p,
               aspectRatio,
               resolution,
+              generationGender,
             },
           });
 
