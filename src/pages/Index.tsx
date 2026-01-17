@@ -41,6 +41,7 @@ const Index = () => {
     deletePack,
     deleteMultiplePacks,
     getPackInfos,
+    handlePacksLoad,
   } = usePacks(user);
 
   const {
@@ -170,6 +171,7 @@ const Index = () => {
             onDownloadMultiplePacks={downloadMultiplePacks}
             onGenerateAllPacks={handleGenerateAllPacks}
             isGeneratingAll={isGeneratingAll}
+            onPacksLoad={handlePacksLoad}
           />
         }
       >
