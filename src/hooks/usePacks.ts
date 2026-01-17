@@ -76,28 +76,33 @@ const scenesToArray = (packFile: PackFile): { id: string; title: string; prompt:
 const mergeQueueRowsIntoScenes = (packFile: PackFile, rows: QueueRow[] | undefined): SceneWithStatus[] => {
   const shotResults = new Map<number, QueueRow>();
   if (rows && rows.length > 0) {
-    // rows are sorted by updated_at desc; keep "best" for each shot
-    // Priority: success with image_path > success without > generating > queued > error > idle
+    // CRITICAL: Process ALL rows to find the best result for each shot
+    // Priority: success with image_path > generating > queued > success without path > error
     for (const q of rows) {
       const existing = shotResults.get(q.shot_id);
+      
+      // Score function: higher = better
+      const getScore = (row: QueueRow): number => {
+        if (row.status === "success" && row.image_path) return 100;
+        if (row.status === "generating") return 50;
+        if (row.status === "queued") return 40;
+        if (row.status === "success" && !row.image_path) return 30;
+        if (row.status === "error") return 10;
+        return 0;
+      };
+      
       if (!existing) {
         shotResults.set(q.shot_id, q);
         continue;
       }
       
-      // Always prefer success with image_path
-      if (q.status === "success" && q.image_path) {
-        if (existing.status !== "success" || !existing.image_path) {
-          shotResults.set(q.shot_id, q);
-        }
-        // If both have image_path, keep the newer one (first in sorted order = existing)
-      } else if (q.status === "success" && !q.image_path) {
-        // Success without image - only replace if existing is worse
-        if (existing.status !== "success") {
-          shotResults.set(q.shot_id, q);
-        }
+      const existingScore = getScore(existing);
+      const newScore = getScore(q);
+      
+      // Always prefer higher score, or newer if same score
+      if (newScore > existingScore) {
+        shotResults.set(q.shot_id, q);
       }
-      // For generating/queued/error, keep existing (older = first processed)
     }
   }
 
