@@ -1,10 +1,17 @@
 import { useState, useMemo } from "react";
-import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getSceneCount } from "@/types/pack";
+import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getSceneCount, hasScenes } from "@/types/pack";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SmartImage } from "@/components/SmartImage";
-import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, CheckCircle2, Circle, XCircle, Image as ImageIcon } from "lucide-react";
+import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, CheckCircle2, Circle, XCircle, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+
+export type PacksLoadResult = {
+  uploadedCount: number;
+  failed: Array<{ index: number; message: string }>;
+};
 export interface PackInfo {
   pack: PackFile;
   packId: string;
@@ -37,6 +44,7 @@ interface PackListProps {
   onDownloadMultiplePacks?: (packIds: string[]) => void;
   onGenerateAllPacks?: () => void;
   isGeneratingAll?: boolean;
+  onPacksLoad?: (packs: PackFile[]) => Promise<PacksLoadResult>;
 }
 const genderLabels: Record<string, string> = {
   woman_only: "Female",
@@ -113,11 +121,99 @@ export const PackList = ({
   onDeleteMultiplePacks,
   onDownloadMultiplePacks,
   onGenerateAllPacks,
-  isGeneratingAll = false
+  isGeneratingAll = false,
+  onPacksLoad
 }: PackListProps) => {
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // JSON Upload state
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [jsonText, setJsonText] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleJsonUpload = async () => {
+    if (!jsonText.trim() || !onPacksLoad) {
+      setUploadError("Please paste JSON content");
+      return;
+    }
+
+    const extractJsonSlice = (raw: string) => {
+      let s = raw.trim();
+      if (s.startsWith("```json")) s = s.slice(7);
+      else if (s.startsWith("```")) s = s.slice(3);
+      if (s.endsWith("```")) s = s.slice(0, -3);
+      s = s.trim();
+      const firstCurly = s.indexOf("{");
+      const firstSquare = s.indexOf("[");
+      const start = firstCurly === -1 ? firstSquare : firstSquare === -1 ? firstCurly : Math.min(firstCurly, firstSquare);
+      if (start === -1) return s;
+      const lastCurly = s.lastIndexOf("}");
+      const lastSquare = s.lastIndexOf("]");
+      const end = Math.max(lastCurly, lastSquare);
+      if (end === -1 || end <= start) return s.slice(start);
+      return s.slice(start, end + 1);
+    };
+
+    const normalizeToPacks = (parsed: any): PackFile[] => {
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        if (parsed.pack && typeof parsed.pack === "object") return [parsed.pack as PackFile];
+        if (Array.isArray(parsed.packs)) return parsed.packs as PackFile[];
+        if (Array.isArray(parsed.data)) return parsed.data as PackFile[];
+        if (parsed.data && typeof parsed.data === "object") {
+          if (parsed.data.pack) return [parsed.data.pack as PackFile];
+          if (Array.isArray(parsed.data.packs)) return parsed.data.packs as PackFile[];
+        }
+      }
+      if (Array.isArray(parsed)) return parsed as PackFile[];
+      return [parsed as PackFile];
+    };
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const slice = extractJsonSlice(jsonText);
+      const parsed = JSON.parse(slice);
+      const packsToUpload = normalizeToPacks(parsed);
+
+      for (const pack of packsToUpload) {
+        const packId = getPackId(pack);
+        const packName = getPackName(pack);
+        if (!packId || !packName) {
+          setUploadError("Invalid JSON: missing pack_id or package_name");
+          setIsUploading(false);
+          return;
+        }
+        if (!hasScenes(pack)) {
+          setUploadError("Invalid JSON: missing or empty scenes array");
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      const result = await onPacksLoad(packsToUpload);
+      if (result.uploadedCount > 0) {
+        setJsonText("");
+        setIsUploadOpen(false);
+        toast.success(`${result.uploadedCount} pack(s) uploaded`);
+      }
+      if (result.failed.length > 0) {
+        setUploadError(`${result.failed.length} pack(s) failed`);
+      }
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        setUploadError("Invalid JSON syntax");
+      } else {
+        setUploadError(err instanceof Error ? err.message : "Upload failed");
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -210,9 +306,58 @@ export const PackList = ({
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Delete All">
               <Trash2 className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Upload">
-              <Upload className="w-4 h-4" />
-            </Button>
+            <AlertDialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Upload JSON" disabled={!onPacksLoad}>
+                  <Upload className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-lg">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Paste JSON Pack</AlertDialogTitle>
+                  <AlertDialogDescription className="text-sm">
+                    Paste your JSON pack content below.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                
+                <div className="space-y-3">
+                  <textarea
+                    value={jsonText}
+                    onChange={(e) => {
+                      setJsonText(e.target.value);
+                      setUploadError(null);
+                    }}
+                    placeholder='{"package_meta": {...}, "global_render_settings": {...}, "shots": [...]}'
+                    className="w-full h-48 p-3 text-sm font-mono bg-secondary border-0 rounded-lg focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
+                    disabled={isUploading}
+                  />
+                  {uploadError && (
+                    <div className="flex items-center gap-2 text-destructive text-sm">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{uploadError}</span>
+                    </div>
+                  )}
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isUploading}>Cancel</AlertDialogCancel>
+                  <Button
+                    onClick={handleJsonUpload}
+                    disabled={isUploading || !jsonText.trim()}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      "Upload"
+                    )}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>}
       </div>
 
