@@ -748,7 +748,10 @@ export const PackSidebar = ({
           ))}
         </div>
 
-        {/* Upload Component */}
+      </div>
+
+      {/* Upload Component - Always Visible */}
+      <div className="px-3 pb-2 flex-shrink-0">
         <JsonUploader onPacksLoad={onPacksLoad} />
       </div>
 
