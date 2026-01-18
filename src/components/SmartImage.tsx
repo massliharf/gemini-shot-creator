@@ -10,6 +10,10 @@ type SmartImageProps = {
   fit?: "contain" | "cover";
   loading?: "lazy" | "eager";
   maxRetries?: number;
+  /** Called once when the image has definitely failed (after retries). */
+  onFinalError?: () => void;
+  /** Called when the image successfully loads. */
+  onLoaded?: () => void;
 };
 
 const withCacheBust = (url: string) => {
@@ -24,6 +28,8 @@ export function SmartImage({
   fit = "contain",
   loading = "eager",
   maxRetries = 3,
+  onFinalError,
+  onLoaded,
 }: SmartImageProps) {
   const initialSrc = useMemo(() => src, [src]);
   const [currentSrc, setCurrentSrc] = useState(src);
@@ -71,11 +77,13 @@ export function SmartImage({
         onLoad={() => {
           setLoaded(true);
           setFailed(false);
+          onLoaded?.();
         }}
         onError={() => {
           if (attempt >= maxRetries) {
             setLoaded(true);
             setFailed(true);
+            onFinalError?.();
             return;
           }
           const nextAttempt = attempt + 1;

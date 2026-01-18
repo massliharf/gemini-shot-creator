@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SceneWithStatus } from "@/types/pack";
 import { Button } from "@/components/ui/button";
+import { SmartImage } from "@/components/SmartImage";
 import { Download, RefreshCw, Trash2, Loader2 } from "lucide-react";
 
 interface SceneCardProps {
@@ -12,47 +13,38 @@ interface SceneCardProps {
   onClick?: () => void;
 }
 
-export const SceneCard = ({
-  scene,
-  index,
-  onGenerate,
-  onDownload,
-  onDelete,
-  onClick,
-}: SceneCardProps) => {
-  const [aspectRatio, setAspectRatio] = useState<number>(1);
+export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onClick }: SceneCardProps) => {
   const sceneId = scene.id ?? index + 1;
   const isGenerating = scene.status === "generating";
-  const hasImage = scene.status === "success" && scene.imageUrl;
+
+  // Some packs have DB rows pointing to deleted storage objects.
+  // If the image fails to load, treat it as "missing" so the user can regenerate.
+  const [imageBroken, setImageBroken] = useState(false);
+
+  useEffect(() => {
+    setImageBroken(false);
+  }, [scene.imageUrl, scene.status]);
+
+  const hasImage = scene.status === "success" && !!scene.imageUrl && !imageBroken;
   const isError = scene.status === "error";
 
-  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
-    if (img.naturalWidth && img.naturalHeight) {
-      setAspectRatio(img.naturalWidth / img.naturalHeight);
-    }
-  };
-
   return (
-    <div
-      className="relative bg-muted overflow-hidden group cursor-pointer h-full w-full"
-      onClick={() => hasImage && onClick?.()}
-    >
+    <div className="relative bg-muted overflow-hidden group cursor-pointer h-full w-full" onClick={() => hasImage && onClick?.()}>
       {/* Scene Label */}
       <div className="absolute top-3 left-3 z-10">
-        <span className="text-xs font-medium text-foreground">
-          Scene {sceneId}
-        </span>
+        <span className="text-xs font-medium text-foreground">Scene {sceneId}</span>
       </div>
 
       {hasImage ? (
         <>
-          <img
+          <SmartImage
             src={scene.imageUrl!}
             alt={`Scene ${sceneId}`}
-            className="w-full h-full object-cover"
+            fit="cover"
             loading="lazy"
-            onLoad={handleImageLoad}
+            className="w-full h-full"
+            maxRetries={2}
+            onFinalError={() => setImageBroken(true)}
           />
 
           {/* Hover Actions */}
@@ -109,18 +101,25 @@ export const SceneCard = ({
                 e.stopPropagation();
                 onGenerate();
               }}
-              className={`rounded-lg bg-background border-border text-foreground hover:bg-muted ${isError ? 'border-destructive text-destructive' : ''}`}
+              className={`rounded-lg bg-background border-border text-foreground hover:bg-muted ${isError ? "border-destructive text-destructive" : ""}`}
             >
-              {isError ? 'RETRY' : 'GENERATE'}
+              {isError ? "RETRY" : "GENERATE"}
             </Button>
           )}
-          {isError && scene.error && (
-            <p className="text-[10px] text-destructive mt-2 px-3 text-center line-clamp-2">
-              {scene.error}
+
+          {/* Show why we don't have an image */}
+          {imageBroken && (
+            <p className="text-[10px] text-muted-foreground mt-2 px-3 text-center line-clamp-2">
+              Görsel bulunamadı (silinmiş olabilir). Tekrar üret.
             </p>
+          )}
+
+          {isError && scene.error && !imageBroken && (
+            <p className="text-[10px] text-destructive mt-2 px-3 text-center line-clamp-2">{scene.error}</p>
           )}
         </div>
       )}
     </div>
   );
 };
+
