@@ -36,11 +36,21 @@ export interface PackFile {
 // ========== Scene Status (for UI) ==========
 export type SceneStatus = "idle" | "generating" | "success" | "error";
 
+/** A single version (generation) of a scene image */
+export interface SceneVersion {
+  imageUrl: string;
+  imagePath: string;
+  generatedAt: string; // ISO timestamp
+  queueId?: string;
+}
+
 export interface SceneWithStatus extends Scene {
   title?: string;
   status: SceneStatus;
   error?: string;
   imageUrl?: string;
+  /** All previous successful versions of this scene (newest first) */
+  versions?: SceneVersion[];
 }
 
 // ========== Generation Results ==========

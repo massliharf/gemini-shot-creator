@@ -4,6 +4,7 @@ import {
   PackFile,
   SceneWithStatus,
   SceneStatus,
+  SceneVersion,
   getPackId,
   getPackName,
   hasScenes,
@@ -41,6 +42,7 @@ export const normalizeSceneId = (id: string | number | undefined): number => {
 };
 
 type QueueRow = {
+  id: string;
   pack_id: string | null;
   shot_id: number;
   status: string;
@@ -87,56 +89,74 @@ const scenesToArray = (packFile: PackFile): { id: string; title: string; prompt:
 };
 
 const mergeQueueRowsIntoScenes = (packFile: PackFile, rows: QueueRow[] | undefined): SceneWithStatus[] => {
-  const shotResults = new Map<number, QueueRow>();
+  // Group ALL rows by shot_id, track best result + version history
+  const shotRows = new Map<number, QueueRow[]>();
   if (rows && rows.length > 0) {
-    // CRITICAL: Process ALL rows to find the best result for each shot
-    // Priority: success with image_path > generating > queued > success without path > error
     for (const q of rows) {
-      const existing = shotResults.get(q.shot_id);
-      
-      // Score function: higher = better
-      const getScore = (row: QueueRow): number => {
-        if (row.status === "success" && row.image_path) return 100;
-        if (row.status === "generating") return 50;
-        if (row.status === "queued") return 40;
-        if (row.status === "success" && !row.image_path) return 30;
-        if (row.status === "error") return 10;
-        return 0;
-      };
-      
-      if (!existing) {
-        shotResults.set(q.shot_id, q);
-        continue;
-      }
-      
-      const existingScore = getScore(existing);
-      const newScore = getScore(q);
-      
-      // Always prefer higher score, or newer if same score
-      if (newScore > existingScore) {
-        shotResults.set(q.shot_id, q);
-      }
+      const arr = shotRows.get(q.shot_id) || [];
+      arr.push(q);
+      shotRows.set(q.shot_id, arr);
     }
   }
 
+  // Score function: higher = better
+  const getScore = (row: QueueRow): number => {
+    if (row.status === "success" && row.image_path) return 100;
+    if (row.status === "generating") return 50;
+    if (row.status === "queued") return 40;
+    if (row.status === "success" && !row.image_path) return 30;
+    if (row.status === "error") return 10;
+    return 0;
+  };
+
+  const getPublicUrlWithBust = (imagePath: string, updatedAt: string | null): string => {
+    const { data: { publicUrl } } = supabase.storage.from("generated-images").getPublicUrl(imagePath);
+    return `${publicUrl}?t=${new Date(updatedAt || Date.now()).getTime()}`;
+  };
+
   return scenesToArray(packFile).map((scene) => {
     const sceneIdNum = normalizeSceneId(scene.id);
-    const result = shotResults.get(sceneIdNum);
-    const { status: sceneStatus, error } = getSceneStatusFromRow(result);
+    const allRows = shotRows.get(sceneIdNum) || [];
 
-    if (sceneStatus === "success" && result?.image_path) {
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("generated-images").getPublicUrl(result.image_path);
+    // Find best result (for current state)
+    let bestRow: QueueRow | undefined;
+    for (const q of allRows) {
+      if (!bestRow || getScore(q) > getScore(bestRow)) {
+        bestRow = q;
+      }
+    }
 
-      // Add cache-busting timestamp to prevent stale images
-      const urlWithCacheBust = `${publicUrl}?t=${new Date(result.updated_at || Date.now()).getTime()}`;
-      return { ...scene, status: "success" as SceneStatus, imageUrl: urlWithCacheBust };
+    // Collect ALL successful versions (sorted by updated_at desc - newest first)
+    const successfulRows = allRows
+      .filter((r) => r.status === "success" && r.image_path)
+      .sort((a, b) => {
+        const ta = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const tb = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return tb - ta; // newest first
+      });
+
+    const versions: SceneVersion[] = successfulRows.map((r) => ({
+      imageUrl: getPublicUrlWithBust(r.image_path!, r.updated_at),
+      imagePath: r.image_path!,
+      generatedAt: r.updated_at || new Date().toISOString(),
+      queueId: r.id,
+    }));
+
+    const { status: sceneStatus, error } = getSceneStatusFromRow(bestRow);
+
+    if (sceneStatus === "success" && bestRow?.image_path) {
+      const urlWithCacheBust = getPublicUrlWithBust(bestRow.image_path, bestRow.updated_at);
+      return { 
+        ...scene, 
+        status: "success" as SceneStatus, 
+        imageUrl: urlWithCacheBust,
+        versions: versions.length > 1 ? versions : undefined, // only include if there's history
+      };
     }
 
     // If status is success but no image_path yet, show as generating (image upload in progress)
-    if (sceneStatus === "success" && !result?.image_path) {
-      return { ...scene, status: "generating" as SceneStatus };
+    if (sceneStatus === "success" && !bestRow?.image_path) {
+      return { ...scene, status: "generating" as SceneStatus, versions: versions.length > 0 ? versions : undefined };
     }
 
     if (sceneStatus === "error") {
@@ -144,14 +164,15 @@ const mergeQueueRowsIntoScenes = (packFile: PackFile, rows: QueueRow[] | undefin
         ...scene,
         status: "error" as SceneStatus,
         error: error || "Generation failed",
+        versions: versions.length > 0 ? versions : undefined,
       };
     }
 
     if (sceneStatus === "generating") {
-      return { ...scene, status: "generating" as SceneStatus };
+      return { ...scene, status: "generating" as SceneStatus, versions: versions.length > 0 ? versions : undefined };
     }
 
-    return { ...scene, status: "idle" as SceneStatus };
+    return { ...scene, status: "idle" as SceneStatus, versions: versions.length > 0 ? versions : undefined };
   });
 };
 
@@ -194,7 +215,7 @@ export const usePacks = (user: User | null) => {
 
       const { data: queueRows, error: queueErr } = await supabase
         .from("generation_queue")
-        .select("pack_id, shot_id, status, image_path, error_message, updated_at")
+        .select("id, pack_id, shot_id, status, image_path, error_message, updated_at")
         .eq("user_id", user.id)
         .in("pack_id", packIds)
         .order("updated_at", { ascending: false });

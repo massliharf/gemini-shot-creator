@@ -252,7 +252,9 @@ serve(async (req) => {
       
       const sceneId = String(queueItem.shot_id).padStart(2, "0");
       const ext = extFromMime(mimeType);
-      const imagePath = `${folderName}/scene-${sceneId}.${ext}`;
+      // Use timestamp-based unique filename to preserve version history
+      const timestamp = Date.now();
+      const imagePath = `${folderName}/scene-${sceneId}-${timestamp}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("generated-images")
