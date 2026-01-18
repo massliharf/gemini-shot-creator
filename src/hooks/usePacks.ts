@@ -49,17 +49,30 @@ type QueueRow = {
   updated_at: string | null;
 };
 
-const statusToSceneStatus = (status: string | null | undefined): SceneStatus => {
-  if (status === "success") return "success";
-  if (status === "error") return "error";
+const STALE_GENERATING_MS = 20 * 60 * 1000; // 20 minutes
+
+const getSceneStatusFromRow = (row?: QueueRow): { status: SceneStatus; error?: string } => {
+  const status = row?.status;
+
+  if (status === "success") return { status: "success" };
+  if (status === "error") return { status: "error", error: row?.error_message || "Generation failed" };
 
   // "queued" rows mean the client created queue items but generation did not actually run
   // (e.g. user closed the app). Treat as idle to avoid "stuck generating" UI.
-  if (status === "generating") return "generating";
-  if (status === "queued") return "idle";
+  if (status === "queued") return { status: "idle" };
 
-  return "idle";
+  if (status === "generating") {
+    const updatedAt = row?.updated_at ? new Date(row.updated_at).getTime() : null;
+    const isStale = updatedAt ? Date.now() - updatedAt > STALE_GENERATING_MS : false;
+    if (isStale) {
+      return { status: "error", error: "Generation timed out (stuck). Please retry." };
+    }
+    return { status: "generating" };
+  }
+
+  return { status: "idle" };
 };
+
 
 // Convert scenes to SceneWithStatus array
 const scenesToArray = (packFile: PackFile): { id: string; title: string; prompt: string }[] => {
@@ -109,7 +122,7 @@ const mergeQueueRowsIntoScenes = (packFile: PackFile, rows: QueueRow[] | undefin
   return scenesToArray(packFile).map((scene) => {
     const sceneIdNum = normalizeSceneId(scene.id);
     const result = shotResults.get(sceneIdNum);
-    const sceneStatus = statusToSceneStatus(result?.status);
+    const { status: sceneStatus, error } = getSceneStatusFromRow(result);
 
     if (sceneStatus === "success" && result?.image_path) {
       const {
@@ -130,7 +143,7 @@ const mergeQueueRowsIntoScenes = (packFile: PackFile, rows: QueueRow[] | undefin
       return {
         ...scene,
         status: "error" as SceneStatus,
-        error: result?.error_message || "Generation failed",
+        error: error || "Generation failed",
       };
     }
 
@@ -259,7 +272,7 @@ export const usePacks = (user: User | null) => {
             const nextScenes = existingPack.scenes.map((s) => {
               if (normalizeSceneId(s.id) !== row.shot_id) return s;
 
-              const nextStatus = statusToSceneStatus(row.status);
+              const { status: nextStatus, error } = getSceneStatusFromRow(row);
 
               if (nextStatus === "success") {
                 // CRITICAL: Don't lose existing image if new row has no image_path
@@ -290,7 +303,7 @@ export const usePacks = (user: User | null) => {
                 return {
                   ...s,
                   status: "error" as SceneStatus,
-                  error: row.error_message || "Generation failed",
+                  error: error || row.error_message || "Generation failed",
                 };
               }
 
