@@ -2,51 +2,63 @@ import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const COUPLE_MODE_KEY = "reference-images-couple-mode";
+const MAX_IMAGES = 5;
+const STORAGE_KEY = "reference-images-count";
+
+export interface ReferenceImage {
+  file: File | null;
+  previewUrl: string | null;
+  storagePath: string;
+}
 
 export const useReferenceImages = () => {
-  const [referenceImage, setReferenceImage] = useState<File | null>(null);
-  const [referencePreviewUrl, setReferencePreviewUrl] = useState<string | null>(null);
-  const [secondReferenceImage, setSecondReferenceImage] = useState<File | null>(null);
-  const [secondReferencePreviewUrl, setSecondReferencePreviewUrl] = useState<string | null>(null);
-  const [coupleMode, setCoupleMode] = useState(() => {
-    try {
-      return localStorage.getItem(COUPLE_MODE_KEY) === "true";
-    } catch {
-      return false;
-    }
-  });
+  const [images, setImages] = useState<ReferenceImage[]>([
+    { file: null, previewUrl: null, storagePath: "reference/reference-face.jpg" },
+  ]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Persist couple mode to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(COUPLE_MODE_KEY, coupleMode ? "true" : "false");
-    } catch {
-      // Ignore storage errors
-    }
-  }, [coupleMode]);
 
   // Restore reference images from Supabase storage on mount
   useEffect(() => {
     const restoreImages = async () => {
       try {
-        // Check for primary reference image
-        const { data: primaryData } = await supabase.storage
+        // List all files in reference folder
+        const { data: files } = await supabase.storage
           .from('generated-images')
-          .createSignedUrl('reference/reference-face.jpg', 3600);
+          .list('reference');
 
-        if (primaryData?.signedUrl) {
-          setReferencePreviewUrl(primaryData.signedUrl);
+        if (!files || files.length === 0) {
+          setIsLoading(false);
+          return;
         }
 
-        // Check for secondary reference image
-        const { data: secondaryData } = await supabase.storage
-          .from('generated-images')
-          .createSignedUrl('reference/reference-face-2.jpg', 3600);
+        // Sort files to maintain order (reference-face.jpg, reference-face-2.jpg, etc.)
+        const sortedFiles = files
+          .filter(f => f.name.startsWith('reference-face'))
+          .sort((a, b) => {
+            const numA = a.name === 'reference-face.jpg' ? 1 : parseInt(a.name.match(/-(\d+)\.jpg$/)?.[1] || '0');
+            const numB = b.name === 'reference-face.jpg' ? 1 : parseInt(b.name.match(/-(\d+)\.jpg$/)?.[1] || '0');
+            return numA - numB;
+          });
 
-        if (secondaryData?.signedUrl) {
-          setSecondReferencePreviewUrl(secondaryData.signedUrl);
+        const restoredImages: ReferenceImage[] = [];
+
+        for (const file of sortedFiles) {
+          const storagePath = `reference/${file.name}`;
+          const { data } = await supabase.storage
+            .from('generated-images')
+            .createSignedUrl(storagePath, 3600);
+
+          if (data?.signedUrl) {
+            restoredImages.push({
+              file: null,
+              previewUrl: data.signedUrl,
+              storagePath,
+            });
+          }
+        }
+
+        if (restoredImages.length > 0) {
+          setImages(restoredImages);
         }
       } catch (error) {
         console.warn("Failed to restore reference images:", error);
@@ -58,125 +70,139 @@ export const useReferenceImages = () => {
     restoreImages();
   }, []);
 
-  const handleImageUpload = useCallback(async (file: File) => {
+  const getStoragePath = (index: number): string => {
+    if (index === 0) return "reference/reference-face.jpg";
+    return `reference/reference-face-${index + 1}.jpg`;
+  };
+
+  const handleImageUpload = useCallback(async (file: File, index: number = 0) => {
     const previewUrl = URL.createObjectURL(file);
-    if (referencePreviewUrl && referencePreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(referencePreviewUrl);
-    }
-    setReferencePreviewUrl(previewUrl);
-    setReferenceImage(file);
+    const storagePath = getStoragePath(index);
 
-    const { data: existingFiles } = await supabase.storage
-      .from('generated-images')
-      .list('reference');
-
-    if (existingFiles && existingFiles.length > 0) {
-      const filesToRemove = existingFiles
-        .filter(f => f.name === 'reference-face.jpg')
-        .map(f => `reference/${f.name}`);
-      if (filesToRemove.length > 0) {
-        await supabase.storage
-          .from('generated-images')
-          .remove(filesToRemove);
+    // Update local state
+    setImages(prev => {
+      const updated = [...prev];
+      // Revoke old blob URL
+      if (updated[index]?.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(updated[index].previewUrl!);
       }
-    }
+      updated[index] = { file, previewUrl, storagePath };
+      return updated;
+    });
 
+    // Upload to storage
     const { error } = await supabase.storage
       .from('generated-images')
-      .upload(`reference/reference-face.jpg`, file, { upsert: true });
+      .upload(storagePath, file, { upsert: true });
 
     if (error) {
-      toast.error('Failed to upload reference image');
+      toast.error(`Failed to upload image ${index + 1}`);
       console.error(error);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setReferencePreviewUrl(null);
-      setReferenceImage(null);
+      URL.revokeObjectURL(previewUrl);
+      setImages(prev => {
+        const updated = [...prev];
+        updated[index] = { file: null, previewUrl: null, storagePath };
+        return updated;
+      });
       return;
     }
 
-    toast.success('Reference image uploaded');
-  }, [referencePreviewUrl]);
+    toast.success(`Reference image ${index + 1} uploaded`);
+  }, []);
 
-  const handleImageClear = useCallback(async () => {
+  const handleImageClear = useCallback(async (index: number) => {
+    const image = images[index];
+    if (!image) return;
+
+    // Remove from storage
     await supabase.storage
       .from('generated-images')
-      .remove(['reference/reference-face.jpg']);
+      .remove([image.storagePath]);
 
-    if (referencePreviewUrl && referencePreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(referencePreviewUrl);
+    // Revoke blob URL
+    if (image.previewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(image.previewUrl);
     }
-    setReferencePreviewUrl(null);
-    setReferenceImage(null);
-    toast.success('Reference image cleared');
-  }, [referencePreviewUrl]);
 
-  const handleSecondImageUpload = useCallback(async (file: File) => {
-    const previewUrl = URL.createObjectURL(file);
-    if (secondReferencePreviewUrl && secondReferencePreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(secondReferencePreviewUrl);
-    }
-    setSecondReferencePreviewUrl(previewUrl);
-    setSecondReferenceImage(file);
+    setImages(prev => {
+      const updated = [...prev];
+      // If this is the only image, just clear it
+      if (updated.length === 1) {
+        updated[0] = { file: null, previewUrl: null, storagePath: getStoragePath(0) };
+      } else {
+        // Remove the image and reindex remaining ones
+        updated.splice(index, 1);
+      }
+      return updated;
+    });
 
-    const { error } = await supabase.storage
-      .from('generated-images')
-      .upload(`reference/reference-face-2.jpg`, file, { upsert: true });
+    toast.success('Reference image removed');
+  }, [images]);
 
-    if (error) {
-      toast.error('Failed to upload second reference image');
-      console.error(error);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setSecondReferencePreviewUrl(null);
-      setSecondReferenceImage(null);
+  const addImageSlot = useCallback(() => {
+    if (images.length >= MAX_IMAGES) {
+      toast.info(`Maximum ${MAX_IMAGES} reference images allowed`);
       return;
     }
 
-    toast.success('Second reference image uploaded');
-  }, [secondReferencePreviewUrl]);
-
-  const handleSecondImageClear = useCallback(async () => {
-    await supabase.storage
-      .from('generated-images')
-      .remove(['reference/reference-face-2.jpg']);
-
-    if (secondReferencePreviewUrl && secondReferencePreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(secondReferencePreviewUrl);
-    }
-    setSecondReferencePreviewUrl(null);
-    setSecondReferenceImage(null);
-    toast.success('Second reference image cleared');
-  }, [secondReferencePreviewUrl]);
+    setImages(prev => [
+      ...prev,
+      { file: null, previewUrl: null, storagePath: getStoragePath(prev.length) },
+    ]);
+  }, [images.length]);
 
   const clearAll = useCallback(async () => {
-    // Clear from storage
-    await supabase.storage
-      .from('generated-images')
-      .remove(['reference/reference-face.jpg', 'reference/reference-face-2.jpg']);
+    // Build paths to remove
+    const pathsToRemove = images
+      .filter(img => img.previewUrl)
+      .map(img => img.storagePath);
 
-    if (referencePreviewUrl && referencePreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(referencePreviewUrl);
+    if (pathsToRemove.length > 0) {
+      await supabase.storage
+        .from('generated-images')
+        .remove(pathsToRemove);
     }
-    if (secondReferencePreviewUrl && secondReferencePreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(secondReferencePreviewUrl);
-    }
-    setReferenceImage(null);
-    setReferencePreviewUrl(null);
-    setSecondReferenceImage(null);
-    setSecondReferencePreviewUrl(null);
-  }, [referencePreviewUrl, secondReferencePreviewUrl]);
+
+    // Revoke all blob URLs
+    images.forEach(img => {
+      if (img.previewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(img.previewUrl);
+      }
+    });
+
+    setImages([{ file: null, previewUrl: null, storagePath: getStoragePath(0) }]);
+  }, [images]);
+
+  // Computed values for backward compatibility
+  const referenceImage = images[0]?.file ?? null;
+  const referencePreviewUrl = images[0]?.previewUrl ?? null;
+  const secondReferenceImage = images[1]?.file ?? null;
+  const secondReferencePreviewUrl = images[1]?.previewUrl ?? null;
+
+  // Legacy handlers for backward compatibility
+  const handlePrimaryImageUpload = useCallback((file: File) => handleImageUpload(file, 0), [handleImageUpload]);
+  const handlePrimaryImageClear = useCallback(() => handleImageClear(0), [handleImageClear]);
+  const handleSecondImageUpload = useCallback((file: File) => handleImageUpload(file, 1), [handleImageUpload]);
+  const handleSecondImageClear = useCallback(() => handleImageClear(1), [handleImageClear]);
 
   return {
+    // New multi-image API
+    images,
+    handleImageUpload,
+    handleImageClear,
+    addImageSlot,
+    clearAll,
+    isLoading,
+    maxImages: MAX_IMAGES,
+
+    // Legacy compatibility (for couple mode migration)
     referenceImage,
     referencePreviewUrl,
     secondReferenceImage,
     secondReferencePreviewUrl,
-    coupleMode,
-    setCoupleMode,
-    handleImageUpload,
-    handleImageClear,
+    handlePrimaryImageUpload,
+    handlePrimaryImageClear,
     handleSecondImageUpload,
     handleSecondImageClear,
-    clearAll,
-    isLoading,
   };
 };

@@ -38,6 +38,9 @@ serve(async (req) => {
   try {
     const {
       queueId,
+      // New multi-image support
+      referenceImages,
+      // Legacy fields for backward compatibility
       selfieBase64,
       selfieMimeType = "image/jpeg",
       selfie2Base64,
@@ -58,10 +61,30 @@ serve(async (req) => {
       );
     }
 
+    // Build image parts from referenceImages array or legacy fields
+    const imageParts: unknown[] = [];
+    
+    if (referenceImages && Array.isArray(referenceImages) && referenceImages.length > 0) {
+      // Use new multi-image format
+      for (const img of referenceImages) {
+        if (img.base64) {
+          imageParts.push({ inline_data: { mime_type: img.mimeType || "image/jpeg", data: img.base64 } });
+        }
+      }
+    } else {
+      // Fall back to legacy fields
+      if (selfieBase64) {
+        imageParts.push({ inline_data: { mime_type: selfieMimeType, data: selfieBase64 } });
+      }
+      if (selfie2Base64) {
+        imageParts.push({ inline_data: { mime_type: selfie2MimeType, data: selfie2Base64 } });
+      }
+    }
+
     // Validate required inputs
-    if (!selfieBase64) {
+    if (imageParts.length === 0) {
       return new Response(
-        JSON.stringify({ success: false, reason: "no_selfie", message: "Reference photo is required" }),
+        JSON.stringify({ success: false, reason: "no_selfie", message: "At least one reference photo is required" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -99,19 +122,11 @@ serve(async (req) => {
     console.log("Model:", resolvedModel);
     console.log("Aspect Ratio:", validAspectRatio);
     console.log("Resolution:", isProModel ? validResolution : "N/A (Flash)");
-    console.log("Has Selfie:", !!selfieBase64);
-    console.log("Has Selfie2:", !!selfie2Base64);
+    console.log("Reference Images Count:", imageParts.length);
     console.log("Generation Gender:", generationGender || "not specified");
 
     // Build request parts: images first, then text
-    const parts: unknown[] = [
-      { inline_data: { mime_type: selfieMimeType, data: selfieBase64 } },
-    ];
-
-    if (selfie2Base64) {
-      parts.push({ inline_data: { mime_type: selfie2MimeType, data: selfie2Base64 } });
-    }
-
+    const parts: unknown[] = [...imageParts];
     parts.push({ text: finalPrompt });
 
     // Build generation config - only essential params
