@@ -8,13 +8,13 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PackData, normalizeSceneId } from "./usePacks";
+import { ReferenceImage } from "./useReferenceImages";
 
 interface UseGenerationProps {
   user: User | null;
   packs: Map<string, PackData>;
   setPacks: React.Dispatch<React.SetStateAction<Map<string, PackData>>>;
-  referenceImage: File | null;
-  referenceImage2?: File | null;
+  referenceImages: ReferenceImage[];
   selectedModel: string;
   aspectRatio: string;
   imageSize: string;
@@ -40,12 +40,42 @@ const fileToBase64WithMime = (file: File): Promise<{ base64: string; mimeType: s
   });
 };
 
+// Fetch URL image and convert to base64
+const urlToBase64WithMime = async (url: string): Promise<{ base64: string; mimeType: string }> => {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const [prefix, b64] = result.split(",");
+      const mimeMatch = prefix.match(/^data:([^;]+);base64$/);
+      resolve({
+        base64: b64,
+        mimeType: (mimeMatch?.[1] || blob.type || "image/jpeg").trim(),
+      });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+// Convert ReferenceImage to base64 (handles both File and URL)
+const referenceImageToBase64 = async (ref: ReferenceImage): Promise<{ base64: string; mimeType: string } | null> => {
+  if (ref.file) {
+    return fileToBase64WithMime(ref.file);
+  }
+  if (ref.previewUrl) {
+    return urlToBase64WithMime(ref.previewUrl);
+  }
+  return null;
+};
+
 export const useGeneration = ({
   user,
   packs,
   setPacks,
-  referenceImage,
-  referenceImage2,
+  referenceImages,
   selectedModel,
   aspectRatio,
   imageSize,
@@ -55,6 +85,10 @@ export const useGeneration = ({
   // Token usage tracking per pack
   const [packTokenStats, setPackTokenStats] = useState<Map<string, PackGenerationStats>>(new Map());
   
+  // Get valid reference images (with file or previewUrl)
+  const getValidReferenceImages = () => referenceImages.filter(img => img.file || img.previewUrl);
+  const hasReferenceImage = () => getValidReferenceImages().length > 0;
+  
   const generateSingleScene = useCallback(async (packId: string, sceneId: string | number, forceRegenerate: boolean = false) => {
     if (!user) {
       toast.error('Please sign in to generate scenes');
@@ -62,7 +96,8 @@ export const useGeneration = ({
     }
 
     const packData = packs.get(packId);
-    if (!packData || !referenceImage) {
+    const validImages = getValidReferenceImages();
+    if (!packData || validImages.length === 0) {
       toast.error('Please upload reference image');
       return;
     }
@@ -130,9 +165,13 @@ export const useGeneration = ({
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        // Prepare base64 images
-        const selfie = await fileToBase64WithMime(referenceImage);
-        const selfie2 = referenceImage2 ? await fileToBase64WithMime(referenceImage2) : undefined;
+        // Prepare base64 images - convert all reference images
+        const imagePromises = validImages.map(img => referenceImageToBase64(img));
+        const base64Images = (await Promise.all(imagePromises)).filter(Boolean) as { base64: string; mimeType: string }[];
+        
+        if (base64Images.length === 0) {
+          throw new Error('No valid reference images');
+        }
 
         // Build final prompt: scene.prompt + style_anchor.prompt
         const finalPrompt = buildFinalPrompt(packData.pack, String(sceneId).padStart(2, "0"));
@@ -141,10 +180,13 @@ export const useGeneration = ({
         const { data, error } = await supabase.functions.invoke('generate-image', {
           body: { 
             queueId: insertedItem.id,
-            selfieBase64: selfie.base64,
-            selfieMimeType: selfie.mimeType,
-            selfie2Base64: selfie2?.base64,
-            selfie2MimeType: selfie2?.mimeType,
+            // Send all images as an array
+            referenceImages: base64Images,
+            // Keep legacy fields for backward compatibility
+            selfieBase64: base64Images[0]?.base64,
+            selfieMimeType: base64Images[0]?.mimeType,
+            selfie2Base64: base64Images[1]?.base64,
+            selfie2MimeType: base64Images[1]?.mimeType,
             finalPrompt,
             model: selectedModel,
             temperature: config.temperature,
@@ -266,7 +308,7 @@ export const useGeneration = ({
       
       toast.error(`Failed to generate scene ${sceneId} after ${maxRetries} attempts`);
     }
-  }, [user, packs, referenceImage, referenceImage2, selectedModel, aspectRatio, imageSize, setPacks, resolution]);
+  }, [user, packs, referenceImages, selectedModel, aspectRatio, imageSize, setPacks, resolution, getValidReferenceImages]);
 
   const generatePackScenes = useCallback(async (packId: string, skipCompleted: boolean = true) => {
     if (!user) {
@@ -275,7 +317,8 @@ export const useGeneration = ({
     }
 
     const packData = packs.get(packId);
-    if (!packData || !referenceImage) {
+    const validImages = getValidReferenceImages();
+    if (!packData || validImages.length === 0) {
       toast.error('Please upload reference image');
       return;
     }
@@ -311,8 +354,20 @@ export const useGeneration = ({
     const currentPack = packs.get(packId)!;
     
     // Prepare base64 images once for all scenes
-    const selfie = await fileToBase64WithMime(referenceImage);
-    const selfie2 = referenceImage2 ? await fileToBase64WithMime(referenceImage2) : undefined;
+    const imagePromises = validImages.map(img => referenceImageToBase64(img));
+    const base64Images = (await Promise.all(imagePromises)).filter(Boolean) as { base64: string; mimeType: string }[];
+    
+    if (base64Images.length === 0) {
+      toast.error('Failed to prepare reference images');
+      setPacks(prev => {
+        const updated = new Map(prev);
+        const existingPack = updated.get(packId);
+        if (!existingPack) return prev;
+        updated.set(packId, { ...existingPack, isGenerating: false });
+        return updated;
+      });
+      return;
+    }
 
     const queueItems = scenesToGenerate.map(scene => {
       const sceneIdNum = normalizeSceneId(scene.id);
@@ -405,10 +460,13 @@ export const useGeneration = ({
           const { data, error } = await supabase.functions.invoke('generate-image', {
             body: { 
               queueId: queueItem.id,
-              selfieBase64: selfie.base64,
-              selfieMimeType: selfie.mimeType,
-              selfie2Base64: selfie2?.base64,
-              selfie2MimeType: selfie2?.mimeType,
+              // Send all images as an array
+              referenceImages: base64Images,
+              // Keep legacy fields for backward compatibility
+              selfieBase64: base64Images[0]?.base64,
+              selfieMimeType: base64Images[0]?.mimeType,
+              selfie2Base64: base64Images[1]?.base64,
+              selfie2MimeType: base64Images[1]?.mimeType,
               finalPrompt,
               model: selectedModel,
               temperature: config.temperature,
@@ -556,7 +614,7 @@ export const useGeneration = ({
       });
       return updated;
     });
-  }, [user, packs, referenceImage, referenceImage2, selectedModel, aspectRatio, resolution, setPacks, packTokenStats]);
+  }, [user, packs, referenceImages, selectedModel, aspectRatio, resolution, setPacks, packTokenStats, getValidReferenceImages]);
 
   const regenerateScene = useCallback(async (packId: string, sceneId: string | number) => {
     // Reset scene status and regenerate

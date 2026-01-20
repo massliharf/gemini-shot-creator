@@ -45,17 +45,13 @@ const Index = () => {
   } = usePacks(user);
 
   const {
+    images,
     referenceImage,
-    referencePreviewUrl,
-    secondReferenceImage,
-    secondReferencePreviewUrl,
-    coupleMode,
-    setCoupleMode,
     handleImageUpload,
     handleImageClear,
-    handleSecondImageUpload,
-    handleSecondImageClear,
+    addImageSlot,
     clearAll: clearReferenceImages,
+    maxImages,
   } = useReferenceImages();
 
   const {
@@ -75,8 +71,7 @@ const Index = () => {
     user,
     packs,
     setPacks,
-    referenceImage,
-    referenceImage2: coupleMode ? secondReferenceImage : undefined,
+    referenceImages: images,
     selectedModel,
     aspectRatio,
     imageSize: resolution,
@@ -215,14 +210,11 @@ const Index = () => {
           onResolutionChange={setResolution}
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
-          coupleMode={coupleMode}
-          onCoupleModeChange={setCoupleMode}
-          previewUrl={referencePreviewUrl}
-          secondPreviewUrl={secondReferencePreviewUrl}
+          images={images}
           onImageUpload={handleImageUpload}
           onImageClear={handleImageClear}
-          onSecondImageUpload={handleSecondImageUpload}
-          onSecondImageClear={handleSecondImageClear}
+          onAddImageSlot={addImageSlot}
+          maxImages={maxImages}
           onGenerate={() => selectedPackId && generatePackScenes(selectedPackId)}
           isGenerating={selectedPack?.isGenerating || false}
           canGenerate={canGenerate}
