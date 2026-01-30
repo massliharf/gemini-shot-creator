@@ -174,10 +174,14 @@ export const useReferenceImages = () => {
   }, [images]);
 
   // Computed values for backward compatibility
-  const referenceImage = images[0]?.file ?? null;
+  // Check both file and previewUrl since restored images only have previewUrl
+  const referenceImage = images[0]?.file ?? (images[0]?.previewUrl ? images[0] : null);
   const referencePreviewUrl = images[0]?.previewUrl ?? null;
-  const secondReferenceImage = images[1]?.file ?? null;
+  const secondReferenceImage = images[1]?.file ?? (images[1]?.previewUrl ? images[1] : null);
   const secondReferencePreviewUrl = images[1]?.previewUrl ?? null;
+  
+  // Helper to check if we have any valid reference image
+  const hasValidReferenceImage = images.some(img => img.file || img.previewUrl);
 
   // Legacy handlers for backward compatibility
   const handlePrimaryImageUpload = useCallback((file: File) => handleImageUpload(file, 0), [handleImageUpload]);
@@ -194,6 +198,7 @@ export const useReferenceImages = () => {
     clearAll,
     isLoading,
     maxImages: MAX_IMAGES,
+    hasValidReferenceImage,
 
     // Legacy compatibility (for couple mode migration)
     referenceImage,
