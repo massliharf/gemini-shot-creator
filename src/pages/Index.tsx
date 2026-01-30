@@ -61,6 +61,8 @@ const Index = () => {
     setAspectRatio,
     resolution,
     setResolution,
+    generationMode,
+    setGenerationMode,
   } = useGenerationSettings();
 
   // Determine if current pack is unisex
@@ -77,6 +79,7 @@ const Index = () => {
     imageSize: resolution,
     resolution,
     generationGender: isUnisexPack ? generationGender : undefined,
+    generationMode,
   });
 
   const { downloadScene, downloadPackAsZip, downloadMultiplePacks } = useDownload({
@@ -221,6 +224,8 @@ const Index = () => {
           isUnisexPack={isUnisexPack}
           generationGender={generationGender}
           onGenerationGenderChange={setGenerationGender}
+          generationMode={generationMode}
+          onGenerationModeChange={setGenerationMode}
         />
       </AppLayout>
     </>

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PackData, normalizeSceneId } from "./usePacks";
 import { ReferenceImage } from "./useReferenceImages";
+import { GenerationMode } from "./useGenerationSettings";
 
 interface UseGenerationProps {
   user: User | null;
@@ -20,6 +21,7 @@ interface UseGenerationProps {
   imageSize: string;
   resolution?: string;
   generationGender?: "male" | "female";
+  generationMode?: GenerationMode;
 }
 
 // Convert File to base64 + keep MIME type
@@ -81,6 +83,7 @@ export const useGeneration = ({
   imageSize,
   resolution = "1K",
   generationGender,
+  generationMode = "portrait",
 }: UseGenerationProps) => {
   // Token usage tracking per pack
   const [packTokenStats, setPackTokenStats] = useState<Map<string, PackGenerationStats>>(new Map());
@@ -194,6 +197,7 @@ export const useGeneration = ({
             aspectRatio,
             resolution,
             generationGender,
+            generationMode,
           },
         });
 
@@ -308,7 +312,7 @@ export const useGeneration = ({
       
       toast.error(`Failed to generate scene ${sceneId} after ${maxRetries} attempts`);
     }
-  }, [user, packs, referenceImages, selectedModel, aspectRatio, imageSize, setPacks, resolution, getValidReferenceImages]);
+  }, [user, packs, referenceImages, selectedModel, aspectRatio, imageSize, setPacks, resolution, generationMode, getValidReferenceImages]);
 
   const generatePackScenes = useCallback(async (packId: string, skipCompleted: boolean = true) => {
     if (!user) {
@@ -474,6 +478,7 @@ export const useGeneration = ({
               aspectRatio,
               resolution,
               generationGender,
+              generationMode,
             },
           });
 
