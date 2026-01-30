@@ -52,6 +52,7 @@ const Index = () => {
     addImageSlot,
     clearAll: clearReferenceImages,
     maxImages,
+    hasValidReferenceImage,
   } = useReferenceImages();
 
   const {
@@ -145,7 +146,7 @@ const Index = () => {
   }
 
   const packInfos = getPackInfos();
-  const canGenerate = selectedPack !== null && referenceImage !== null;
+  const canGenerate = selectedPack !== null && hasValidReferenceImage;
 
   return (
     <>
