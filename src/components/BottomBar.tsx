@@ -12,8 +12,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { User, Plus, ChevronDown, X, ImagePlus } from "lucide-react";
+import { User, Plus, ChevronDown, X, ImagePlus, Image, Palette } from "lucide-react";
 import { ReferenceImage } from "@/hooks/useReferenceImages";
+import { GenerationMode } from "@/hooks/useGenerationSettings";
 
 type GenerationGender = "male" | "female";
 
@@ -38,6 +39,9 @@ interface BottomBarProps {
   isUnisexPack?: boolean;
   generationGender?: GenerationGender;
   onGenerationGenderChange?: (gender: GenerationGender) => void;
+  // Generation mode
+  generationMode: GenerationMode;
+  onGenerationModeChange: (mode: GenerationMode) => void;
 }
 
 export const BottomBar = ({
@@ -58,6 +62,8 @@ export const BottomBar = ({
   isUnisexPack = false,
   generationGender = "female",
   onGenerationGenderChange,
+  generationMode,
+  onGenerationModeChange,
 }: BottomBarProps) => {
   const [showAddMenu, setShowAddMenu] = useState(false);
 
@@ -73,6 +79,7 @@ export const BottomBar = ({
   const modelLabel = isProModel ? "PRO" : "FLASH";
   const canAddMore = images.length < maxImages;
   const hasEmptySlot = images.some(img => !img.previewUrl);
+  const isStyleTransfer = generationMode === "style-transfer";
 
   return (
     <div className="fixed bottom-0 left-0 right-0 flex justify-center p-6 pointer-events-none z-50">
@@ -151,6 +158,42 @@ export const BottomBar = ({
             </Button>
           </PopoverContent>
         </Popover>
+
+        {/* Mode Selector */}
+        <Select value={generationMode} onValueChange={(v) => onGenerationModeChange(v as GenerationMode)}>
+          <SelectTrigger className={`w-auto h-10 px-4 rounded-full border text-sm font-medium gap-2 ${
+            isStyleTransfer 
+              ? 'border-purple-500/50 bg-purple-500/10 text-purple-600 dark:text-purple-400' 
+              : 'border-border bg-background'
+          }`}>
+            {isStyleTransfer ? (
+              <>
+                <Palette className="w-4 h-4" />
+                <span>Style</span>
+              </>
+            ) : (
+              <>
+                <Image className="w-4 h-4" />
+                <span>Portrait</span>
+              </>
+            )}
+            <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="portrait">
+              <div className="flex items-center gap-2">
+                <Image className="w-4 h-4" />
+                <span>Portrait Mode</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="style-transfer">
+              <div className="flex items-center gap-2">
+                <Palette className="w-4 h-4" />
+                <span>Style Transfer</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
 
         {/* Gender Selector - Only for Unisex Packs */}
         {isUnisexPack && onGenerationGenderChange && (

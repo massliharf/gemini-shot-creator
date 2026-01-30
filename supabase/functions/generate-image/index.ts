@@ -50,6 +50,7 @@ serve(async (req) => {
       aspectRatio = "4:5",
       resolution = "1K",
       generationGender,
+      generationMode = "portrait",
     } = await req.json();
 
     // Validate API key
@@ -124,10 +125,51 @@ serve(async (req) => {
     console.log("Resolution:", isProModel ? validResolution : "N/A (Flash)");
     console.log("Reference Images Count:", imageParts.length);
     console.log("Generation Gender:", generationGender || "not specified");
+    console.log("Generation Mode:", generationMode);
+
+    // For style transfer mode, build a different prompt
+    let effectivePrompt = finalPrompt;
+    
+    if (generationMode === "style-transfer" && imageParts.length >= 2) {
+      // Style transfer: Image 1 is content, Image 2 is style reference
+      effectivePrompt = `STYLE TRANSFER TASK:
+
+You are given TWO reference images:
+1. FIRST IMAGE (Content Image): This is the source image whose content, composition, and subject should be preserved.
+2. SECOND IMAGE (Style Reference): This is the style reference image. Extract the visual style, artistic treatment, color palette, texture, lighting style, and overall aesthetic from this image.
+
+YOUR TASK:
+Transform the first image (content) into the visual style of the second image (style reference).
+
+IMPORTANT RULES:
+- Preserve the composition, subject matter, and layout from the FIRST image
+- Apply ONLY the visual style, color grading, artistic treatment, and aesthetic from the SECOND image
+- Maintain the identity and recognizable features of subjects in the first image
+- Do NOT change the scene composition or add/remove elements
+- Match the texture, brush strokes (if artistic), color temperature, and lighting mood from the style reference
+
+Additional context for the transformation:
+${finalPrompt}
+
+Generate the style-transferred result.`;
+    } else if (generationMode === "style-transfer" && imageParts.length === 1) {
+      // Only one image provided for style transfer - treat it as style reference
+      effectivePrompt = `STYLE TRANSFORMATION:
+
+You have a style reference image. Create a new image following this style exactly.
+
+Apply the visual style, artistic treatment, color palette, texture, lighting style, and overall aesthetic from the reference image to create:
+
+${finalPrompt}
+
+Match the style precisely while generating the described content.`;
+    }
+
+    console.log("Prompt (first 500 chars):", effectivePrompt.substring(0, 500));
 
     // Build request parts: images first, then text
     const parts: unknown[] = [...imageParts];
-    parts.push({ text: finalPrompt });
+    parts.push({ text: effectivePrompt });
 
     // Build generation config - only essential params
     const generationConfig: Record<string, unknown> = {
@@ -147,7 +189,6 @@ serve(async (req) => {
     }
 
     console.log("Generation Config:", JSON.stringify(generationConfig, null, 2));
-    console.log("Prompt (first 500 chars):", finalPrompt.substring(0, 500));
 
     // Call Gemini API
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`;
