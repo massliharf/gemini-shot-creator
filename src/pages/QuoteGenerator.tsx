@@ -16,8 +16,6 @@ interface GeneratedQuote {
   createdAt: Date;
 }
 
-const BASE_PROMPT = `A black and white grainy photograph with a blurry, indistinct scene of random people in a cafe as the subject and background. Large, yellow, hand-drawn brushstroke text overlays the center, reading "QUOTE_TEXT". 9:16 aspect ratio.`;
-
 const QuoteGenerator = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,41 +55,27 @@ const QuoteGenerator = () => {
     setIsGenerating(true);
 
     try {
-      const prompt = BASE_PROMPT.replace("QUOTE_TEXT", quoteText.trim());
-
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_LOVABLE_API_KEY || ""}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-image",
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          modalities: ["image", "text"],
-        }),
+      const { data, error } = await supabase.functions.invoke("generate-quote-image", {
+        body: { quoteText: quoteText.trim() },
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate image");
+      if (error) {
+        console.error("Function error:", error);
+        throw new Error(error.message || "Failed to generate image");
       }
 
-      const data = await response.json();
-      const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
-      if (!imageUrl) {
-        throw new Error("No image returned from API");
+      if (!data?.imageUrl) {
+        throw new Error("No image returned");
       }
 
       const newQuote: GeneratedQuote = {
         id: crypto.randomUUID(),
         text: quoteText.trim(),
-        imageUrl,
+        imageUrl: data.imageUrl,
         createdAt: new Date(),
       };
 
@@ -99,7 +83,7 @@ const QuoteGenerator = () => {
       toast.success("Quote image generated!");
     } catch (error) {
       console.error("Generation error:", error);
-      toast.error("Failed to generate image");
+      toast.error(error instanceof Error ? error.message : "Failed to generate image");
     } finally {
       setIsGenerating(false);
     }
