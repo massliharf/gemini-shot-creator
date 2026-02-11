@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Paintbrush, Eye, FileText, Menu, Layers, Sparkles, Quote } from "lucide-react";
+import { Paintbrush, Eye, FileText, Menu, Layers, Sparkles, Quote, Glasses } from "lucide-react";
 
 export const navItems = [
   { icon: Paintbrush, label: "Styles", path: "/styles" },
@@ -9,6 +9,7 @@ export const navItems = [
   { icon: Sparkles, label: "Pack Creator", path: "/pack-creator" },
   { icon: Layers, label: "Bulk Generator", path: "/generator" },
   { icon: Quote, label: "Quote Generator", path: "/quote-generator" },
+  { icon: Glasses, label: "Glasses Try-On", path: "/glasses-generator" },
   { icon: FileText, label: "My Library", path: "/cloud-files" },
 ];
 
