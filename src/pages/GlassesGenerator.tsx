@@ -18,6 +18,11 @@ const GLASSES_ASSETS = [
   { id: "bottom-left", name: "Bottom Left", url: "/glasses/bottom-left.png" },
   { id: "bottom", name: "Bottom", url: "/glasses/bottom.png" },
   { id: "bottom-right", name: "Bottom Right", url: "/glasses/bottom-right.png" },
+  { id: "dead", name: "Dead", url: "/glasses/dead.png" },
+  { id: "hearts", name: "Hearts", url: "/glasses/hearts.png" },
+  { id: "silly", name: "Silly", url: "/glasses/silly.png" },
+  { id: "savvy", name: "Savvy", url: "/glasses/savvy.png" },
+  { id: "shy", name: "Shy", url: "/glasses/shy.png" },
 ];
 
 interface GeneratedImage {
