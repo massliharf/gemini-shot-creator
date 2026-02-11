@@ -6,19 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const INPAINTING_PROMPT = `Technical Operation: Strict Overlay Compositing.
-
-**Task:** Perform a precise technical overlay. Place the provided transparent PNG glasses asset (second image) directly over the eyes of the subject in the base photo (first image).
-
-**HARD CONSTRAINTS (Must Be Followed Exactly):**
-
-1. **NO REGENERATION:** Do not regenerate, redraw, re-light, or reinterpret the base image in any way.
-
-2. **PIXEL-EXACT PRESERVATION:** The entire area outside of the immediate glasses boundary must be a bit-for-bit, pixel-exact match to the original source photo. Do not smooth skin, do not change grain, do not alter background details.
-
-3. **ASPECT RATIO & RESOLUTION:** The output must maintain the exact original aspect ratio and resolution of the provided base photo.
-
-4. **Transparency Handling:** Respect the alpha channel transparency of the PNG asset perfectly. The glasses should just "sit" on top of the existing pixels.`;
+const INPAINTING_PROMPT = `Place the glasses from the second image onto the person's face in the first image. Position them naturally over the eyes, matching the face angle and size. Keep the original photo completely unchanged — same background, lighting, skin, hair, clothes, and all details. Only add the glasses on top. Output the full photo with glasses added.`;
 
 const base64ToBytes = (base64: string): Uint8Array => {
   const binaryString = atob(base64);
@@ -74,54 +62,61 @@ serve(async (req) => {
     ];
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`;
-
-    const aiResp = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          responseModalities: ["IMAGE", "TEXT"],
-        },
-      }),
+    const requestBody = JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: {
+        responseModalities: ["IMAGE", "TEXT"],
+      },
     });
 
-    if (!aiResp.ok) {
-      const errorText = await aiResp.text();
-      console.error("Gemini API error:", aiResp.status, errorText);
-      const msg = aiResp.status === 429
-        ? "Rate limit exceeded. Please try again later."
-        : `Gemini API error: ${aiResp.status}`;
-      return new Response(
-        JSON.stringify({ error: msg }),
-        { status: aiResp.status === 429 ? 429 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    let aiData = null;
+    const MAX_RETRIES = 3;
 
-    const aiData = await aiResp.json();
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`Attempt ${attempt}/${MAX_RETRIES}`);
+      
+      const aiResp = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
+      });
 
-    console.log("Gemini response finishReason:", aiData.candidates?.[0]?.finishReason);
-    console.log("Gemini response parts count:", aiData.candidates?.[0]?.content?.parts?.length || 0);
-    
-    // Log text parts for debugging
-    const allParts = aiData.candidates?.[0]?.content?.parts || [];
-    for (const p of allParts) {
-      if (p.text) {
-        console.log("Text part:", p.text.substring(0, 300));
+      if (!aiResp.ok) {
+        const errorText = await aiResp.text();
+        console.error("Gemini API error:", aiResp.status, errorText);
+        if (aiResp.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (attempt === MAX_RETRIES) {
+          return new Response(
+            JSON.stringify({ error: `Gemini API error: ${aiResp.status}` }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        continue;
       }
-      if (p.inlineData || p.inline_data) {
-        const d = p.inlineData || p.inline_data;
-        console.log("Image part found, mimeType:", d.mimeType || d.mime_type);
-      }
-    }
 
-    const finishReason = aiData.candidates?.[0]?.finishReason;
-    if (finishReason && !["STOP", "MAX_TOKENS"].includes(finishReason)) {
-      console.error("Generation blocked:", finishReason);
-      return new Response(
-        JSON.stringify({ error: "Generation blocked: " + finishReason }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      aiData = await aiResp.json();
+      const finishReason = aiData.candidates?.[0]?.finishReason;
+      console.log("finishReason:", finishReason, "parts:", aiData.candidates?.[0]?.content?.parts?.length || 0);
+
+      if (finishReason && !["STOP", "MAX_TOKENS"].includes(finishReason)) {
+        console.warn(`Attempt ${attempt} blocked: ${finishReason}`);
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+        return new Response(
+          JSON.stringify({ error: "Generation was blocked by the model. Please try a different photo or glasses." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Success - break out of retry loop
+      break;
     }
 
     const responseParts = aiData.candidates?.[0]?.content?.parts || [];
