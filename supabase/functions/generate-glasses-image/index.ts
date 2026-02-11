@@ -107,6 +107,8 @@ serve(async (req) => {
         continue;
       }
 
+      aiData = await aiResp.json();
+
       // Check for prompt-level block (promptFeedback.blockReason)
       const promptBlock = aiData.promptFeedback?.blockReason;
       if (promptBlock) {
@@ -138,6 +140,13 @@ serve(async (req) => {
 
       // Success - break out of retry loop
       break;
+    }
+
+    if (!aiData) {
+      return new Response(
+        JSON.stringify({ error: "All generation attempts failed. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const responseParts = aiData.candidates?.[0]?.content?.parts || [];
