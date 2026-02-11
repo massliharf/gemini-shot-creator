@@ -11,6 +11,7 @@ import Styles from "./pages/Styles";
 import PackEditor from "./pages/PackEditor";
 import CloudFiles from "./pages/CloudFiles";
 import QuoteGenerator from "./pages/QuoteGenerator";
+import GlassesGenerator from "./pages/GlassesGenerator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/pack-editor" element={<PackEditor />} />
           <Route path="/cloud-files" element={<CloudFiles />} />
           <Route path="/quote-generator" element={<QuoteGenerator />} />
+          <Route path="/glasses-generator" element={<GlassesGenerator />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
