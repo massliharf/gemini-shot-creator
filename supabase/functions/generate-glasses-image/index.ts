@@ -62,8 +62,16 @@ serve(async (req) => {
     ];
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`;
+    const safetySettings = [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+    ];
+
     const requestBody = JSON.stringify({
       contents: [{ parts }],
+      safetySettings,
       generationConfig: {
         responseModalities: ["IMAGE", "TEXT"],
       },
@@ -99,7 +107,20 @@ serve(async (req) => {
         continue;
       }
 
-      aiData = await aiResp.json();
+      // Check for prompt-level block (promptFeedback.blockReason)
+      const promptBlock = aiData.promptFeedback?.blockReason;
+      if (promptBlock) {
+        console.warn(`Attempt ${attempt} prompt blocked: ${promptBlock}`);
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1500 * attempt));
+          continue;
+        }
+        return new Response(
+          JSON.stringify({ error: "Generation was blocked by the model. Please try a different photo." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       const finishReason = aiData.candidates?.[0]?.finishReason;
       console.log("finishReason:", finishReason, "parts:", aiData.candidates?.[0]?.content?.parts?.length || 0);
 
