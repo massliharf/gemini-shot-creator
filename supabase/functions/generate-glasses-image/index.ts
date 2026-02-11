@@ -6,17 +6,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const INPAINTING_PROMPT = `Please perform a strict inpainting (precise editing) task on these images.
+const INPAINTING_PROMPT = `Technical Operation: Strict Overlay Compositing.
 
-**Task:** Composite the transparent glasses asset from the second image onto the eyes of the subject in the main photo (first image).
+**Task:** Perform a precise technical overlay. Place the provided transparent PNG glasses asset (second image) directly over the eyes of the subject in the base photo (first image).
 
-**Critical Constraints:**
+**HARD CONSTRAINTS (Must Be Followed Exactly):**
 
-1. **Pixel-Perfect Preservation:** I require absolute preservation of the base image. Do NOT alter, regenerate, re-light, or modify any pixels outside of the exact area where the glasses are placed. The background, skin texture, and hair must remain 100% identical to the original photo.
+1. **NO REGENERATION:** Do not regenerate, redraw, re-light, or reinterpret the base image in any way.
 
-2. **Realistic Fit:** Place the glasses realistically, matching the perspective and angle of the subject's face.
+2. **PIXEL-EXACT PRESERVATION:** The entire area outside of the immediate glasses boundary must be a bit-for-bit, pixel-exact match to the original source photo. Do not smooth skin, do not change grain, do not alter background details.
 
-3. **Scope:** Your only intervention should be adding the glasses asset. Leave the rest of the image untouched.`;
+3. **ASPECT RATIO & RESOLUTION:** The output must maintain the exact original aspect ratio and resolution of the provided base photo.
+
+4. **Transparency Handling:** Respect the alpha channel transparency of the PNG asset perfectly. The glasses should just "sit" on top of the existing pixels.`;
 
 const base64ToBytes = (base64: string): Uint8Array => {
   const binaryString = atob(base64);
