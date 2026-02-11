@@ -18,6 +18,20 @@ const INPAINTING_PROMPT = `Please perform a strict inpainting (precise editing) 
 
 3. **Scope:** Your only intervention should be adding the glasses asset. Leave the rest of the image untouched.`;
 
+const base64ToBytes = (base64: string): Uint8Array => {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+};
+
+const MODELS: Record<string, string> = {
+  flash: "gemini-2.5-flash-image",
+  pro: "gemini-3-pro-image-preview",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -39,71 +53,78 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "API key not configured" }),
+        JSON.stringify({ error: "GEMINI_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const resolvedModel = model === "pro"
-      ? "google/gemini-3-pro-image-preview"
-      : "google/gemini-2.5-flash-image";
-
+    const resolvedModel = model === "pro" ? MODELS.pro : MODELS.flash;
     console.log("=== GLASSES GENERATION ===");
     console.log("Model:", resolvedModel);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const parts = [
+      { inline_data: { mime_type: photoMimeType || "image/jpeg", data: photoBase64 } },
+      { inline_data: { mime_type: glassesMimeType || "image/png", data: glassesBase64 } },
+      { text: INPAINTING_PROMPT },
+    ];
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`;
+
+    const aiResp = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: resolvedModel,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: INPAINTING_PROMPT },
-              {
-                type: "image_url",
-                image_url: { url: `data:${photoMimeType || "image/jpeg"};base64,${photoBase64}` },
-              },
-              {
-                type: "image_url",
-                image_url: { url: `data:${glassesMimeType || "image/png"};base64,${glassesBase64}` },
-              },
-            ],
-          },
-        ],
-        modalities: ["image", "text"],
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ["IMAGE", "TEXT"],
+        },
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      const msg = response.status === 429
+    if (!aiResp.ok) {
+      const errorText = await aiResp.text();
+      console.error("Gemini API error:", aiResp.status, errorText);
+      const msg = aiResp.status === 429
         ? "Rate limit exceeded. Please try again later."
-        : "Failed to generate image";
+        : `Gemini API error: ${aiResp.status}`;
       return new Response(
         JSON.stringify({ error: msg }),
-        { status: response.status === 429 ? 429 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: aiResp.status === 429 ? 429 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const data = await response.json();
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const aiData = await aiResp.json();
 
-    if (!imageUrl) {
-      console.error("No image in response:", JSON.stringify(data).substring(0, 500));
+    const finishReason = aiData.candidates?.[0]?.finishReason;
+    if (finishReason && !["STOP", "MAX_TOKENS"].includes(finishReason)) {
+      console.error("Generation blocked:", finishReason);
       return new Response(
-        JSON.stringify({ error: "No image returned from AI" }),
+        JSON.stringify({ error: "Generation blocked: " + finishReason }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const responseParts = aiData.candidates?.[0]?.content?.parts || [];
+    const imagePart = responseParts.find((p: Record<string, unknown>) => {
+      const inline = p.inlineData || p.inline_data;
+      const mt = (inline as Record<string, unknown>)?.mimeType || (inline as Record<string, unknown>)?.mime_type;
+      return typeof mt === "string" && mt.startsWith("image/");
+    });
+
+    const inline = imagePart?.inlineData || imagePart?.inline_data;
+    if (!inline?.data) {
+      return new Response(
+        JSON.stringify({ error: "No image in response" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const imageBase64 = inline.data;
+    const mimeType = inline.mimeType || inline.mime_type || "image/png";
+    const imageUrl = `data:${mimeType};base64,${imageBase64}`;
 
     console.log("Glasses image generated successfully");
 
