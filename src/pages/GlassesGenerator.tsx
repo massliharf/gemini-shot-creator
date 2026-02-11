@@ -8,10 +8,16 @@ import { Button } from "@/components/ui/button";
 import { QuoteGallery } from "@/components/QuoteGallery";
 import { toast } from "sonner";
 
-// Glasses assets - placeholders until real assets are uploaded
-const GLASSES_ASSETS: { id: string; name: string; url: string; thumbnail: string }[] = [
-  // Will be populated with real glasses asset URLs
-  // { id: "1", name: "Aviator", url: "/glasses/aviator.png", thumbnail: "/glasses/aviator.png" },
+const GLASSES_ASSETS = [
+  { id: "top-left", name: "Top Left", url: "/glasses/top-left.png" },
+  { id: "top", name: "Top", url: "/glasses/top.png" },
+  { id: "top-right", name: "Top Right", url: "/glasses/top-right.png" },
+  { id: "left", name: "Left", url: "/glasses/left.png" },
+  { id: "center", name: "Center", url: "/glasses/center.png" },
+  { id: "right", name: "Right", url: "/glasses/right.png" },
+  { id: "bottom-left", name: "Bottom Left", url: "/glasses/bottom-left.png" },
+  { id: "bottom", name: "Bottom", url: "/glasses/bottom.png" },
+  { id: "bottom-right", name: "Bottom Right", url: "/glasses/bottom-right.png" },
 ];
 
 interface GeneratedImage {
@@ -79,11 +85,21 @@ const GlassesGenerator = () => {
 
     setIsGenerating(true);
     try {
+      // Fetch glasses asset and convert to base64
+      const glassesResp = await fetch(glassesAsset.url);
+      const glassesBlob = await glassesResp.blob();
+      const glassesReader = new FileReader();
+      const glassesBase64Data = await new Promise<string>((resolve) => {
+        glassesReader.onload = () => resolve((glassesReader.result as string).split(",")[1]);
+        glassesReader.readAsDataURL(glassesBlob);
+      });
+
       const { data, error } = await supabase.functions.invoke("generate-glasses-image", {
         body: {
           photoBase64,
           photoMimeType,
-          glassesUrl: glassesAsset.url,
+          glassesBase64: glassesBase64Data,
+          glassesMimeType: glassesBlob.type || "image/png",
           model: selectedModel,
         },
       });
@@ -155,7 +171,7 @@ const GlassesGenerator = () => {
                     }`}
                   >
                     <img
-                      src={glasses.thumbnail}
+                      src={glasses.url}
                       alt={glasses.name}
                       className="w-full h-full object-contain p-1 bg-muted/20"
                     />
