@@ -18,8 +18,8 @@ const base64ToBytes = (base64: string): Uint8Array => {
 };
 
 const MODELS: Record<string, string> = {
-  flash: "gemini-2.5-flash-image",
-  pro: "gemini-3-pro-image-preview",
+  flash: "gemini-2.0-flash-exp-image-generation",
+  pro: "gemini-2.0-flash-exp-image-generation",
 };
 
 serve(async (req) => {
