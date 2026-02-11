@@ -100,6 +100,21 @@ serve(async (req) => {
 
     const aiData = await aiResp.json();
 
+    console.log("Gemini response finishReason:", aiData.candidates?.[0]?.finishReason);
+    console.log("Gemini response parts count:", aiData.candidates?.[0]?.content?.parts?.length || 0);
+    
+    // Log text parts for debugging
+    const allParts = aiData.candidates?.[0]?.content?.parts || [];
+    for (const p of allParts) {
+      if (p.text) {
+        console.log("Text part:", p.text.substring(0, 300));
+      }
+      if (p.inlineData || p.inline_data) {
+        const d = p.inlineData || p.inline_data;
+        console.log("Image part found, mimeType:", d.mimeType || d.mime_type);
+      }
+    }
+
     const finishReason = aiData.candidates?.[0]?.finishReason;
     if (finishReason && !["STOP", "MAX_TOKENS"].includes(finishReason)) {
       console.error("Generation blocked:", finishReason);
@@ -118,8 +133,9 @@ serve(async (req) => {
 
     const inline = imagePart?.inlineData || imagePart?.inline_data;
     if (!inline?.data) {
+      console.error("No image data found. Full response:", JSON.stringify(aiData).substring(0, 1000));
       return new Response(
-        JSON.stringify({ error: "No image in response" }),
+        JSON.stringify({ error: "No image in response. The model may not support this operation. Try again or use a different model." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
