@@ -6,7 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const BASE_PROMPT = `A black and white grainy photograph with a blurry, indistinct scene of random people in a cafe as the subject and background. Large, yellow, hand-drawn brushstroke text overlays the center, reading "QUOTE_TEXT". 9:16 aspect ratio.`;
+const PROMPTS: Record<string, string> = {
+  cafe: `A black and white grainy photograph with a blurry, indistinct scene of random people in a cafe as the subject and background. Large, yellow, hand-drawn brushstroke text overlays the center, reading "QUOTE_TEXT". 9:16 aspect ratio.`,
+  chalk: `A hand-painted sign with large, blocky letters in a rough, hand-drawn chalk style, filled with a bright FILL_COLOR and outlined in rough white, against a deep, textured complementary BG_COLOR background. Visible brushstrokes and chalk texture throughout. Small, hand-drawn stars in the same style. The text reads: "QUOTE_TEXT". 9:16 aspect ratio.`,
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -14,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    const { quoteText } = await req.json();
+    const { quoteText, mode = "cafe", fillColor, bgColor } = await req.json();
 
     if (!quoteText || typeof quoteText !== "string") {
       return new Response(
@@ -23,16 +26,12 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ error: "API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const template = PROMPTS[mode] || PROMPTS.cafe;
+    let prompt = template.replace("QUOTE_TEXT", quoteText.trim());
+    if (mode === "chalk") {
+      prompt = prompt.replace("FILL_COLOR", fillColor || "yellow");
+      prompt = prompt.replace("BG_COLOR", bgColor || "dark navy blue");
     }
-
-    const prompt = BASE_PROMPT.replace("QUOTE_TEXT", quoteText.trim());
     console.log("Generating image with prompt:", prompt);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
