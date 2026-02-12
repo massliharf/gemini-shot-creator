@@ -6,8 +6,18 @@ import { Sparkles, Send, Loader2 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { QuoteGallery } from "@/components/QuoteGallery";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type QuoteMode = "cafe" | "chalk";
 
 interface GeneratedQuote {
   id: string;
@@ -22,6 +32,9 @@ const QuoteGenerator = () => {
   const [quoteText, setQuoteText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedQuotes, setGeneratedQuotes] = useState<GeneratedQuote[]>([]);
+  const [mode, setMode] = useState<QuoteMode>("cafe");
+  const [fillColor, setFillColor] = useState("yellow");
+  const [bgColor, setBgColor] = useState("dark navy blue");
   const navigate = useNavigate();
 
   // Auth check
@@ -55,8 +68,13 @@ const QuoteGenerator = () => {
     setIsGenerating(true);
 
     try {
+      const body: Record<string, string> = { quoteText: quoteText.trim(), mode };
+      if (mode === "chalk") {
+        body.fillColor = fillColor;
+        body.bgColor = bgColor;
+      }
       const { data, error } = await supabase.functions.invoke("generate-quote-image", {
-        body: { quoteText: quoteText.trim() },
+        body,
       });
 
       if (error) {
@@ -117,11 +135,47 @@ const QuoteGenerator = () => {
           </div>
 
           <div className="flex-1 flex flex-col gap-3">
+            {/* Mode Selector */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Style</label>
+              <Select value={mode} onValueChange={(v) => setMode(v as QuoteMode)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cafe">☕ Cafe Photo</SelectItem>
+                  <SelectItem value="chalk">🖌️ Chalk Sign</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Chalk mode color inputs */}
+            {mode === "chalk" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Fill Color</label>
+                  <Input
+                    value={fillColor}
+                    onChange={(e) => setFillColor(e.target.value)}
+                    placeholder="e.g. yellow"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">BG Color</label>
+                  <Input
+                    value={bgColor}
+                    onChange={(e) => setBgColor(e.target.value)}
+                    placeholder="e.g. dark navy blue"
+                  />
+                </div>
+              </div>
+            )}
+
             <Textarea
               placeholder="Enter your quote text here..."
               value={quoteText}
               onChange={(e) => setQuoteText(e.target.value)}
-              className="flex-1 min-h-[200px] resize-none"
+              className="flex-1 min-h-[150px] resize-none"
             />
 
             <Button
