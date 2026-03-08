@@ -19,6 +19,7 @@ const base64ToBytes = (base64: string): Uint8Array => {
 
 const MODELS: Record<string, string> = {
   flash: "gemini-2.0-flash-exp-image-generation",
+  "flash-3.1": "gemini-3.1-flash-image-preview",
   pro: "gemini-2.0-flash-exp-image-generation",
 };
 
@@ -51,7 +52,7 @@ serve(async (req) => {
       );
     }
 
-    const resolvedModel = model === "pro" ? MODELS.pro : MODELS.flash;
+    const resolvedModel = model === "pro" ? MODELS.pro : model === "flash-3.1" || model === "gemini-3.1-flash-image-preview" ? MODELS["flash-3.1"] : MODELS.flash;
     console.log("=== GLASSES GENERATION ===");
     console.log("Model:", resolvedModel);
 

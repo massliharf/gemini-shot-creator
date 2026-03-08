@@ -35,6 +35,7 @@ const QuoteGenerator = () => {
   const [mode, setMode] = useState<QuoteMode>("cafe");
   const [fillColor, setFillColor] = useState("yellow");
   const [bgColor, setBgColor] = useState("dark navy blue");
+  const [selectedModel, setSelectedModel] = useState("pro");
   const navigate = useNavigate();
 
   // Auth check
@@ -68,7 +69,7 @@ const QuoteGenerator = () => {
     setIsGenerating(true);
 
     try {
-      const body: Record<string, string> = { quoteText: quoteText.trim(), mode };
+      const body: Record<string, string> = { quoteText: quoteText.trim(), mode, model: selectedModel };
       if (mode === "chalk") {
         body.fillColor = fillColor;
         body.bgColor = bgColor;
@@ -147,6 +148,30 @@ const QuoteGenerator = () => {
                   <SelectItem value="chalk">🖌️ Chalk Sign</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Model Selector */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Model</label>
+              <div className="flex gap-2">
+                {[
+                  { id: "flash", label: "Flash" },
+                  { id: "flash-3.1", label: "3.1 Flash" },
+                  { id: "pro", label: "Pro" },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedModel(m.id)}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all border ${
+                      selectedModel === m.id
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-foreground/40"
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Chalk mode color inputs */}

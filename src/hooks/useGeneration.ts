@@ -203,7 +203,7 @@ export const useGeneration = ({
 
         // Track token usage with cost
         if (data?.tokenUsage) {
-          const modelKey = (selectedModel === "pro" ? "gemini-3-pro-image-preview" : "gemini-2.5-flash-image") as GeminiModel;
+          const modelKey = (selectedModel === "gemini-3-pro-image-preview" ? "gemini-3-pro-image-preview" : selectedModel === "gemini-3.1-flash-image-preview" ? "gemini-3.1-flash-image-preview" : "gemini-2.5-flash-image") as GeminiModel;
           const resolutionKey = (resolution as "1K" | "2K" | "4K") || "1K";
           const cost = calculateImageCost(data.tokenUsage.promptTokens, modelKey, 1, resolutionKey);
           
@@ -407,7 +407,7 @@ export const useGeneration = ({
     }
 
     // Reset token stats for this pack at start of generation
-    const modelKey = (selectedModel === "pro" ? "gemini-3-pro-image-preview" : "gemini-2.5-flash-image") as GeminiModel;
+    const modelKey = (selectedModel === "gemini-3-pro-image-preview" ? "gemini-3-pro-image-preview" : selectedModel === "gemini-3.1-flash-image-preview" ? "gemini-3.1-flash-image-preview" : "gemini-2.5-flash-image") as GeminiModel;
     const resolutionKey = (resolution as "1K" | "2K" | "4K") || "1K";
     setPackTokenStats(prev => {
       const updated = new Map(prev);
