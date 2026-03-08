@@ -75,8 +75,8 @@ export const BottomBar = ({
     e.target.value = "";
   };
 
-  const isProModel = selectedModel === "gemini-3-pro-image-preview";
-  const modelLabel = isProModel ? "PRO" : "FLASH";
+  const isProModel = selectedModel === "gemini-3-pro-image-preview" || selectedModel === "gemini-3.1-flash-image-preview";
+  const modelLabel = selectedModel === "gemini-3-pro-image-preview" ? "PRO" : selectedModel === "gemini-3.1-flash-image-preview" ? "3.1 FLASH" : "FLASH";
   const canAddMore = images.length < maxImages;
   const hasEmptySlot = images.some(img => !img.previewUrl);
   const isStyleTransfer = generationMode === "style-transfer";
