@@ -35,6 +35,7 @@ const QuoteGenerator = () => {
   const [mode, setMode] = useState<QuoteMode>("cafe");
   const [fillColor, setFillColor] = useState("yellow");
   const [bgColor, setBgColor] = useState("dark navy blue");
+  const [selectedModel, setSelectedModel] = useState("pro");
   const navigate = useNavigate();
 
   // Auth check
