@@ -69,7 +69,7 @@ const QuoteGenerator = () => {
     setIsGenerating(true);
 
     try {
-      const body: Record<string, string> = { quoteText: quoteText.trim(), mode };
+      const body: Record<string, string> = { quoteText: quoteText.trim(), mode, model: selectedModel };
       if (mode === "chalk") {
         body.fillColor = fillColor;
         body.bgColor = bgColor;
