@@ -150,6 +150,30 @@ const QuoteGenerator = () => {
               </Select>
             </div>
 
+            {/* Model Selector */}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase mb-1 block">Model</label>
+              <div className="flex gap-2">
+                {[
+                  { id: "flash", label: "Flash" },
+                  { id: "flash-3.1", label: "3.1 Flash" },
+                  { id: "pro", label: "Pro" },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedModel(m.id)}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all border ${
+                      selectedModel === m.id
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-foreground/40"
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Chalk mode color inputs */}
             {mode === "chalk" && (
               <div className="grid grid-cols-2 gap-2">
