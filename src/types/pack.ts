@@ -78,6 +78,12 @@ export const GEMINI_IMAGE_PRICING = {
     outputPerImage: 0.039,
     name: "Flash Image",
   },
+  "gemini-3.1-flash-image-preview": {
+    inputPer1M: 0.30,
+    outputPerImage1K2K: 0.039,
+    outputPerImage4K: 0.039,
+    name: "3.1 Flash Image",
+  },
   "gemini-3-pro-image-preview": {
     inputPer1M: 2.00,
     outputPerImage1K2K: 0.134,
