@@ -17,7 +17,7 @@ serve(async (req) => {
   }
 
   try {
-    const { quoteText, mode = "cafe", fillColor, bgColor } = await req.json();
+    const { quoteText, mode = "cafe", fillColor, bgColor, model = "pro" } = await req.json();
 
     if (!quoteText || typeof quoteText !== "string") {
       return new Response(
