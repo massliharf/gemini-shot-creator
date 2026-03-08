@@ -125,8 +125,8 @@ export const calculateImageCost = (
   const inputCost = (promptTokens / 1_000_000) * pricing.inputPer1M;
   
   let imageCost: number;
-  if (model === "gemini-3-pro-image-preview") {
-    const proPrice = GEMINI_IMAGE_PRICING["gemini-3-pro-image-preview"];
+  if (model === "gemini-3-pro-image-preview" || model === "gemini-3.1-flash-image-preview") {
+    const proPrice = GEMINI_IMAGE_PRICING[model];
     const perImage = resolution === "4K" 
       ? proPrice.outputPerImage4K 
       : proPrice.outputPerImage1K2K;

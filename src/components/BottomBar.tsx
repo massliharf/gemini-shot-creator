@@ -236,6 +236,7 @@ export const BottomBar = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="gemini-2.5-flash-image">FLASH</SelectItem>
+            <SelectItem value="gemini-3.1-flash-image-preview">3.1 FLASH</SelectItem>
             <SelectItem value="gemini-3-pro-image-preview">PRO</SelectItem>
           </SelectContent>
         </Select>

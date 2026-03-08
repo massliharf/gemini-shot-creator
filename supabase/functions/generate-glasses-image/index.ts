@@ -52,7 +52,7 @@ serve(async (req) => {
       );
     }
 
-    const resolvedModel = model === "pro" ? MODELS.pro : MODELS.flash;
+    const resolvedModel = model === "pro" ? MODELS.pro : model === "flash-3.1" || model === "gemini-3.1-flash-image-preview" ? MODELS["flash-3.1"] : MODELS.flash;
     console.log("=== GLASSES GENERATION ===");
     console.log("Model:", resolvedModel);
 

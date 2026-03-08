@@ -80,7 +80,7 @@ export const ModelSelector = ({
   resolution,
   onResolutionChange,
 }: ModelSelectorProps) => {
-  const isGemini3Pro = selectedModel === "gemini-3-pro-image-preview";
+  const isGemini3Pro = selectedModel === "gemini-3-pro-image-preview" || selectedModel === "gemini-3.1-flash-image-preview";
 
   return (
     <div className="space-y-3">
