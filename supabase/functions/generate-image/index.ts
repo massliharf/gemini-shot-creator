@@ -12,6 +12,7 @@ const ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", 
 // Model definitions
 const MODELS = {
   flash: "gemini-2.5-flash-image",
+  "flash-3.1": "gemini-3.1-flash-image-preview",
   pro: "gemini-3-pro-image-preview",
 } as const;
 
