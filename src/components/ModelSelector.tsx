@@ -18,6 +18,7 @@ interface ModelSelectorProps {
 
 const MODELS = [
   { value: "gemini-2.5-flash-image", label: "Gemini 2.5 Flash Image" },
+  { value: "gemini-3.1-flash-image-preview", label: "Gemini 3.1 Flash Image" },
   { value: "gemini-3-pro-image-preview", label: "Gemini 3 Pro Image" },
 ];
 
