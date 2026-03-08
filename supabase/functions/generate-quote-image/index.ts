@@ -34,6 +34,16 @@ serve(async (req) => {
     }
     console.log("Generating image with prompt:", prompt);
 
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    const MODEL_MAP: Record<string, string> = {
+      flash: "google/gemini-2.5-flash-image",
+      "flash-3.1": "google/gemini-3.1-flash-image-preview",
+      pro: "google/gemini-3-pro-image-preview",
+    };
+    const resolvedModel = MODEL_MAP[model] || MODEL_MAP.pro;
+    console.log("Using model:", resolvedModel);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -41,7 +51,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
+        model: resolvedModel,
         messages: [
           {
             role: "user",

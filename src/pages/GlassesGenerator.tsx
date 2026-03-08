@@ -236,6 +236,7 @@ const GlassesGenerator = () => {
             <div className="flex gap-2">
               {[
                 { id: "flash", label: "Flash" },
+                { id: "flash-3.1", label: "3.1 Flash" },
                 { id: "pro", label: "Pro" },
               ].map((m) => (
                 <button
