@@ -123,7 +123,8 @@ export const PackList = ({
   onDownloadMultiplePacks,
   onGenerateAllPacks,
   isGeneratingAll = false,
-  onPacksLoad
+  onPacksLoad,
+  onOpenTextGen,
 }: PackListProps) => {
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
