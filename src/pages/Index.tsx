@@ -12,6 +12,7 @@ import { PackHeader } from "@/components/PackHeader";
 import { ScenesGrid } from "@/components/ScenesGrid";
 import { BottomBar } from "@/components/BottomBar";
 import { CloudOperationProgress } from "@/components/CloudOperationProgress";
+import { TextImageChat } from "@/components/TextImageChat";
 
 // Hooks
 import { usePacks } from "@/hooks/usePacks";
@@ -27,6 +28,7 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [generationGender, setGenerationGender] = useState<GenerationGender>("female");
+  const [textGenOpen, setTextGenOpen] = useState(false);
   const navigate = useNavigate();
 
   // Custom Hooks
@@ -150,6 +152,7 @@ const Index = () => {
 
   return (
     <>
+      <TextImageChat open={textGenOpen} onOpenChange={setTextGenOpen} />
       <CloudOperationProgress
         state={cloudOperation}
         onClose={handleCloudOperationClose}
@@ -171,6 +174,7 @@ const Index = () => {
             onGenerateAllPacks={handleGenerateAllPacks}
             isGeneratingAll={isGeneratingAll}
             onPacksLoad={handlePacksLoad}
+            onOpenTextGen={() => setTextGenOpen(true)}
           />
         }
       >

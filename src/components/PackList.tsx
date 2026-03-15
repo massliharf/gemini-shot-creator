@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SmartImage } from "@/components/SmartImage";
-import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, CheckCircle2, Circle, XCircle, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, CheckCircle2, Circle, XCircle, Image as ImageIcon, AlertCircle, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
@@ -45,6 +45,7 @@ interface PackListProps {
   onGenerateAllPacks?: () => void;
   isGeneratingAll?: boolean;
   onPacksLoad?: (packs: PackFile[]) => Promise<PacksLoadResult>;
+  onOpenTextGen?: () => void;
 }
 const genderLabels: Record<string, string> = {
   woman_only: "Female",
@@ -122,7 +123,8 @@ export const PackList = ({
   onDownloadMultiplePacks,
   onGenerateAllPacks,
   isGeneratingAll = false,
-  onPacksLoad
+  onPacksLoad,
+  onOpenTextGen,
 }: PackListProps) => {
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -271,10 +273,15 @@ export const PackList = ({
     const custom = allCategories.filter(c => !knownOrder.includes(c)).sort();
     return [...sorted, ...custom];
   }, [groupedPacks]);
-  return <div className="h-full min-h-0 flex flex-col bg-background border-r border-border overflow-hidden">
+    return <div className="h-full min-h-0 flex flex-col bg-background border-r border-border overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 flex items-center justify-between">
         <h2 className="font-semibold">Packs ({packs.length})</h2>
+        {onOpenTextGen && (
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onOpenTextGen} title="Text to Image">
+            <Plus className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       {/* Gender Filter Tabs */}
