@@ -28,6 +28,7 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [generationGender, setGenerationGender] = useState<GenerationGender>("female");
+  const [textGenOpen, setTextGenOpen] = useState(false);
   const navigate = useNavigate();
 
   // Custom Hooks
