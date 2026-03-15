@@ -174,6 +174,7 @@ const Index = () => {
             onGenerateAllPacks={handleGenerateAllPacks}
             isGeneratingAll={isGeneratingAll}
             onPacksLoad={handlePacksLoad}
+            onOpenTextGen={() => setTextGenOpen(true)}
           />
         }
       >
