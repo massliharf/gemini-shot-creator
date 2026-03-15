@@ -152,6 +152,7 @@ const Index = () => {
 
   return (
     <>
+      <TextImageChat open={textGenOpen} onOpenChange={setTextGenOpen} />
       <CloudOperationProgress
         state={cloudOperation}
         onClose={handleCloudOperationClose}
