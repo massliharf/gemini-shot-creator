@@ -45,6 +45,7 @@ interface PackListProps {
   onGenerateAllPacks?: () => void;
   isGeneratingAll?: boolean;
   onPacksLoad?: (packs: PackFile[]) => Promise<PacksLoadResult>;
+  onOpenTextGen?: () => void;
 }
 const genderLabels: Record<string, string> = {
   woman_only: "Female",
