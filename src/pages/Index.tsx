@@ -12,6 +12,7 @@ import { PackHeader } from "@/components/PackHeader";
 import { ScenesGrid } from "@/components/ScenesGrid";
 import { BottomBar } from "@/components/BottomBar";
 import { CloudOperationProgress } from "@/components/CloudOperationProgress";
+import { TextImageChat } from "@/components/TextImageChat";
 
 // Hooks
 import { usePacks } from "@/hooks/usePacks";
