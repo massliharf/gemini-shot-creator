@@ -115,6 +115,42 @@ export type Database = {
         }
         Relationships: []
       }
+      text_generations: {
+        Row: {
+          aspect_ratio: string
+          created_at: string
+          id: string
+          image_path: string | null
+          image_url: string | null
+          model: string
+          prompt: string
+          resolution: string
+          user_id: string
+        }
+        Insert: {
+          aspect_ratio?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          image_url?: string | null
+          model?: string
+          prompt: string
+          resolution?: string
+          user_id: string
+        }
+        Update: {
+          aspect_ratio?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          image_url?: string | null
+          model?: string
+          prompt?: string
+          resolution?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
