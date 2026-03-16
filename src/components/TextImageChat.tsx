@@ -60,7 +60,9 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [refImages, setRefImages] = useState<RefImage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isProModel = model === "pro" || model === "flash-3.1";
 
