@@ -197,7 +197,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="w-[420px] sm:w-[480px] p-0 flex flex-col bg-background">
+        <SheetContent side="left" className="w-[90vw] sm:w-[640px] lg:w-[720px] p-0 flex flex-col bg-background">
           <SheetHeader className="px-4 py-3 border-b border-border">
             <SheetTitle className="text-base">Text to Image</SheetTitle>
           </SheetHeader>
