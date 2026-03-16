@@ -35,7 +35,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, model = "flash", aspectRatio = "1:1", resolution = "1K" } = await req.json();
+    const { prompt, model = "flash", aspectRatio = "1:1", resolution = "1K", referenceImages = [] } = await req.json();
 
     // Auth
     const authHeader = req.headers.get("Authorization");
