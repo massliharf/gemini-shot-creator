@@ -6,8 +6,26 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Loader2, ImageIcon, Trash2, Download, X } from "lucide-react";
+import { Send, Loader2, ImageIcon, Trash2, Download, X, Plus, Upload } from "lucide-react";
 import { SmartImage } from "@/components/SmartImage";
+
+const MAX_REF_IMAGES = 5;
+
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+interface RefImage {
+  file: File;
+  previewUrl: string;
+}
 
 interface Generation {
   id: string;
