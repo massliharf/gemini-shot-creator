@@ -33,6 +33,7 @@ const App = () => (
           <Route path="/cloud-files" element={<CloudFiles />} />
           <Route path="/quote-generator" element={<QuoteGenerator />} />
           <Route path="/glasses-generator" element={<GlassesGenerator />} />
+          <Route path="/text-to-image" element={<TextToImage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
