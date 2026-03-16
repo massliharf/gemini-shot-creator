@@ -12,6 +12,7 @@ import PackEditor from "./pages/PackEditor";
 import CloudFiles from "./pages/CloudFiles";
 import QuoteGenerator from "./pages/QuoteGenerator";
 import GlassesGenerator from "./pages/GlassesGenerator";
+import TextToImage from "./pages/TextToImage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
