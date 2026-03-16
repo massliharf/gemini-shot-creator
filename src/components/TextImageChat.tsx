@@ -6,8 +6,26 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Loader2, ImageIcon, Trash2, Download, X } from "lucide-react";
+import { Send, Loader2, ImageIcon, Trash2, Download, X, Plus, Upload } from "lucide-react";
 import { SmartImage } from "@/components/SmartImage";
+
+const MAX_REF_IMAGES = 5;
+
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+interface RefImage {
+  file: File;
+  previewUrl: string;
+}
 
 interface Generation {
   id: string;
@@ -42,7 +60,9 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [refImages, setRefImages] = useState<RefImage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isProModel = model === "pro" || model === "flash-3.1";
 
@@ -98,8 +118,12 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
     setGenerations(prev => [...prev, tempGen]);
 
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
+      // Convert ref images to base64
+      const referenceImages: { base64: string; mimeType: string }[] = [];
+      for (const ref of refImages) {
+        const b64 = await fileToBase64(ref.file);
+        referenceImages.push({ base64: b64, mimeType: ref.file.type || "image/jpeg" });
+      }
 
       const resp = await supabase.functions.invoke("generate-text-image", {
         body: {
@@ -107,6 +131,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
           model,
           aspectRatio,
           resolution: isProModel ? resolution : "1K",
+          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
         },
       });
 
@@ -287,8 +312,62 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
           </ScrollArea>
 
           {/* Input */}
-          <div className="px-4 py-3 border-t border-border">
+          <div className="px-4 py-3 border-t border-border space-y-2">
+            {/* Reference image thumbnails */}
+            {refImages.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {refImages.map((ref, i) => (
+                  <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden group">
+                    <img src={ref.previewUrl} alt={`Ref ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => {
+                        URL.revokeObjectURL(ref.previewUrl);
+                        setRefImages(prev => prev.filter((_, idx) => idx !== i));
+                      }}
+                      className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+                {refImages.length < MAX_REF_IMAGES && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-12 h-12 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center transition-colors"
+                  >
+                    <Plus className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="flex items-end gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-xl flex-shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isGenerating || refImages.length >= MAX_REF_IMAGES}
+              >
+                <Upload className="w-4 h-4" />
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  const remaining = MAX_REF_IMAGES - refImages.length;
+                  const toAdd = files.slice(0, remaining).map(f => ({
+                    file: f,
+                    previewUrl: URL.createObjectURL(f),
+                  }));
+                  setRefImages(prev => [...prev, ...toAdd]);
+                  e.target.value = "";
+                }}
+              />
               <Textarea
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
