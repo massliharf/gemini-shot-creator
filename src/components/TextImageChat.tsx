@@ -118,8 +118,12 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
     setGenerations(prev => [...prev, tempGen]);
 
     try {
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
+      // Convert ref images to base64
+      const referenceImages: { base64: string; mimeType: string }[] = [];
+      for (const ref of refImages) {
+        const b64 = await fileToBase64(ref.file);
+        referenceImages.push({ base64: b64, mimeType: ref.file.type || "image/jpeg" });
+      }
 
       const resp = await supabase.functions.invoke("generate-text-image", {
         body: {
@@ -127,6 +131,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
           model,
           aspectRatio,
           resolution: isProModel ? resolution : "1K",
+          referenceImages: referenceImages.length > 0 ? referenceImages : undefined,
         },
       });
 
