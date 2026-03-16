@@ -106,11 +106,31 @@ serve(async (req) => {
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${GEMINI_API_KEY}`;
 
+    // Build content parts: reference images first, then text prompt
+    const contentParts: any[] = [];
+
+    // Add reference images
+    if (Array.isArray(referenceImages) && referenceImages.length > 0) {
+      for (const ref of referenceImages) {
+        if (ref.base64 && ref.mimeType) {
+          contentParts.push({
+            inlineData: {
+              mimeType: ref.mimeType,
+              data: ref.base64,
+            },
+          });
+        }
+      }
+      console.log(`Added ${contentParts.length} reference images`);
+    }
+
+    contentParts.push({ text: prompt });
+
     const aiResp = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts: contentParts }],
         generationConfig,
       }),
     });
