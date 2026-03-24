@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { 
   Upload, Wand2, Loader2, X, Check, Home, Camera, Box, 
   Sparkles, Palette, Sun, Layers, Eye, RefreshCw, Trash2,
-  ImageIcon, Play
+  ImageIcon, Play, Film, ShoppingBag
 } from "lucide-react";
 import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes, buildFinalPrompt, getConfig, getScenes } from "@/types/pack";
