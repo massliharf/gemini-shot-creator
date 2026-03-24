@@ -115,10 +115,10 @@ export default function PackCreator() {
   const {
     inputMode, textPrompt, packType, sceneCount, category, subcategory,
     gender, showAdvanced, selectedInfluences, lightingPreference, colorPalette,
-    generatedPacks, images, autoRender, renderModel, renderAspectRatio, renderResolution,
+    customPrompt, generatedPacks, images, autoRender, renderModel, renderAspectRatio, renderResolution,
     setInputMode, setTextPrompt, setPackType, setSceneCount, setCategory, setSubcategory,
     setGender, setShowAdvanced, setSelectedInfluences, setLightingPreference, setColorPalette,
-    setGeneratedPacks, setImages, setAutoRender, setRenderModel, setRenderAspectRatio, setRenderResolution,
+    setCustomPrompt, setGeneratedPacks, setImages, setAutoRender, setRenderModel, setRenderAspectRatio, setRenderResolution,
   } = usePackCreatorState();
 
   useEffect(() => {
