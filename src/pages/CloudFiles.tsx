@@ -1942,14 +1942,14 @@ const CloudFiles = () => {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-secondary/50 rounded-lg p-2">
-                <p className="text-muted-foreground text-xs">Bu batch</p>
-                <p className="font-medium">{batchExport.totalFoldersInBatch} klasör</p>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="bg-accent/50 rounded-xl p-2.5">
+                <p className="text-muted-foreground text-[10px] uppercase">Bu batch</p>
+                <p className="font-medium text-xs">{batchExport.totalFoldersInBatch} klasör</p>
               </div>
-              <div className="bg-secondary/50 rounded-lg p-2">
-                <p className="text-muted-foreground text-xs">Toplam export</p>
-                <p className="font-medium">{batchExport.totalFoldersExported} klasör</p>
+              <div className="bg-accent/50 rounded-xl p-2.5">
+                <p className="text-muted-foreground text-[10px] uppercase">Toplam export</p>
+                <p className="font-medium text-xs">{batchExport.totalFoldersExported} klasör</p>
               </div>
             </div>
 
