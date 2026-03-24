@@ -43,7 +43,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left panel - Brand */}
-      <div className="hidden lg:flex flex-1 bg-foreground text-background items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 bg-foreground dark:bg-accent text-background dark:text-foreground items-center justify-center p-12">
         <div className="max-w-md">
           <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-8">
             <span className="text-white font-bold text-xl">L</span>
