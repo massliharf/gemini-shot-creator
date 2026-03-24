@@ -1637,7 +1637,7 @@ const CloudFiles = () => {
             <div 
               ref={scrollContainerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto p-4"
+              className="flex-1 overflow-y-auto p-5"
             >
               {loading ? (
                 <div className="flex items-center justify-center py-12">
