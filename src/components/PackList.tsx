@@ -285,9 +285,9 @@ export const PackList = ({
       </div>
 
       {/* Gender Filter Tabs */}
-      <div className="px-4 pb-3">
-        <div className="flex bg-muted p-1 rounded-full">
-          {GENDER_FILTERS.map(filter => <button key={filter.value} onClick={() => setGenderFilter(filter.value)} className={`flex-1 text-sm py-1.5 px-3 rounded-md transition-colors font-medium ${genderFilter === filter.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+      <div className="px-4 pb-2">
+        <div className="flex bg-accent p-0.5 rounded-lg">
+          {GENDER_FILTERS.map(filter => <button key={filter.value} onClick={() => setGenderFilter(filter.value)} className={`flex-1 text-xs py-1.5 px-2 rounded-md transition-colors font-medium ${genderFilter === filter.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
               {filter.label}
             </button>)}
         </div>

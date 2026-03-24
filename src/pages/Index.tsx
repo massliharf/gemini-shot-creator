@@ -201,11 +201,13 @@ const Index = () => {
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
-                <Sparkles className="w-16 h-16 mx-auto mb-4 text-muted-foreground/20" />
-                <h3 className="text-lg font-medium text-foreground/80 mb-2">
-                  {packs.size === 0 ? "Start by uploading a pack" : "Select a pack"}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">Create stunning images with AI</p>
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-accent flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-muted-foreground/30" />
+                </div>
+                <p className="text-sm font-medium text-foreground/60 mb-1">
+                  {packs.size === 0 ? "Upload a pack to start" : "Select a pack"}
+                </p>
+                <p className="text-xs text-muted-foreground">AI-powered image generation</p>
               </div>
             </div>
           )}
