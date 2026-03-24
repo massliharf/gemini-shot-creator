@@ -145,6 +145,6 @@
   }
 
   .glass-panel {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+    @apply bg-card/80 dark:bg-card/90 backdrop-blur-xl border border-border/50;
   }
 }

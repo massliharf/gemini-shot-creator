@@ -43,13 +43,13 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left panel - Brand */}
-      <div className="hidden lg:flex flex-1 bg-foreground text-background items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 bg-foreground dark:bg-accent text-background dark:text-foreground items-center justify-center p-12">
         <div className="max-w-md">
-          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-8">
-            <span className="text-white font-bold text-xl">L</span>
+          <div className="w-12 h-12 rounded-xl bg-white/10 dark:bg-foreground/10 flex items-center justify-center mb-8">
+            <span className="text-white dark:text-foreground font-bold text-xl">L</span>
           </div>
           <h1 className="text-4xl font-bold tracking-tight mb-4">Lumra</h1>
-          <p className="text-lg text-white/50 leading-relaxed">
+          <p className="text-lg text-white/50 dark:text-muted-foreground leading-relaxed">
             AI-powered image generation platform. Create stunning visuals with intelligent style packs.
           </p>
         </div>
