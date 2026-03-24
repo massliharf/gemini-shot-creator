@@ -1847,7 +1847,7 @@ const CloudFiles = () => {
             </div>
 
             {/* Pack list */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-5">
               {jsonArchiveLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
