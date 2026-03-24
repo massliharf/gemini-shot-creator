@@ -1596,17 +1596,17 @@ const CloudFiles = () => {
 
             {/* Bulk actions bar */}
             {selectedCount > 0 && (
-              <div className="border-b border-border/50 bg-primary/5 px-4 py-2 flex items-center justify-between flex-shrink-0">
+              <div className="border-b border-border/50 bg-primary/5 px-5 py-2 flex items-center justify-between flex-shrink-0">
                 <span className="text-xs font-medium">
                   {selectedCount} klasör seçildi
                 </span>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleBulkDownload}
                     disabled={bulkAction !== null}
-                    className="h-7 text-xs"
+                    className="h-7 text-xs rounded-lg"
                   >
                     {bulkAction === 'download' ? (
                       <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
@@ -1620,7 +1620,7 @@ const CloudFiles = () => {
                     variant="destructive"
                     onClick={handleBulkDelete}
                     disabled={bulkAction !== null}
-                    className="h-7 text-xs"
+                    className="h-7 text-xs rounded-lg"
                   >
                     {bulkAction === 'delete' ? (
                       <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
