@@ -1973,7 +1973,7 @@ const CloudFiles = () => {
             )}
 
             {batchExport.currentFolderName && batchExport.phase !== "waiting_confirm" && batchExport.phase !== "complete" && (
-              <div className="text-xs text-muted-foreground truncate bg-secondary/50 px-3 py-2 rounded-lg">
+              <div className="text-xs text-muted-foreground truncate bg-accent/50 px-3 py-2 rounded-xl">
                 {batchExport.currentFolderName}
               </div>
             )}
