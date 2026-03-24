@@ -521,7 +521,7 @@ export default function PackCreator() {
                  "Omniscient Visual Architect"}
               </h1>
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
               <span>
                 {packType === "god-eye" ? "2-layer style system" : 
                  packType === "artist" ? "Technical DNA + scene continuation" :
