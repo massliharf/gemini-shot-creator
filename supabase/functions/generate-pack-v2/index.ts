@@ -2554,6 +2554,7 @@ Replace all identity-specific features with generic descriptors:
 ${styleContext}
 ${lightingContext}
 ${colorContext}
+${customPromptContext}
 
 ${isNonPortrait ? `### FRAMING FREEDOM:
 - ANY framing allowed across the ${sceneCount} scenes
