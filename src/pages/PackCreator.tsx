@@ -504,11 +504,11 @@ export default function PackCreator() {
     <AppLayout userEmail={userEmail}>
       <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-border/50 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h1 className="text-lg font-semibold">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h1 className="text-sm font-semibold">
                 {packType === "god-eye" ? "God-Eye Photography Director" : 
                  packType === "artist" ? "Artist v1" :
                  packType === "eye" ? "Eye Portrait Director" :
@@ -521,7 +521,7 @@ export default function PackCreator() {
                  "Omniscient Visual Architect"}
               </h1>
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
               <span>
                 {packType === "god-eye" ? "2-layer style system" : 
                  packType === "artist" ? "Technical DNA + scene continuation" :
@@ -544,47 +544,47 @@ export default function PackCreator() {
               )}
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
-            <Home className="h-4 w-4 mr-1" />
+          <Button variant="ghost" size="sm" className="h-7 text-xs rounded-lg" onClick={() => navigate("/")}>
+            <Home className="h-3.5 w-3.5 mr-1" />
             Home
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {/* Pack Type Selection */}
-          <Card className="p-4 border-border/50 space-y-4">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Layers className="h-4 w-4" />
+          <div className="bg-accent/50 rounded-xl p-4 space-y-3">
+            <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5" />
               Visual Style
             </Label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {PACK_TYPE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => setPackType(option.value)}
                   disabled={isGenerating}
-                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                  className={`flex items-center gap-2 p-3 rounded-xl border transition-all text-left ${
                     packType === option.value
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border/50 hover:border-border hover:bg-muted/50'
+                      ? 'border-primary bg-primary/5 shadow-sm'
+                      : 'border-border/50 hover:border-border hover:bg-card'
                   } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <div className={`p-2 rounded-lg ${packType === option.value ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                  <div className={`${packType === option.value ? 'text-primary' : 'text-muted-foreground'}`}>
                     {option.icon}
                   </div>
-                  <div className="text-left">
-                    <p className={`font-medium ${packType === option.value ? 'text-primary' : ''}`}>
+                  <div>
+                    <p className={`text-xs font-medium ${packType === option.value ? 'text-primary' : 'text-foreground'}`}>
                       {option.label}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">{option.description}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">{option.description}</p>
                   </div>
                 </button>
               ))}
             </div>
-          </Card>
+          </div>
 
           {/* Input Mode Tabs */}
-          <Card className="p-4 border-border/50">
+          <div className="bg-accent/50 rounded-xl p-4">
             <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "image" | "text")}>
               <TabsList className="grid grid-cols-2 w-full">
                 <TabsTrigger value="image" className="flex items-center gap-2">
@@ -615,10 +615,10 @@ export default function PackCreator() {
                   )}
                 </div>
 
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
-                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                  <span className="text-sm text-muted-foreground">Drop images or click to upload</span>
-                  <span className="text-xs text-muted-foreground/70 mt-1">Upload as many as you want - parallel processing</span>
+                <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-border rounded-xl cursor-pointer hover:bg-card transition-colors">
+                  <Upload className="h-5 w-5 text-muted-foreground mb-1.5" />
+                  <span className="text-xs text-muted-foreground">Drop images or click to upload</span>
+                  <span className="text-[10px] text-muted-foreground/70 mt-0.5">Parallel processing</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -700,10 +700,10 @@ export default function PackCreator() {
                 </div>
               </TabsContent>
             </Tabs>
-          </Card>
+          </div>
 
           {/* Pack Settings */}
-          <Card className="p-4 border-border/50 space-y-4">
+          <div className="bg-accent/50 rounded-xl p-4 space-y-4">
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Label className="text-xs font-medium whitespace-nowrap">Scenes:</Label>
@@ -767,7 +767,7 @@ export default function PackCreator() {
             </button>
 
             {showAdvanced && (
-              <div className="space-y-4 pt-2 border-t border-border/50">
+              <div className="space-y-3 pt-3 border-t border-border/30">
                 {/* Style Influences */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium flex items-center gap-2">
@@ -829,13 +829,13 @@ export default function PackCreator() {
                 </div>
               </div>
             )}
-          </Card>
+          </div>
 
           {/* Generate Button */}
           <Button
             onClick={handleGenerate}
             disabled={isGenerating || (inputMode === "image" ? images.filter(i => i.status === 'pending' || i.status === 'error').length === 0 : !textPrompt.trim())}
-            className="w-full h-12 text-base font-medium"
+            className="w-full h-10 text-sm font-medium rounded-xl"
             size="lg"
           >
             {isGenerating ? (
@@ -856,23 +856,23 @@ export default function PackCreator() {
 
           {/* Generated Packs */}
           {generatedPacks.length > 0 && (
-            <Card className="p-4 border-border/50 space-y-3">
-              <Label className="text-sm font-medium">Generated Packs ({generatedPacks.length})</Label>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="bg-accent/50 rounded-xl p-4 space-y-3">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Generated Packs ({generatedPacks.length})</Label>
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
                 {generatedPacks.map((gen) => (
                   <div
                     key={gen.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50"
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-card border border-border/50"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
                       {gen.saved ? (
-                        <Check className="h-4 w-4 text-green-500" />
+                        <Check className="h-3.5 w-3.5 text-success" />
                       ) : (
-                        <X className="h-4 w-4 text-red-500" />
+                        <X className="h-3.5 w-3.5 text-destructive" />
                       )}
                       <div>
-                        <p className="text-sm font-medium">{getPackName(gen.pack)}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs font-medium">{getPackName(gen.pack)}</p>
+                        <p className="text-[10px] text-muted-foreground">
                           {getSceneCount(gen.pack)} scenes • {gen.pack.meta.category}
                         </p>
                       </div>
@@ -880,6 +880,7 @@ export default function PackCreator() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="h-6 text-xs rounded-lg"
                       onClick={() => navigate("/")}
                     >
                       View
@@ -887,7 +888,7 @@ export default function PackCreator() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
           )}
         </div>
       </main>
