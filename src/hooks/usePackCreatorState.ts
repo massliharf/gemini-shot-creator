@@ -33,6 +33,10 @@ interface PackCreatorState {
   lightingPreference: string;
   colorPalette: string;
   generatedPacks: GeneratedPack[];
+  autoRender: boolean;
+  renderModel: string;
+  renderAspectRatio: string;
+  renderResolution: string;
 }
 
 const STORAGE_KEY = "pack-creator-state";
