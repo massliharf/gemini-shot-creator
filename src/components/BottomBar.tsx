@@ -72,6 +72,8 @@ export const BottomBar = ({
   const canAddMore = images.length < maxImages;
   const hasEmptySlot = images.some(img => !img.previewUrl);
   const isStyleTransfer = generationMode === "style-transfer";
+  const isTextOnly = generationMode === "text-only";
+  const hasAnyImage = images.some(img => img.previewUrl);
 
   const handleAddImage = () => {
     if (!hasEmptySlot && canAddMore) onAddImageSlot();
