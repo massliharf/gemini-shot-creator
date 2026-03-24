@@ -372,6 +372,7 @@ export default function PackCreator() {
               sceneCount, packType, gender, category, subcategory,
               styleInfluences: selectedInfluences,
               lightingPreference, colorPalette,
+              customPrompt,
             },
           });
 
