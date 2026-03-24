@@ -33,6 +33,10 @@ interface PackCreatorState {
   lightingPreference: string;
   colorPalette: string;
   generatedPacks: GeneratedPack[];
+  autoRender: boolean;
+  renderModel: string;
+  renderAspectRatio: string;
+  renderResolution: string;
 }
 
 const STORAGE_KEY = "pack-creator-state";
@@ -51,6 +55,10 @@ const DEFAULT_STATE: PackCreatorState = {
   lightingPreference: "",
   colorPalette: "",
   generatedPacks: [],
+  autoRender: false,
+  renderModel: "gemini-2.5-flash-image",
+  renderAspectRatio: "4:5",
+  renderResolution: "1K",
 };
 
 export function usePackCreatorState() {
@@ -183,6 +191,22 @@ export function usePackCreatorState() {
     }));
   }, []);
 
+  const setAutoRender = useCallback((val: boolean) => {
+    setState(prev => ({ ...prev, autoRender: val }));
+  }, []);
+
+  const setRenderModel = useCallback((val: string) => {
+    setState(prev => ({ ...prev, renderModel: val }));
+  }, []);
+
+  const setRenderAspectRatio = useCallback((val: string) => {
+    setState(prev => ({ ...prev, renderAspectRatio: val }));
+  }, []);
+
+  const setRenderResolution = useCallback((val: string) => {
+    setState(prev => ({ ...prev, renderResolution: val }));
+  }, []);
+
   // Clear all state
   const clearState = useCallback(() => {
     setState(DEFAULT_STATE);
@@ -205,6 +229,10 @@ export function usePackCreatorState() {
     lightingPreference: state.lightingPreference,
     colorPalette: state.colorPalette,
     generatedPacks: state.generatedPacks,
+    autoRender: state.autoRender,
+    renderModel: state.renderModel,
+    renderAspectRatio: state.renderAspectRatio,
+    renderResolution: state.renderResolution,
     
     // Setters
     setInputMode,
@@ -219,6 +247,10 @@ export function usePackCreatorState() {
     setLightingPreference,
     setColorPalette,
     setGeneratedPacks,
+    setAutoRender,
+    setRenderModel,
+    setRenderAspectRatio,
+    setRenderResolution,
     
     // Images (separate)
     images,
