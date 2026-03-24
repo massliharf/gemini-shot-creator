@@ -49,7 +49,7 @@ export default function Auth() {
             <span className="text-white dark:text-foreground font-bold text-xl">L</span>
           </div>
           <h1 className="text-4xl font-bold tracking-tight mb-4">Lumra</h1>
-          <p className="text-lg text-white/50 leading-relaxed">
+          <p className="text-lg text-white/50 dark:text-muted-foreground leading-relaxed">
             AI-powered image generation platform. Create stunning visuals with intelligent style packs.
           </p>
         </div>
