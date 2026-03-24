@@ -238,7 +238,7 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
               setError(null);
             }}
             placeholder='{"package_meta": {...}, "global_render_settings": {...}, "shots": [...]}'
-            className="w-full h-48 p-3 text-sm font-mono bg-secondary border-0 rounded-lg focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
+            className="w-full h-48 p-3 text-xs font-mono bg-accent border-0 rounded-xl focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
             disabled={isUploading}
           />
           {error && (
