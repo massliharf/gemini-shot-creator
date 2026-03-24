@@ -55,6 +55,7 @@ const DEFAULT_STATE: PackCreatorState = {
   selectedInfluences: [],
   lightingPreference: "",
   colorPalette: "",
+  customPrompt: "",
   generatedPacks: [],
   autoRender: false,
   renderModel: "gemini-2.5-flash-image",
