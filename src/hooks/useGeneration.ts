@@ -321,10 +321,13 @@ export const useGeneration = ({
 
     const packData = packs.get(packId);
     const validImages = getValidReferenceImages();
-    if (!packData || validImages.length === 0) {
-      toast.error('Please upload reference image');
+    if (!packData) {
+      toast.error('Pack not found');
       return;
     }
+
+    // Determine effective mode: if no reference images, force text-only
+    const effectiveMode = validImages.length === 0 ? "text-only" : generationMode;
 
     // Filter scenes: skip already successful ones unless forced
     const scenesToGenerate = skipCompleted 
