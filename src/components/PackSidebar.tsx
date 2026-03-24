@@ -697,8 +697,8 @@ export const PackSidebar = ({
           </div>
         )}
 
-        {/* Gender Filter with Download */}
-        <div className="flex gap-1 mb-2">
+        {/* Gender Filter */}
+        <div className="flex gap-0.5 mb-2">
           {GENDER_FILTERS.map((filter) => (
             <div key={filter.value} className="flex-1 flex">
               <button
@@ -706,7 +706,7 @@ export const PackSidebar = ({
                 className={`flex-1 px-2 py-1.5 text-[10px] font-medium transition-all ${
                   genderFilter === filter.value
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
+                    : 'bg-accent/50 text-muted-foreground hover:bg-accent'
                 } ${filter.value !== "all" ? 'rounded-l-lg' : 'rounded-lg'}`}
               >
                 {filter.label}
@@ -720,7 +720,7 @@ export const PackSidebar = ({
                   className={`px-1.5 py-1.5 text-[10px] rounded-r-lg transition-all border-l ${
                     genderFilter === filter.value
                       ? 'bg-primary/80 text-primary-foreground border-primary-foreground/20 hover:bg-primary/70'
-                      : 'bg-secondary/50 text-muted-foreground border-border/50 hover:bg-secondary'
+                      : 'bg-accent/50 text-muted-foreground border-border/30 hover:bg-accent'
                   }`}
                   title={`Download ${filter.label} packs`}
                 >
