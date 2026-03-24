@@ -117,18 +117,17 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(0 0% 85%);
+    background: hsl(var(--muted));
     border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(0 0% 70%);
+    background: hsl(var(--muted-foreground));
   }
 
-  /* Firefox scrollbar */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(0 0% 85%) transparent;
+    scrollbar-color: hsl(var(--muted)) transparent;
   }
 }
 
