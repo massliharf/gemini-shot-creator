@@ -20,10 +20,8 @@ export const QuoteGallery = ({ quotes }: QuoteGalleryProps) => {
 
   const handleDownload = async (quote: GeneratedQuote) => {
     try {
-      // Convert base64 to blob
       const response = await fetch(quote.imageUrl);
       const blob = await response.blob();
-      
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -41,13 +39,10 @@ export const QuoteGallery = ({ quotes }: QuoteGalleryProps) => {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/50 flex items-center justify-center">
-            <span className="text-3xl">💬</span>
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-accent flex items-center justify-center">
+            <span className="text-xl">💬</span>
           </div>
-          <h3 className="text-lg font-medium text-foreground/80 mb-2">No quotes yet</h3>
-          <p className="text-sm text-muted-foreground">
-            Enter text and click Generate to create quote images
-          </p>
+          <p className="text-sm text-muted-foreground">No images yet</p>
         </div>
       </div>
     );
@@ -57,50 +52,31 @@ export const QuoteGallery = ({ quotes }: QuoteGalleryProps) => {
     <>
       <ScrollArea className="h-full">
         <div className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {quotes.map((quote) => (
               <div
                 key={quote.id}
-                className="group relative bg-secondary rounded-xl overflow-hidden cursor-pointer aspect-[9/16]"
+                className="group relative bg-accent rounded-lg overflow-hidden cursor-pointer aspect-[9/16]"
                 onClick={() => setSelectedQuote(quote)}
               >
-                <img
-                  src={quote.imageUrl}
-                  alt={quote.text}
-                  className="w-full h-full object-cover"
-                />
-
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  {/* Quote text preview */}
+                <img src={quote.imageUrl} alt={quote.text} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="absolute bottom-2 left-2 right-2">
-                    <p className="text-white text-xs line-clamp-2">{quote.text}</p>
+                    <p className="text-white text-[10px] line-clamp-2">{quote.text}</p>
                   </div>
-
-                  {/* Actions */}
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white rounded-lg backdrop-blur-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedQuote(quote);
-                      }}
+                  <div className="absolute top-1.5 right-1.5 flex gap-1">
+                    <button
+                      className="h-6 w-6 rounded-md bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center text-white"
+                      onClick={(e) => { e.stopPropagation(); setSelectedQuote(quote); }}
                     >
-                      <Expand className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white rounded-lg backdrop-blur-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(quote);
-                      }}
+                      <Expand className="w-3 h-3" />
+                    </button>
+                    <button
+                      className="h-6 w-6 rounded-md bg-black/40 backdrop-blur-sm hover:bg-black/60 flex items-center justify-center text-white"
+                      onClick={(e) => { e.stopPropagation(); handleDownload(quote); }}
                     >
-                      <Download className="w-3.5 h-3.5" />
-                    </Button>
+                      <Download className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -109,33 +85,25 @@ export const QuoteGallery = ({ quotes }: QuoteGalleryProps) => {
         </div>
       </ScrollArea>
 
-      {/* Fullscreen view */}
       <Dialog open={!!selectedQuote} onOpenChange={() => setSelectedQuote(null)}>
-        <DialogContent className="max-w-4xl p-0 bg-black/95 border-none">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute top-4 right-4 z-50 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 text-white"
+        <DialogContent className="max-w-3xl p-0 bg-black/95 border-none rounded-2xl">
+          <button
+            className="absolute top-3 right-3 z-50 h-8 w-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
             onClick={() => setSelectedQuote(null)}
           >
-            <X className="w-5 h-5" />
-          </Button>
-
+            <X className="w-4 h-4" />
+          </button>
           {selectedQuote && (
-            <div className="flex flex-col items-center justify-center p-8">
-              <img
-                src={selectedQuote.imageUrl}
-                alt={selectedQuote.text}
-                className="max-h-[80vh] object-contain rounded-lg"
-              />
-              
-              <div className="mt-4 flex gap-2">
+            <div className="flex flex-col items-center justify-center p-6">
+              <img src={selectedQuote.imageUrl} alt={selectedQuote.text} className="max-h-[80vh] object-contain rounded-lg" />
+              <div className="mt-3">
                 <Button
                   variant="secondary"
-                  className="gap-2"
+                  size="sm"
+                  className="gap-1.5 rounded-lg text-xs"
                   onClick={() => handleDownload(selectedQuote)}
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5" />
                   Download
                 </Button>
               </div>

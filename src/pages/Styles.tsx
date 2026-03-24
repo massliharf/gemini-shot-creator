@@ -54,7 +54,6 @@ export default function Styles() {
 
     if (error) {
       toast.error("Failed to load packs");
-      console.error(error);
     } else {
       setPacks(data as PackRecord[]);
     }
@@ -64,39 +63,26 @@ export default function Styles() {
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === packs.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(packs.map((p) => p.id)));
-    }
+    setSelectedIds(selectedIds.size === packs.length ? new Set() : new Set(packs.map((p) => p.id)));
   };
 
   const downloadSinglePack = async (pack: PackRecord) => {
     setDownloading(pack.id);
     try {
-      const jsonStr = JSON.stringify(pack.pack_data, null, 2);
-      const blob = new Blob([jsonStr], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(pack.pack_data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${pack.pack_name || pack.pack_id}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Downloaded!");
-    } catch (err) {
-      console.error(err);
-      toast.error("Download failed");
-    }
+    } catch { toast.error("Download failed"); }
     setDownloading(null);
   };
 
@@ -106,12 +92,9 @@ export default function Styles() {
     try {
       const zip = new JSZip();
       const selectedPacks = packs.filter((p) => selectedIds.has(p.id));
-      
       for (const pack of selectedPacks) {
-        const jsonStr = JSON.stringify(pack.pack_data, null, 2);
-        zip.file(`${pack.pack_name || pack.pack_id}.json`, jsonStr);
+        zip.file(`${pack.pack_name || pack.pack_id}.json`, JSON.stringify(pack.pack_data, null, 2));
       }
-
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -120,23 +103,17 @@ export default function Styles() {
       a.click();
       URL.revokeObjectURL(url);
       toast.success(`Downloaded ${selectedIds.size} packs`);
-    } catch (err) {
-      console.error(err);
-      toast.error("Bulk download failed");
-    }
+    } catch { toast.error("Bulk download failed"); }
     setDownloading(null);
   };
 
   const getSceneCount = (packData: Record<string, unknown>): number => {
-    if (Array.isArray(packData.scenes)) {
-      return packData.scenes.length;
-    }
-    return 0;
+    return Array.isArray(packData.scenes) ? packData.scenes.length : 0;
   };
 
   const getCategory = (packData: Record<string, unknown>): string => {
     const meta = packData.meta as Record<string, unknown> | undefined;
-    return (meta?.category as string) || "-";
+    return (meta?.category as string) || "—";
   };
 
   if (!isAuthenticated) return null;
@@ -145,84 +122,86 @@ export default function Styles() {
     <AppLayout userEmail={userEmail}>
       <main className="flex-1 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Styles</h1>
-            <p className="text-sm text-muted-foreground">{packs.length} Packs</p>
+            <h1 className="text-sm font-semibold">Styles</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">{packs.length} packs</p>
           </div>
           {selectedIds.size > 0 && (
             <Button
               onClick={downloadSelected}
               disabled={downloading === "bulk"}
-              className="gap-2"
+              size="sm"
+              className="h-8 rounded-lg text-xs gap-1.5"
             >
               {downloading === "bulk" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Download className="h-4 w-4" />
+                <Download className="h-3.5 w-3.5" />
               )}
-              Download {selectedIds.size} Selected
+              Download {selectedIds.size}
             </Button>
           )}
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-y-auto px-6 pb-8">
+        <div className="flex-1 overflow-y-auto px-5 pb-6">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : packs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No packs yet. Generate some from Pack Creator!
+            <div className="text-center py-20 text-sm text-muted-foreground">
+              No packs yet
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
+                <TableRow className="border-border/50 hover:bg-transparent">
+                  <TableHead className="w-10">
                     <Checkbox
                       checked={selectedIds.size === packs.length && packs.length > 0}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-center">Scenes</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="w-16"></TableHead>
+                  <TableHead className="text-xs font-medium">Name</TableHead>
+                  <TableHead className="text-xs font-medium">Category</TableHead>
+                  <TableHead className="text-xs font-medium text-center">Scenes</TableHead>
+                  <TableHead className="text-xs font-medium">Created</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {packs.map((pack) => (
-                  <TableRow key={pack.id}>
-                    <TableCell>
+                  <TableRow key={pack.id} className="border-border/30 hover:bg-accent/50">
+                    <TableCell className="py-3">
                       <Checkbox
                         checked={selectedIds.has(pack.id)}
                         onCheckedChange={() => toggleSelect(pack.id)}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{pack.pack_name}</TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-sm font-medium py-3">{pack.pack_name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground py-3">
                       {getCategory(pack.pack_data)}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-sm text-center py-3">
                       {getSceneCount(pack.pack_data)}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground py-3">
                       {new Date(pack.created_at).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-3">
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-7 w-7 rounded-md"
                         onClick={() => downloadSinglePack(pack)}
                         disabled={downloading === pack.id}
                       >
                         {downloading === pack.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                          <Download className="h-4 w-4" />
+                          <Download className="h-3.5 w-3.5" />
                         )}
                       </Button>
                     </TableCell>
