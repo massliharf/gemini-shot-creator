@@ -217,7 +217,7 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <button className="w-full border border-dashed border-border rounded-xl p-2.5 text-center hover:border-primary/50 hover:bg-secondary/30 transition-colors cursor-pointer">
+        <button className="w-full border border-dashed border-border rounded-xl p-2.5 text-center hover:border-primary/30 hover:bg-accent/50 transition-colors cursor-pointer">
           <Upload className="w-3.5 h-3.5 mx-auto mb-0.5 text-muted-foreground" />
           <p className="text-[10px] text-muted-foreground">Upload JSON</p>
         </button>
