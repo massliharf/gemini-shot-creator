@@ -486,6 +486,7 @@ export default function PackCreator() {
         body: {
           textPrompt, sceneCount, packType, gender, category, subcategory,
           styleInfluences: selectedInfluences, lightingPreference, colorPalette,
+          customPrompt,
         },
       });
 
