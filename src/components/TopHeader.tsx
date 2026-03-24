@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Menu } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface TopHeaderProps {
   userEmail?: string;
@@ -39,6 +40,7 @@ export const TopHeader = ({ userEmail, onSignOut, onMenuClick }: TopHeaderProps)
           Library
         </Button>
 
+        <ThemeToggle />
         <div className="w-px h-5 bg-border/60" />
 
         <Avatar
