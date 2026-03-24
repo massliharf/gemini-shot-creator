@@ -703,7 +703,7 @@ export default function PackCreator() {
           </div>
 
           {/* Pack Settings */}
-          <Card className="p-4 border-border/50 space-y-4">
+          <div className="bg-accent/50 rounded-xl p-4 space-y-4">
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Label className="text-xs font-medium whitespace-nowrap">Scenes:</Label>
