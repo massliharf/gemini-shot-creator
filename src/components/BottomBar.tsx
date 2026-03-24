@@ -144,7 +144,9 @@ export const BottomBar = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium gap-1.5 hover:bg-accent transition-colors">
-                {isStyleTransfer ? (
+                {isTextOnly ? (
+                  <><Type className="w-3.5 h-3.5" /><span>Text</span></>
+                ) : isStyleTransfer ? (
                   <><Palette className="w-3.5 h-3.5" /><span>Style</span></>
                 ) : (
                   <><Image className="w-3.5 h-3.5" /><span>Portrait</span></>
@@ -156,6 +158,9 @@ export const BottomBar = ({
           <SelectContent>
             <SelectItem value="portrait">
               <div className="flex items-center gap-2"><Image className="w-3.5 h-3.5" /><span>Portrait</span></div>
+            </SelectItem>
+            <SelectItem value="text-only">
+              <div className="flex items-center gap-2"><Type className="w-3.5 h-3.5" /><span>Text Only</span></div>
             </SelectItem>
             <SelectItem value="style-transfer">
               <div className="flex items-center gap-2"><Palette className="w-3.5 h-3.5" /><span>Style Transfer</span></div>
