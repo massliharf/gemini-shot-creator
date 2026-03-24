@@ -1726,14 +1726,14 @@ const CloudFiles = () => {
                             </div>
                           </button>
 
-                          <div className="flex gap-1">
+                          <div className="flex gap-0.5">
                             {!isDownloaded && (
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => markAsDownloaded(folder.name)}
                                 title="İndirildi olarak işaretle"
-                                className="h-7 w-7 text-muted-foreground hover:text-green-500"
+                                className="h-7 w-7 text-muted-foreground hover:text-success"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                               </Button>
