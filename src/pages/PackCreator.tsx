@@ -544,8 +544,8 @@ export default function PackCreator() {
               )}
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
-            <Home className="h-4 w-4 mr-1" />
+          <Button variant="ghost" size="sm" className="h-7 text-xs rounded-lg" onClick={() => navigate("/")}>
+            <Home className="h-3.5 w-3.5 mr-1" />
             Home
           </Button>
         </div>
