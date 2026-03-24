@@ -51,7 +51,7 @@ interface RenderProgress {
 
 const SCENE_COUNT_OPTIONS = [8, 12, 16, 20];
 
-type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye" | "creative" | "product";
+type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye" | "creative" | "product" | "glamour";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
