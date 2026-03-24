@@ -310,9 +310,30 @@ export const PackList = ({
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={onGenerateAllPacks} disabled={isGeneratingAll || packs.length === 0} title="Generate All">
               {isGeneratingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Delete All">
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Delete All" disabled={packs.length === 0}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="rounded-2xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-base">Delete All Packs?</AlertDialogTitle>
+                  <AlertDialogDescription className="text-sm">
+                    All {packs.length} packs and their generated images will be permanently deleted.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="rounded-lg">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onDeleteMultiplePacks?.(packs.map(p => p.packId))}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg"
+                  >
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <AlertDialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Upload JSON" disabled={!onPacksLoad}>
