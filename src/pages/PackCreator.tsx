@@ -550,38 +550,38 @@ export default function PackCreator() {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {/* Pack Type Selection */}
-          <Card className="p-4 border-border/50 space-y-4">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Layers className="h-4 w-4" />
+          <div className="bg-accent/50 rounded-xl p-4 space-y-3">
+            <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5" />
               Visual Style
             </Label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {PACK_TYPE_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => setPackType(option.value)}
                   disabled={isGenerating}
-                  className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                  className={`flex items-center gap-2 p-3 rounded-xl border transition-all text-left ${
                     packType === option.value
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border/50 hover:border-border hover:bg-muted/50'
+                      ? 'border-primary bg-primary/5 shadow-sm'
+                      : 'border-border/50 hover:border-border hover:bg-card'
                   } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <div className={`p-2 rounded-lg ${packType === option.value ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                  <div className={`${packType === option.value ? 'text-primary' : 'text-muted-foreground'}`}>
                     {option.icon}
                   </div>
-                  <div className="text-left">
-                    <p className={`font-medium ${packType === option.value ? 'text-primary' : ''}`}>
+                  <div>
+                    <p className={`text-xs font-medium ${packType === option.value ? 'text-primary' : 'text-foreground'}`}>
                       {option.label}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">{option.description}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">{option.description}</p>
                   </div>
                 </button>
               ))}
             </div>
-          </Card>
+          </div>
 
           {/* Input Mode Tabs */}
           <Card className="p-4 border-border/50">
