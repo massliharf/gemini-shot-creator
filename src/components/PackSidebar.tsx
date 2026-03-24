@@ -319,10 +319,10 @@ const PackCard = ({
       className={`
         group relative p-2.5 rounded-xl cursor-pointer transition-all duration-200
         ${isSelected && !isSelectionMode
-          ? 'bg-primary/10 ring-1 ring-primary shadow-sm' 
+          ? 'bg-primary/5 ring-1 ring-primary/50 shadow-sm' 
           : isChecked && isSelectionMode
-            ? 'bg-primary/15 ring-1 ring-primary/50'
-            : 'bg-secondary/40 hover:bg-secondary/70'
+            ? 'bg-primary/10 ring-1 ring-primary/30'
+            : 'bg-accent/50 hover:bg-accent'
         }
       `}
     >
