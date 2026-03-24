@@ -858,21 +858,21 @@ export default function PackCreator() {
           {generatedPacks.length > 0 && (
             <div className="bg-accent/50 rounded-xl p-4 space-y-3">
               <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Generated Packs ({generatedPacks.length})</Label>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
                 {generatedPacks.map((gen) => (
                   <div
                     key={gen.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50"
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-card border border-border/50"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5">
                       {gen.saved ? (
-                        <Check className="h-4 w-4 text-green-500" />
+                        <Check className="h-3.5 w-3.5 text-success" />
                       ) : (
-                        <X className="h-4 w-4 text-red-500" />
+                        <X className="h-3.5 w-3.5 text-destructive" />
                       )}
                       <div>
-                        <p className="text-sm font-medium">{getPackName(gen.pack)}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs font-medium">{getPackName(gen.pack)}</p>
+                        <p className="text-[10px] text-muted-foreground">
                           {getSceneCount(gen.pack)} scenes • {gen.pack.meta.category}
                         </p>
                       </div>
@@ -880,6 +880,7 @@ export default function PackCreator() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="h-6 text-xs rounded-lg"
                       onClick={() => navigate("/")}
                     >
                       View
@@ -887,7 +888,7 @@ export default function PackCreator() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
           )}
         </div>
       </main>
