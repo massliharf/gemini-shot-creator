@@ -2278,6 +2278,7 @@ serve(async (req) => {
       styleInfluences = [],
       lightingPreference = "",
       colorPalette = "",
+      customPrompt = "",
     } = await req.json();
 
     if (!imageBase64 && !textPrompt) {
