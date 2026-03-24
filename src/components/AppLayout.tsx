@@ -23,7 +23,7 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
-    toast.success("Signed out successfully");
+    toast.success("Signed out");
   };
 
   return (
@@ -34,26 +34,26 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
       </div>
 
       <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
-        {/* Top Header (all pages) */}
+        {/* Top Header */}
         <TopHeader
           userEmail={userEmail}
           onSignOut={handleSignOut}
           onMenuClick={() => setMobileMenuOpen(true)}
         />
 
-        {/* Mobile menu: route nav + optional sidebar */}
+        {/* Mobile menu */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="left" className="w-[320px] p-0 bg-background overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <div className="space-y-1">
+          <SheetContent side="left" className="w-[280px] p-0 bg-background overflow-hidden">
+            <div className="p-3 border-b border-border/50">
+              <div className="space-y-0.5">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.path;
                   return (
                     <Button
                       key={item.path}
                       variant="ghost"
-                      className={`w-full justify-start ${
-                        isActive ? "bg-warning text-warning-foreground hover:bg-warning" : "hover:bg-muted"
+                      className={`w-full justify-start h-9 text-sm ${
+                        isActive ? "bg-accent font-medium" : "text-muted-foreground"
                       }`}
                       onClick={() => {
                         navigate(item.path);
@@ -75,7 +75,7 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
         <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Sidebar (desktop) */}
           {sidebar && (
-            <aside className="hidden lg:flex w-[300px] min-w-[280px] bg-background border-r border-border flex-col overflow-hidden h-full min-h-0">
+            <aside className="hidden lg:flex w-[260px] min-w-[240px] bg-background border-r border-border/50 flex-col overflow-hidden h-full min-h-0">
               <div className="flex flex-col h-full min-h-0 overflow-hidden">
                 {sidebar}
               </div>
@@ -89,4 +89,3 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
     </div>
   );
 };
-

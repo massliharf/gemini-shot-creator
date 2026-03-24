@@ -44,70 +44,58 @@ export const PackHeader = ({
   const sceneCount = getSceneCount(pack);
 
   return (
-    <div className="flex items-center gap-4 px-6 py-4">
-      <div className="flex-1">
-        <h1 className="text-lg font-semibold">{packName}</h1>
-        <p className="text-sm text-muted-foreground">
-          {category.charAt(0).toUpperCase() + category.slice(1)} · {genderLabels[gender] || gender} · {sceneCount} Scenes
+    <div className="flex items-center gap-4 px-5 py-3 border-b border-border/40">
+      <div className="flex-1 min-w-0">
+        <h1 className="text-sm font-semibold truncate">{packName}</h1>
+        <p className="text-xs text-muted-foreground">
+          {category.charAt(0).toUpperCase() + category.slice(1)} · {genderLabels[gender] || gender} · {completedCount}/{sceneCount}
         </p>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         {onRegenerate && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 rounded-lg"
+            className="h-8 w-8 rounded-lg"
             onClick={onRegenerate}
             disabled={isGenerating}
-            title="Regenerate All"
           >
-            <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+          </Button>
+        )}
+
+        {onDownload && completedCount > 0 && (
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onDownload}>
+            <Download className="w-3.5 h-3.5" />
           </Button>
         )}
 
         {onDelete && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-lg"
-                title="Delete Pack"
-              >
-                <Trash2 className="w-4 h-4" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive">
+                <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="rounded-2xl">
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete Pack?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitle className="text-base">Delete Pack?</AlertDialogTitle>
+                <AlertDialogDescription className="text-sm">
                   "{packName}" and all its images will be permanently deleted.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel className="rounded-lg">Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={onDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg"
                 >
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        )}
-
-        {onDownload && completedCount > 0 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 rounded-lg"
-            onClick={onDownload}
-            title="Download Pack"
-          >
-            <Download className="w-4 h-4" />
-          </Button>
         )}
       </div>
     </div>

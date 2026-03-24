@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { User, Plus, ChevronDown, X, ImagePlus, Image, Palette } from "lucide-react";
+import { User, Plus, X, ImagePlus, Image, Palette } from "lucide-react";
 import { ReferenceImage } from "@/hooks/useReferenceImages";
 import { GenerationMode } from "@/hooks/useGenerationSettings";
 
@@ -25,21 +25,17 @@ interface BottomBarProps {
   onResolutionChange: (value: string) => void;
   selectedModel: string;
   onModelChange: (value: string) => void;
-  // Multi-image props
   images: ReferenceImage[];
   onImageUpload: (file: File, index: number) => void;
   onImageClear: (index: number) => void;
   onAddImageSlot: () => void;
   maxImages: number;
-  // Generation
   onGenerate: () => void;
   isGenerating: boolean;
   canGenerate: boolean;
-  // Unisex pack gender selection
   isUnisexPack?: boolean;
   generationGender?: GenerationGender;
   onGenerationGenderChange?: (gender: GenerationGender) => void;
-  // Generation mode
   generationMode: GenerationMode;
   onGenerationModeChange: (mode: GenerationMode) => void;
 }
@@ -69,21 +65,19 @@ export const BottomBar = ({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
-    if (file) {
-      onImageUpload(file, index);
-    }
+    if (file) onImageUpload(file, index);
     e.target.value = "";
   };
 
   const isProModel = selectedModel === "gemini-3-pro-image-preview" || selectedModel === "gemini-3.1-flash-image-preview";
-  const modelLabel = selectedModel === "gemini-3-pro-image-preview" ? "PRO" : selectedModel === "gemini-3.1-flash-image-preview" ? "3.1 FLASH" : "FLASH";
+  const modelLabel = selectedModel === "gemini-3-pro-image-preview" ? "Pro" : selectedModel === "gemini-3.1-flash-image-preview" ? "3.1" : "Flash";
   const canAddMore = images.length < maxImages;
   const hasEmptySlot = images.some(img => !img.previewUrl);
   const isStyleTransfer = generationMode === "style-transfer";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex justify-center p-6 pointer-events-none z-50">
-      <div className="flex items-center gap-3 bg-background border border-border rounded-full px-4 py-2.5 shadow-md pointer-events-auto">
+    <div className="fixed bottom-0 left-0 right-0 flex justify-center p-4 pointer-events-none z-50">
+      <div className="flex items-center gap-2 glass-panel rounded-2xl px-3 py-2 shadow-lg pointer-events-auto">
         {/* Reference Images */}
         {images.map((image, index) => (
           <div key={index} className="relative group">
@@ -98,109 +92,76 @@ export const BottomBar = ({
               <div className="relative">
                 <img
                   src={image.previewUrl}
-                  alt={`Reference ${index + 1}`}
-                  className={`w-10 h-10 rounded-full object-cover ring-2 ${
-                    index === 0 ? 'ring-foreground' : 'ring-muted-foreground'
-                  }`}
+                  alt={`Ref ${index + 1}`}
+                  className="w-9 h-9 rounded-lg object-cover ring-1 ring-border/50"
                 />
                 <button
                   onClick={() => onImageClear(index)}
-                  className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <X className="w-2.5 h-2.5 text-destructive-foreground" />
+                  <X className="w-2 h-2 text-background" />
                 </button>
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-background border border-border rounded-full flex items-center justify-center text-[9px] font-medium">
-                  {index + 1}
-                </span>
               </div>
             ) : (
               <label
                 htmlFor={`bottom-ref-image-${index}`}
-                className="w-10 h-10 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-muted-foreground transition-colors relative"
+                className="w-9 h-9 rounded-lg border border-dashed border-border flex items-center justify-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
               >
-                <User className="w-4 h-4 text-muted-foreground" />
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-background border border-border rounded-full flex items-center justify-center text-[9px] font-medium text-muted-foreground">
-                  {index + 1}
-                </span>
+                <User className="w-3.5 h-3.5 text-muted-foreground" />
               </label>
             )}
           </div>
         ))}
 
-        {/* Add Image Menu */}
+        {/* Add Image */}
         <Popover open={showAddMenu} onOpenChange={setShowAddMenu}>
           <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full"
-            >
-              <Plus className="w-5 h-5" />
-            </Button>
+            <button className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+              <Plus className="w-4 h-4" />
+            </button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-2" align="center">
+          <PopoverContent className="w-52 p-1.5" align="center">
             <Button
               variant="ghost"
-              className="w-full justify-start gap-2 h-9"
+              className="w-full justify-start gap-2 h-8 text-xs"
               onClick={() => {
-                if (!hasEmptySlot && canAddMore) {
-                  onAddImageSlot();
-                }
+                if (!hasEmptySlot && canAddMore) onAddImageSlot();
                 setShowAddMenu(false);
               }}
               disabled={!canAddMore}
             >
-              <ImagePlus className="w-4 h-4" />
-              {canAddMore 
-                ? `Add Reference Image (${images.length}/${maxImages})`
-                : `Max ${maxImages} images reached`
-              }
+              <ImagePlus className="w-3.5 h-3.5" />
+              {canAddMore ? `Add Reference (${images.length}/${maxImages})` : `Max reached`}
             </Button>
           </PopoverContent>
         </Popover>
 
-        {/* Mode Selector */}
+        <div className="w-px h-6 bg-border/50" />
+
+        {/* Mode */}
         <Select value={generationMode} onValueChange={(v) => onGenerationModeChange(v as GenerationMode)}>
-          <SelectTrigger className={`w-auto h-10 px-4 rounded-full border text-sm font-medium gap-2 ${
-            isStyleTransfer 
-              ? 'border-purple-500/50 bg-purple-500/10 text-purple-600 dark:text-purple-400' 
-              : 'border-border bg-background'
-          }`}>
+          <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium gap-1.5 hover:bg-accent transition-colors">
             {isStyleTransfer ? (
-              <>
-                <Palette className="w-4 h-4" />
-                <span>Style</span>
-              </>
+              <><Palette className="w-3.5 h-3.5" /><span>Style</span></>
             ) : (
-              <>
-                <Image className="w-4 h-4" />
-                <span>Portrait</span>
-              </>
+              <><Image className="w-3.5 h-3.5" /><span>Portrait</span></>
             )}
-            <ChevronDown className="w-3.5 h-3.5 opacity-50" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="portrait">
-              <div className="flex items-center gap-2">
-                <Image className="w-4 h-4" />
-                <span>Portrait Mode</span>
-              </div>
+              <div className="flex items-center gap-2"><Image className="w-3.5 h-3.5" /><span>Portrait</span></div>
             </SelectItem>
             <SelectItem value="style-transfer">
-              <div className="flex items-center gap-2">
-                <Palette className="w-4 h-4" />
-                <span>Style Transfer</span>
-              </div>
+              <div className="flex items-center gap-2"><Palette className="w-3.5 h-3.5" /><span>Style Transfer</span></div>
             </SelectItem>
           </SelectContent>
         </Select>
 
-        {/* Gender Selector - Only for Unisex Packs */}
+        {/* Gender */}
         {isUnisexPack && onGenerationGenderChange && (
           <Select value={generationGender} onValueChange={(v) => onGenerationGenderChange(v as GenerationGender)}>
-            <SelectTrigger className="w-auto h-10 px-4 rounded-full border border-primary/50 bg-primary/10 text-sm font-medium gap-2">
-              <span>{generationGender === "male" ? "♂ Male" : "♀ Female"}</span>
-              <ChevronDown className="w-3.5 h-3.5 opacity-50" />
+            <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium">
+              <span>{generationGender === "male" ? "♂" : "♀"}</span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="female">♀ Female</SelectItem>
@@ -211,42 +172,33 @@ export const BottomBar = ({
 
         {/* Aspect Ratio */}
         <Select value={aspectRatio} onValueChange={onAspectRatioChange}>
-          <SelectTrigger className="w-auto h-10 px-4 rounded-full border border-border bg-background text-sm font-medium gap-2">
+          <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium hover:bg-accent transition-colors">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1:1">1:1</SelectItem>
-            <SelectItem value="2:3">2:3</SelectItem>
-            <SelectItem value="3:2">3:2</SelectItem>
-            <SelectItem value="3:4">3:4</SelectItem>
-            <SelectItem value="4:3">4:3</SelectItem>
-            <SelectItem value="4:5">4:5</SelectItem>
-            <SelectItem value="5:4">5:4</SelectItem>
-            <SelectItem value="9:16">9:16</SelectItem>
-            <SelectItem value="16:9">16:9</SelectItem>
-            <SelectItem value="21:9">21:9</SelectItem>
+            {["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"].map(r => (
+              <SelectItem key={r} value={r}>{r}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        {/* Model Selector */}
+        {/* Model */}
         <Select value={selectedModel} onValueChange={onModelChange}>
-          <SelectTrigger className="w-auto h-10 px-4 rounded-full border border-border bg-background text-sm font-medium gap-2">
+          <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium hover:bg-accent transition-colors">
             <span>{modelLabel}</span>
-            <ChevronDown className="w-3.5 h-3.5 opacity-50" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="gemini-2.5-flash-image">FLASH</SelectItem>
-            <SelectItem value="gemini-3.1-flash-image-preview">3.1 FLASH</SelectItem>
-            <SelectItem value="gemini-3-pro-image-preview">PRO</SelectItem>
+            <SelectItem value="gemini-2.5-flash-image">Flash</SelectItem>
+            <SelectItem value="gemini-3.1-flash-image-preview">3.1 Flash</SelectItem>
+            <SelectItem value="gemini-3-pro-image-preview">Pro</SelectItem>
           </SelectContent>
         </Select>
 
-        {/* Resolution Selector - Only for PRO model */}
+        {/* Resolution */}
         {isProModel && (
           <Select value={resolution} onValueChange={onResolutionChange}>
-            <SelectTrigger className="w-auto h-10 px-4 rounded-full border border-border bg-background text-sm font-medium gap-2">
+            <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium hover:bg-accent transition-colors">
               <span>{resolution}</span>
-              <ChevronDown className="w-3.5 h-3.5 opacity-50" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="1K">1K</SelectItem>
@@ -256,19 +208,21 @@ export const BottomBar = ({
           </Select>
         )}
 
-        {/* Generate Button */}
+        <div className="w-px h-6 bg-border/50" />
+
+        {/* Generate */}
         <Button
           onClick={onGenerate}
           disabled={!canGenerate || isGenerating}
-          className="h-10 px-6 rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium"
+          className="h-8 px-5 rounded-lg bg-foreground text-background hover:bg-foreground/90 text-xs font-semibold"
         >
           {isGenerating ? (
-            <>
-              <span className="w-4 h-4 mr-2 border-2 border-background/30 border-t-background rounded-full animate-spin" />
-              Generating...
-            </>
+            <span className="flex items-center gap-2">
+              <span className="w-3 h-3 border-2 border-background/30 border-t-background rounded-full animate-spin" />
+              Working...
+            </span>
           ) : (
-            "GENERATE"
+            "Generate"
           )}
         </Button>
       </div>
