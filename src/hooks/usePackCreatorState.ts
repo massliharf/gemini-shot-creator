@@ -55,6 +55,10 @@ const DEFAULT_STATE: PackCreatorState = {
   lightingPreference: "",
   colorPalette: "",
   generatedPacks: [],
+  autoRender: false,
+  renderModel: "gemini-2.5-flash-image",
+  renderAspectRatio: "4:5",
+  renderResolution: "1K",
 };
 
 export function usePackCreatorState() {
