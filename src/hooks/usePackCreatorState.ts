@@ -32,6 +32,7 @@ interface PackCreatorState {
   selectedInfluences: string[];
   lightingPreference: string;
   colorPalette: string;
+  customPrompt: string;
   generatedPacks: GeneratedPack[];
   autoRender: boolean;
   renderModel: string;
