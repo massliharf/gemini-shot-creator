@@ -835,7 +835,7 @@ export default function PackCreator() {
           <Button
             onClick={handleGenerate}
             disabled={isGenerating || (inputMode === "image" ? images.filter(i => i.status === 'pending' || i.status === 'error').length === 0 : !textPrompt.trim())}
-            className="w-full h-12 text-base font-medium"
+            className="w-full h-10 text-sm font-medium rounded-xl"
             size="lg"
           >
             {isGenerating ? (
