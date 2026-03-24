@@ -1,5 +1,6 @@
 import { PackFile, getPackName, getPackCategory, getPackGender, getSceneCount } from "@/types/pack";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RefreshCw, Trash2, Download } from "lucide-react";
 import {
   AlertDialog,
