@@ -504,11 +504,11 @@ export default function PackCreator() {
     <AppLayout userEmail={userEmail}>
       <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-border/50 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h1 className="text-lg font-semibold">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h1 className="text-sm font-semibold">
                 {packType === "god-eye" ? "God-Eye Photography Director" : 
                  packType === "artist" ? "Artist v1" :
                  packType === "eye" ? "Eye Portrait Director" :
