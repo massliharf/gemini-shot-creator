@@ -83,8 +83,11 @@ serve(async (req) => {
       }
     }
 
-    // Validate required inputs
-    if (imageParts.length === 0) {
+    // Validate required inputs — allow text-only generation when no images provided
+    if (imageParts.length === 0 && generationMode === "text-only") {
+      // Text-only mode: no reference images needed
+      console.log("Text-only generation mode");
+    } else if (imageParts.length === 0) {
       return new Response(
         JSON.stringify({ success: false, reason: "no_selfie", message: "At least one reference photo is required" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
