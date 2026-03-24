@@ -455,7 +455,7 @@ export const useGeneration = ({
             body: { 
               queueId: queueItem.id,
               // Send all images as an array
-              referenceImages: base64Images,
+              referenceImages: base64Images.length > 0 ? base64Images : undefined,
               // Keep legacy fields for backward compatibility
               selfieBase64: base64Images[0]?.base64,
               selfieMimeType: base64Images[0]?.mimeType,
@@ -468,7 +468,7 @@ export const useGeneration = ({
               aspectRatio,
               resolution,
               generationGender,
-              generationMode,
+              generationMode: effectiveMode,
             },
           });
 

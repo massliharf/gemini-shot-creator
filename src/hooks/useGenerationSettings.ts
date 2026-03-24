@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export type GenerationMode = "portrait" | "style-transfer";
+export type GenerationMode = "portrait" | "style-transfer" | "text-only";
 
 export const useGenerationSettings = () => {
   const [selectedModel, setSelectedModel] = useState<string>("gemini-2.5-flash-image");
