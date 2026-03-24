@@ -1657,9 +1657,9 @@ const CloudFiles = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {/* Select all */}
-                  <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg">
+                  <div className="flex items-center gap-2 p-2 bg-accent/50 rounded-lg">
                     <Checkbox
                       checked={selectedFolders.size === displayedFolders.length && displayedFolders.length > 0}
                       onCheckedChange={() => {
