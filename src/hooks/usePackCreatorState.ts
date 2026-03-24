@@ -32,6 +32,7 @@ interface PackCreatorState {
   selectedInfluences: string[];
   lightingPreference: string;
   colorPalette: string;
+  customPrompt: string;
   generatedPacks: GeneratedPack[];
   autoRender: boolean;
   renderModel: string;
@@ -54,6 +55,7 @@ const DEFAULT_STATE: PackCreatorState = {
   selectedInfluences: [],
   lightingPreference: "",
   colorPalette: "",
+  customPrompt: "",
   generatedPacks: [],
   autoRender: false,
   renderModel: "gemini-2.5-flash-image",
@@ -184,6 +186,10 @@ export function usePackCreatorState() {
     setState(prev => ({ ...prev, colorPalette: palette }));
   }, []);
 
+  const setCustomPrompt = useCallback((prompt: string) => {
+    setState(prev => ({ ...prev, customPrompt: prompt }));
+  }, []);
+
   const setGeneratedPacks = useCallback((packs: GeneratedPack[] | ((prev: GeneratedPack[]) => GeneratedPack[])) => {
     setState(prev => ({
       ...prev,
@@ -228,6 +234,7 @@ export function usePackCreatorState() {
     selectedInfluences: state.selectedInfluences,
     lightingPreference: state.lightingPreference,
     colorPalette: state.colorPalette,
+    customPrompt: state.customPrompt,
     generatedPacks: state.generatedPacks,
     autoRender: state.autoRender,
     renderModel: state.renderModel,
@@ -246,6 +253,7 @@ export function usePackCreatorState() {
     setSelectedInfluences,
     setLightingPreference,
     setColorPalette,
+    setCustomPrompt,
     setGeneratedPacks,
     setAutoRender,
     setRenderModel,

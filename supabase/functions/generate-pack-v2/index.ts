@@ -2278,6 +2278,7 @@ serve(async (req) => {
       styleInfluences = [],
       lightingPreference = "",
       colorPalette = "",
+      customPrompt = "",
     } = await req.json();
 
     if (!imageBase64 && !textPrompt) {
@@ -2399,6 +2400,9 @@ serve(async (req) => {
     const colorContext = colorPalette 
       ? `Color palette direction: ${colorPalette}.` 
       : "";
+    const customPromptContext = customPrompt
+      ? `\n## CUSTOM PROMPT DIRECTION (CRITICAL - Follow this style/tone for ALL scene prompts):\n${customPrompt}\n`
+      : "";
 
     // Build the user prompt
     let userPrompt = basePrompt;
@@ -2419,6 +2423,7 @@ ${textPrompt}
 ${styleContext}
 ${lightingContext}
 ${colorContext}
+${customPromptContext}
 
 ## YOUR MISSION:
 Create a complete ${styleType} style pack with exactly ${sceneCount} scenes.
@@ -2549,6 +2554,7 @@ Replace all identity-specific features with generic descriptors:
 ${styleContext}
 ${lightingContext}
 ${colorContext}
+${customPromptContext}
 
 ${isNonPortrait ? `### FRAMING FREEDOM:
 - ANY framing allowed across the ${sceneCount} scenes
