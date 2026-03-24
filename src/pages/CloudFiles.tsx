@@ -1858,9 +1858,9 @@ const CloudFiles = () => {
                   <p className="text-xs">Veritabanında pack bulunamadı</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {/* Select all */}
-                  <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg">
+                  <div className="flex items-center gap-2 p-2 bg-accent/50 rounded-lg">
                     <Checkbox
                       checked={selectedJsonPacks.size === dbPacks.length && dbPacks.length > 0}
                       onCheckedChange={selectAllJsonPacks}
