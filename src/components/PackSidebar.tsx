@@ -416,7 +416,7 @@ const PackCard = ({
           {tags.slice(0, 2).map((tag, idx) => (
             <span 
               key={idx}
-              className="text-[8px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground"
+              className="text-[8px] px-1.5 py-0.5 rounded-full bg-accent text-muted-foreground"
             >
               {tag}
             </span>
