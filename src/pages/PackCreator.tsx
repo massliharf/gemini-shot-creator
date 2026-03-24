@@ -700,7 +700,7 @@ export default function PackCreator() {
                 </div>
               </TabsContent>
             </Tabs>
-          </Card>
+          </div>
 
           {/* Pack Settings */}
           <Card className="p-4 border-border/50 space-y-4">
