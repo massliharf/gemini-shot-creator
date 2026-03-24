@@ -1884,8 +1884,8 @@ const CloudFiles = () => {
                     return (
                       <div
                         key={pack.id}
-                        className={`border rounded-xl bg-secondary/30 overflow-hidden p-3 flex items-center gap-3 ${
-                          isSelected ? 'border-primary/50 bg-primary/5' : 'border-border/50'
+                        className={`border rounded-xl overflow-hidden p-3 flex items-center gap-3 transition-colors ${
+                          isSelected ? 'border-primary/30 bg-primary/5' : 'border-border/50 bg-accent/30'
                         }`}
                       >
                         <Checkbox
