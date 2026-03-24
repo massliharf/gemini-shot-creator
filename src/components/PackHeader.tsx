@@ -55,21 +55,31 @@ export const PackHeader = ({
 
       <div className="flex items-center gap-0.5">
         {onRegenerate && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg"
-            onClick={onRegenerate}
-            disabled={isGenerating}
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
+                onClick={onRegenerate}
+                disabled={isGenerating}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Regenerate all</TooltipContent>
+          </Tooltip>
         )}
 
         {onDownload && completedCount > 0 && (
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onDownload}>
-            <Download className="w-3.5 h-3.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onDownload}>
+                <Download className="w-3.5 h-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Download as ZIP</TooltipContent>
+          </Tooltip>
         )}
 
         {onDelete && (
