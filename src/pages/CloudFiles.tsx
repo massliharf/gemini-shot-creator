@@ -1814,13 +1814,13 @@ const CloudFiles = () => {
           {/* JSON ARCHIVE TAB */}
           <TabsContent value="json-archive" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Action bar */}
-            <div className="px-4 py-2 border-b border-border/50 flex gap-2 flex-shrink-0">
+            <div className="px-5 py-2 border-b border-border/50 flex gap-1.5 flex-shrink-0">
               <Button
                 variant="default"
                 size="sm"
                 onClick={downloadAllJsonPacks}
                 disabled={jsonArchiveLoading || dbPacks.length === 0}
-                className="text-xs h-8 gap-1"
+                className="text-xs h-7 gap-1 rounded-lg"
               >
                 <Archive className="w-3.5 h-3.5" />
                 Tümünü İndir ({dbPacks.length})
@@ -1830,7 +1830,7 @@ const CloudFiles = () => {
                 size="sm"
                 onClick={downloadSelectedJsonPacks}
                 disabled={jsonArchiveLoading || selectedJsonPacks.size === 0}
-                className="text-xs h-8 gap-1"
+                className="text-xs h-7 gap-1 rounded-lg"
               >
                 <Download className="w-3.5 h-3.5" />
                 Seçilenleri İndir ({selectedJsonPacks.size})
@@ -1840,7 +1840,7 @@ const CloudFiles = () => {
                 size="sm"
                 onClick={loadDbPacks}
                 disabled={jsonArchiveLoading}
-                className="h-8 w-8 p-0 ml-auto"
+                className="h-7 w-7 p-0 ml-auto rounded-lg"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${jsonArchiveLoading ? 'animate-spin' : ''}`} />
               </Button>
