@@ -1702,7 +1702,7 @@ const CloudFiles = () => {
                           {isDownloaded && (
                             <button
                               onClick={() => unmarkAsDownloaded(folder.name)}
-                              className="text-green-500 hover:text-green-600"
+                              className="text-success hover:text-success/80"
                               title="İndirildi - tıkla kaldır"
                             >
                               <CheckCircle2 className="w-4 h-4" />
