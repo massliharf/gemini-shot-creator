@@ -19,28 +19,30 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={<Index />} />
-          <Route path="/generator" element={<Generator />} />
-          <Route path="/pack-creator" element={<PackCreator />} />
-          <Route path="/styles" element={<Styles />} />
-          <Route path="/pack-editor" element={<PackEditor />} />
-          <Route path="/cloud-files" element={<CloudFiles />} />
-          <Route path="/quote-generator" element={<QuoteGenerator />} />
-          <Route path="/glasses-generator" element={<GlassesGenerator />} />
-          <Route path="/text-to-image" element={<TextToImage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/generator" element={<Generator />} />
+            <Route path="/pack-creator" element={<PackCreator />} />
+            <Route path="/styles" element={<Styles />} />
+            <Route path="/pack-editor" element={<PackEditor />} />
+            <Route path="/cloud-files" element={<CloudFiles />} />
+            <Route path="/quote-generator" element={<QuoteGenerator />} />
+            <Route path="/glasses-generator" element={<GlassesGenerator />} />
+            <Route path="/text-to-image" element={<TextToImage />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

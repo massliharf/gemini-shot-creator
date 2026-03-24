@@ -40,6 +40,7 @@ export const TopHeader = ({ userEmail, onSignOut, onMenuClick }: TopHeaderProps)
           Library
         </Button>
 
+        <ThemeToggle />
         <div className="w-px h-5 bg-border/60" />
 
         <Avatar
