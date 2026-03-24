@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { 
   Upload, Wand2, Loader2, X, Check, Home, Camera, Box, 
   Sparkles, Palette, Sun, Layers, Eye, RefreshCw, Trash2,
-  ImageIcon, Play
+  ImageIcon, Play, Film, ShoppingBag
 } from "lucide-react";
 import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes, buildFinalPrompt, getConfig, getScenes } from "@/types/pack";
@@ -51,19 +51,21 @@ interface RenderProgress {
 
 const SCENE_COUNT_OPTIONS = [8, 12, 16, 20];
 
-type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye";
+type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye" | "creative" | "product";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
-  { value: "photography", label: "Visual Architect", icon: <Layers className="h-5 w-5" />, description: "7-layer detailed prompt architecture" },
-  { value: "god-eye", label: "God-Eye Director", icon: <Camera className="h-5 w-5" />, description: "2-layer concise style anchor system" },
+  { value: "creative", label: "Creative Scene", icon: <Film className="h-5 w-5" />, description: "Full creative freedom - any composition" },
+  { value: "product", label: "Product Shot", icon: <ShoppingBag className="h-5 w-5" />, description: "Product/object photography" },
+  { value: "photography", label: "Visual Architect", icon: <Layers className="h-5 w-5" />, description: "7-layer portrait architecture" },
+  { value: "god-eye", label: "God-Eye Director", icon: <Camera className="h-5 w-5" />, description: "2-layer concise style system" },
   { value: "artist", label: "Artist v1", icon: <Palette className="h-5 w-5" />, description: "Technical DNA + scene continuation" },
-  { value: "eye", label: "Eye Director", icon: <Eye className="h-5 w-5" />, description: "Complete photoshoot session - 12 moments" },
+  { value: "eye", label: "Eye Director", icon: <Eye className="h-5 w-5" />, description: "Complete photoshoot session" },
   { value: "3d", label: "3D Character", icon: <Box className="h-5 w-5" />, description: "Render engine aesthetics" },
-  { value: "artisto", label: "Artisto", icon: <Sparkles className="h-5 w-5" />, description: "Art Director portrait style system" },
-  { value: "reverse", label: "Reverse Engineer", icon: <RefreshCw className="h-5 w-5" />, description: "Clone style from reference image" },
-  { value: "portrait-clone", label: "Portrait Clone", icon: <Camera className="h-5 w-5" />, description: "Style clone with close-up enforcement" },
-  { value: "dop-architect", label: "DoP Architect", icon: <Sun className="h-5 w-5" />, description: "Adaptive intelligence with wardrobe strategy" },
+  { value: "artisto", label: "Artisto", icon: <Sparkles className="h-5 w-5" />, description: "Art Director portrait system" },
+  { value: "reverse", label: "Reverse Engineer", icon: <RefreshCw className="h-5 w-5" />, description: "Clone style from reference" },
+  { value: "portrait-clone", label: "Portrait Clone", icon: <Camera className="h-5 w-5" />, description: "Close-up enforcement clone" },
+  { value: "dop-architect", label: "DoP Architect", icon: <Sun className="h-5 w-5" />, description: "Adaptive wardrobe strategy" },
   { value: "all-seeing-eye", label: "All Seeing Eye", icon: <Eye className="h-5 w-5" />, description: "God Mode visual engineering" },
 ];
 

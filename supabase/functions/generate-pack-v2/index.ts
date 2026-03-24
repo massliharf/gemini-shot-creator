@@ -1813,6 +1813,153 @@ Before finalizing, verify:
 6. **Naming Convention** - Is pack_name the title-case version of pack_id?`;
 
 // ========================================
+// CREATIVE SCENE DIRECTOR - Non-Portrait Mode
+// ========================================
+
+const CREATIVE_SCENE_DIRECTOR_PROMPT = `### Agent Instructions: Creative Scene Director
+
+## Your Role
+
+You are a Creative Scene Director who designs visually stunning, cinematic scene packs. Unlike portrait packs, your scenes are NOT restricted to face close-ups. You have FULL CREATIVE FREEDOM over composition, framing, and subject matter.
+
+## Core Philosophy
+
+You create complete visual worlds. Scenes can include:
+- **Full-body shots** with dynamic poses and environments
+- **Wide establishing shots** showing entire scenes
+- **Action sequences** (walking, running, dancing, jumping)
+- **Environmental portraits** where the setting is equally important
+- **Overhead/drone perspectives**
+- **Silhouettes and abstract compositions**
+- **Back-turned, walking away, contemplative distance shots**
+- **Interaction with objects, vehicles, architecture**
+
+## The Two-Layer System
+
+### Layer 1: Global Style Anchor (100-200 words)
+The complete visual DNA of the scene pack. Define:
+- **Visual Style**: Cinematic, editorial, surreal, documentary, fantasy, sci-fi, noir, etc.
+- **Technical Specs**: Camera, lenses (ANY focal length - 14mm to 200mm+), film stock
+- **Lighting Philosophy**: Natural, artificial, mixed, dramatic, soft
+- **Color Science**: Complete color grading approach
+- **Environment DNA**: The world these scenes exist in
+- **Wardrobe Strategy**: Fixed character costume OR varied per scene
+
+Format: "Create a [style] image of the person in this image [in environment]. [Technical narrative covering camera, lighting, color, atmosphere]."
+
+### Layer 2: Scene Prompts (80-150 words each)
+Each scene is a complete visual moment. Include:
+1. **Framing & Composition**: ANY framing allowed - extreme wide to extreme close-up
+2. **Subject Action**: Full range of human activity (walking, running, sitting, standing, interacting)
+3. **Camera Angle**: Eye level, bird's eye, worm's eye, Dutch angle, aerial, tracking
+4. **Focal Length**: Match lens to storytelling (14mm wide = epic scale, 200mm telephoto = compressed intimacy)
+5. **Lighting Specifics**: How light interacts with the scene
+6. **Environment Details**: Rich environmental storytelling
+7. **Mood & Atmosphere**: Emotional tone of the moment
+
+## CRITICAL: No Portrait Restrictions
+- Full body shots are ENCOURAGED
+- Back-turned and walking away poses are ALLOWED
+- Wide environmental shots are WELCOME
+- The face does NOT need to be visible in every scene
+- Mix of framings: some close-up, some full body, some wide
+- Action and movement are encouraged
+
+## Naming Convention
+- pack_id: snake_case (e.g., "neon_city_nights")
+- pack_name: EXACT title-case of pack_id (e.g., "Neon City Nights")
+
+## JSON Output
+
+\`\`\`json
+{
+  "meta": {
+    "pack_id": "[snake_case_id]",
+    "pack_name": "[Title Case Name]",
+    "description": "[Cinematic description of the visual world]",
+    "category": "[Category]",
+    "gender": "unisex",
+    "featured": false,
+    "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+  },
+  "preview_images": ["themes/[pack_id]/01.webp", ...],
+  "global_style_anchor": "[Dense technical + atmospheric description. Starts with 'Create a [style] image of the person in this image...']",
+  "scenes": [
+    {"id": "01", "prompt": "[Complete scene with framing, action, camera, lighting, environment, mood]"},
+    {"id": "02", "prompt": "[Different composition - mix close-ups with wide shots, action with stillness]"}
+  ]
+}
+\`\`\``;
+
+// ========================================
+// PRODUCT SHOT DIRECTOR - Object/Product Photography
+// ========================================
+
+const PRODUCT_SHOT_DIRECTOR_PROMPT = `### Agent Instructions: Product Shot Director
+
+## Your Role
+
+You are a Product & Object Photography Director. You create style packs for photographing OBJECTS, PRODUCTS, FOOD, ARCHITECTURE, or STILL LIFE compositions. There is NO human subject requirement.
+
+## Core Philosophy
+
+Every scene is about making an object look extraordinary through:
+- **Hero shots**: The product as the star
+- **Detail shots**: Macro/close-up textures and materials
+- **Lifestyle shots**: Product in context/use
+- **Flat lays**: Overhead arrangements
+- **Environmental shots**: Product in its natural habitat
+
+## The Two-Layer System
+
+### Layer 1: Global Style Anchor (100-150 words)
+- **Photography Style**: Commercial, editorial, minimal, luxury, rustic, etc.
+- **Camera & Lens**: Macro lenses, tilt-shift, specific focal lengths
+- **Lighting Setup**: Softboxes, natural light, hard flash, light painting
+- **Surface/Background**: Marble, wood, fabric, gradient, contextual
+- **Color Palette**: Specific color grading for the product category
+- **Post-Processing**: Retouching approach, contrast, sharpness
+
+Format: "Create a [style] product photograph of [product/object type]. [Technical specs]."
+
+### Layer 2: Scene Prompts (60-120 words each)
+Each scene captures the product from a different perspective:
+1. **Camera Angle**: Overhead, 45°, eye-level, low angle, macro
+2. **Composition**: Rule of thirds, centered, diagonal, layered
+3. **Lighting Direction**: Front, side, back, rim, diffused
+4. **Props & Styling**: Supporting elements that enhance the story
+5. **Focus & Depth**: Selective focus, deep focus, bokeh
+6. **Atmosphere**: Steam, condensation, sparkle, dust particles
+
+## CRITICAL: No Human Subject Required
+- Scenes focus on OBJECTS, not people
+- If people appear, they're props (hands holding product, etc.)
+- The product/object is ALWAYS the hero
+- Use "the product", "the object", "the item" as subject
+
+## JSON Output
+
+\`\`\`json
+{
+  "meta": {
+    "pack_id": "[snake_case_id]",
+    "pack_name": "[Title Case Name]",
+    "description": "[Description of the product photography style]",
+    "category": "[Category]",
+    "gender": "unisex",
+    "featured": false,
+    "tags": ["product", "tag2", "tag3", "tag4"]
+  },
+  "preview_images": ["themes/[pack_id]/01.webp", ...],
+  "global_style_anchor": "[Dense product photography description. Starts with 'Create a [style] product photograph...']",
+  "scenes": [
+    {"id": "01", "prompt": "[Hero shot with specific angle, lighting, and composition]"},
+    {"id": "02", "prompt": "[Detail/macro shot focusing on texture and material]"}
+  ]
+}
+\`\`\``;
+
+// ========================================
 // ALL SEEING EYE - God Mode Visual Architect
 // ========================================
 
@@ -2032,13 +2179,26 @@ serve(async (req) => {
     const isPortraitClone = packType === "portrait-clone";
     const isDopArchitect = packType === "dop-architect";
     const isAllSeeingEye = packType === "all-seeing-eye";
+    const isCreativeScene = packType === "creative";
+    const isProduct = packType === "product";
+    const isNonPortrait = isCreativeScene || isProduct;
     
     let basePrompt: string;
     let styleType: string;
     let anchorStart: string;
     let protocolName: string;
     
-    if (is3D) {
+    if (isCreativeScene) {
+      basePrompt = CREATIVE_SCENE_DIRECTOR_PROMPT;
+      styleType = "creative scene";
+      anchorStart = "Create a cinematic image";
+      protocolName = "Creative Scene Director";
+    } else if (isProduct) {
+      basePrompt = PRODUCT_SHOT_DIRECTOR_PROMPT;
+      styleType = "product photography";
+      anchorStart = "Create a product photograph";
+      protocolName = "Product Shot Director";
+    } else if (is3D) {
       basePrompt = OMNISCIENT_3D_ARCHITECT_PROMPT;
       styleType = "3D character";
       anchorStart = "Create a 3D render close-up portrait of the character in this image";
@@ -2127,7 +2287,11 @@ ${colorContext}
 ## YOUR MISSION:
 Create a complete ${styleType} style pack with exactly ${sceneCount} scenes.
 
-${isGodEye ? `Apply the Two-Layer System:
+${isNonPortrait ? `Follow the protocol instructions above exactly.
+- Full creative freedom over composition and framing
+- ${isProduct ? "Focus on the product/object as the hero" : "Mix of framings: close-up, medium, full-body, wide shots"}
+- ${isProduct ? "Human subjects are optional (hands, silhouettes only if needed)" : "Back-turned poses, action shots, and environmental compositions are all allowed"}
+- Rich, cinematic scene descriptions (80-150 words each)` : isGodEye ? `Apply the Two-Layer System:
 1. Global Style Anchor - Concise aesthetic DNA (2-4 sentences)
 2. Scene Prompts - Complete, standalone descriptions with all 8 components
 
@@ -2148,13 +2312,16 @@ Each scene must include:
 6. Compositional Rules - Face placement, headroom, eye positioning
 7. Quality Markers - Tack-sharp focus on face and eyes`}
 
-Use generic subject descriptors only ("A person", "The subject")
-Face is CLEARLY VISIBLE and SHARP in ALL scenes
+${isNonPortrait ? `Use descriptive, cinematic language.` : `Use generic subject descriptors only ("A person", "The subject")
+Face is CLEARLY VISIBLE and SHARP in ALL scenes`}
 
-## CRITICAL FRAMING REQUIREMENTS:
+${isNonPortrait ? `## FRAMING FREEDOM:
+- ANY framing is allowed: extreme close-up to extreme wide
+- Full body, action shots, environmental, aerial views all welcome
+- ${isProduct ? "Product/object must be the clear hero element" : "Mix diverse compositions across scenes"}` : `## CRITICAL FRAMING REQUIREMENTS:
 - MINIMUM: Tight head-and-shoulders (headshot)
 - MAXIMUM: Mid-chest up (upper body portrait)
-- FORBIDDEN: Full body, wide shots, distant framing, back turned
+- FORBIDDEN: Full body, wide shots, distant framing, back turned`}
 
 ## NAMING REQUIREMENTS:
 - pack_id uses underscores: "category_style_identifier"
@@ -2165,9 +2332,9 @@ Face is CLEARLY VISIBLE and SHARP in ALL scenes
 ## OUTPUT REQUIREMENTS:
 - global_style_anchor = ${isGodEye ? "2-4 sentences defining aesthetic DNA" : "60-100 words, starts with \"" + anchorStart + "...\""}
 - Each scene.prompt is complete and standalone
-- ${sceneCount} meaningfully different scenes within tight framing
+- ${sceneCount} meaningfully different scenes${isNonPortrait ? "" : " within tight framing"}
 - POSITIVE descriptions only (no negation)
-- Face prominent, sharp, and primary focal point in EVERY scene
+${isNonPortrait ? "" : "- Face prominent, sharp, and primary focal point in EVERY scene"}
 
 Output pure JSON only.`;
     } else {
@@ -2176,11 +2343,23 @@ Output pure JSON only.`;
 
 ---
 
-## OMNISCIENT VISUAL ANALYSIS TASK:
+## ${isNonPortrait ? "VISUAL STYLE ANALYSIS" : "OMNISCIENT VISUAL ANALYSIS"} TASK:
 
 Analyze the uploaded reference image and extract its visual DNA.
 
-${isGodEye ? `### TWO-LAYER EXTRACTION:
+${isNonPortrait ? `### STYLE EXTRACTION:
+
+Extract the complete visual language from this reference image:
+- **Visual Style**: Photography genre, artistic movement, cinematic influence
+- **Technical Setup**: Camera system, lens characteristics, depth of field approach
+- **Lighting**: Quality, direction, color temperature, mood
+- **Color Science**: Palette, grading, saturation, contrast approach
+- **Composition**: Framing style, compositional rules, spatial relationships
+- **Atmosphere**: Environmental mood, texture, finishing style
+${isProduct ? "- **Product Presentation**: How the subject/object is showcased, hero angle, styling" : "- **Scene Dynamics**: Action, movement, environmental storytelling"}
+
+### SCENE GENERATION:
+Create ${sceneCount} diverse scenes that replicate this visual style with ${isProduct ? "different product angles and compositions" : "varied framings - mix of close-ups, medium shots, full-body, and wide compositions"}.` : isGodEye ? `### TWO-LAYER EXTRACTION:
 
 **Layer 1 - Global Style Anchor (2-4 sentences):**
 - Photography genre and primary influences
@@ -2220,12 +2399,12 @@ Identify face placement, headroom, eye-line positioning, negative space within t
 **Layer 7 - Quality Markers:**
 Note face sharpness, eye detail, skin texture rendering, grain structure, finishing style.`}
 
-### SUBJECT NEUTRALIZATION:
+${isNonPortrait ? "" : `### SUBJECT NEUTRALIZATION:
 
 Replace all identity-specific features with generic descriptors:
 - "A person" instead of specific identity
 - Focus on expression, head tilt, gaze direction
-- Describe everything AROUND the face with obsessive detail
+- Describe everything AROUND the face with obsessive detail`}
 
 ### SPECIFICATIONS:
 - Category: ${category}${subcategory ? ` / ${subcategory}` : ""}
@@ -2235,10 +2414,13 @@ ${styleContext}
 ${lightingContext}
 ${colorContext}
 
-### CRITICAL FRAMING REQUIREMENTS:
+${isNonPortrait ? `### FRAMING FREEDOM:
+- ANY framing allowed across the ${sceneCount} scenes
+- Mix compositions: close-up, medium, full-body, wide, aerial
+- ${isProduct ? "Product is always the hero element" : "Diverse angles and perspectives encouraged"}` : `### CRITICAL FRAMING REQUIREMENTS:
 - All ${sceneCount} scenes must use close-up to medium close-up framing
 - Face clearly visible and sharp in every scene
-- Forbidden: Full body, wide shots, distant framing
+- Forbidden: Full body, wide shots, distant framing`}
 
 ### NAMING REQUIREMENTS:
 - pack_id uses underscores: "category_style_identifier"
@@ -2249,8 +2431,8 @@ ${colorContext}
 - meta.category = "${category}"
 - global_style_anchor = ${isGodEye ? "Concise 2-4 sentence aesthetic DNA" : "Dense 60-100 word paragraph capturing visual DNA, starts with \"" + anchorStart + "...\""}
 - ${sceneCount} scenes with complete, standalone descriptions
-- Diversify across: Lighting, Expressions, Backgrounds, Framing
-- POSITIVE descriptions only, face sharp and prominent in every scene
+- Diversify across: Lighting, ${isNonPortrait ? "Compositions, Angles, Environments" : "Expressions, Backgrounds, Framing"}
+- POSITIVE descriptions only${isNonPortrait ? "" : ", face sharp and prominent in every scene"}
 
 Output pure JSON only.`;
     }
