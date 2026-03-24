@@ -585,14 +585,14 @@ export default function PackCreator() {
 
             const finalPrompt = buildFinalPrompt(pack, scene.id);
             
-            // Use Lovable AI gateway for text-only generation (no reference image)
-            const { data, error } = await supabase.functions.invoke('generate-text-image', {
+            const { data, error } = await supabase.functions.invoke('generate-image', {
               body: {
-                prompt: finalPrompt,
+                queueId: queueItem.id,
+                finalPrompt,
                 model: renderModel,
                 aspectRatio: renderAspectRatio,
                 resolution: renderResolution,
-                queueId: queueItem.id,
+                generationMode: "text-only",
               },
             });
 
