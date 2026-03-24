@@ -732,7 +732,7 @@ export const PackSidebar = ({
         </div>
 
         {/* Generation Status Filter */}
-        <div className="flex gap-1 mb-3">
+        <div className="flex gap-0.5 mb-3">
           {GENERATION_FILTERS.map((filter) => (
             <button
               key={filter.value}
@@ -740,7 +740,7 @@ export const PackSidebar = ({
               className={`flex-1 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all ${
                 generationFilter === filter.value
                   ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
+                  : 'bg-accent/50 text-muted-foreground hover:bg-accent'
               }`}
             >
               {filter.label}

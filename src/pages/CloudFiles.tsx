@@ -2012,15 +2012,15 @@ const CloudFiles = () => {
             )}
 
             {batchExport.phase === "complete" && (
-              <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20 text-center">
-                <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                <p className="font-medium text-green-700 dark:text-green-300 text-sm">
+              <div className="p-4 bg-success/10 rounded-xl border border-success/20 text-center">
+                <CheckCircle className="w-8 h-8 text-success mx-auto mb-2" />
+                <p className="font-medium text-sm">
                   Tüm veriler başarıyla export edildi!
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[11px] text-muted-foreground mt-1">
                   Toplam {batchExport.totalFoldersExported} klasör işlendi.
                 </p>
-                <Button className="mt-3" size="sm" onClick={closeBatchExport}>
+                <Button className="mt-3 rounded-xl" size="sm" onClick={closeBatchExport}>
                   Kapat
                 </Button>
               </div>
