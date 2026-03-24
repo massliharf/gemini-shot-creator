@@ -935,7 +935,23 @@ export default function PackCreator() {
             )}
           </div>
 
-          {/* Auto-Render Toggle & Settings */}
+          {/* Custom Prompt Direction */}
+          <div className="bg-accent/50 rounded-xl p-4 space-y-3">
+            <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <Wand2 className="h-3.5 w-3.5" />
+              Custom Prompt Direction (Optional)
+            </Label>
+            <Textarea
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              placeholder="Write your own prompt style/tone here. AI will generate scene prompts following this direction. Example: 'elegant boudoir style, soft fabrics, warm intimate lighting, artistic poses...'"
+              className="min-h-24 resize-none text-sm"
+              disabled={isGenerating}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Bu alanı doldurursanız AI tüm sahneleri bu yönlendirmeye göre üretir. Boş bırakırsanız seçili protokolün varsayılan stili kullanılır.
+            </p>
+          </div>
           <div className="bg-accent/50 rounded-xl p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
