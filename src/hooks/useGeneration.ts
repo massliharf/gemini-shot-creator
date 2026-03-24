@@ -171,13 +171,9 @@ export const useGeneration = ({
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        // Prepare base64 images - convert all reference images
+        // Prepare base64 images - convert all reference images (may be empty for text-only)
         const imagePromises = validImages.map(img => referenceImageToBase64(img));
         const base64Images = (await Promise.all(imagePromises)).filter(Boolean) as { base64: string; mimeType: string }[];
-        
-        if (base64Images.length === 0) {
-          throw new Error('No valid reference images');
-        }
 
         // Build final prompt: scene.prompt + style_anchor.prompt
         const finalPrompt = buildFinalPrompt(packData.pack, String(sceneId).padStart(2, "0"));
