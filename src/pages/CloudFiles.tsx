@@ -1529,21 +1529,21 @@ const CloudFiles = () => {
     <AppLayout userEmail={user?.email}>
       <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-border/50 flex items-center justify-between flex-shrink-0">
+        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-sm font-semibold">Cloud Dosya Yöneticisi</h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {folders.length} klasör, {totalFiles} dosya
               {downloadedCount > 0 && (
-                <span className="ml-2 text-green-600">
+                <span className="ml-2 text-success">
                   • {downloadedCount} indirildi
                 </span>
               )}
             </p>
           </div>
 
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => loadCloudData(true)} disabled={loading} className="h-8 w-8 p-0">
+          <div className="flex gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => loadCloudData(true)} disabled={loading} className="h-7 w-7 p-0 rounded-lg">
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
@@ -1570,13 +1570,13 @@ const CloudFiles = () => {
 
           {/* FILES TAB */}
           <TabsContent value="files" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
-            {/* Action bar for files tab */}
-            <div className="px-4 py-2 border-b border-border/50 flex gap-2 flex-shrink-0">
+            {/* Action bar */}
+            <div className="px-5 py-2 border-b border-border/50 flex gap-1.5 flex-shrink-0">
               <Button
                 variant={hideDownloaded ? "default" : "outline"}
                 size="sm"
                 onClick={() => setHideDownloaded(!hideDownloaded)}
-                className="gap-1 text-xs h-8"
+                className="gap-1 text-xs h-7 rounded-lg"
               >
                 {hideDownloaded ? <FilterX className="w-3.5 h-3.5" /> : <Filter className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{hideDownloaded ? 'Tümünü Göster' : 'Gizle'}</span>
@@ -1587,7 +1587,7 @@ const CloudFiles = () => {
                 size="sm" 
                 onClick={startBatchExport}
                 disabled={loading || batchExport.isRunning}
-                className="text-xs h-8"
+                className="text-xs h-7 rounded-lg"
               >
                 <Download className="w-3.5 h-3.5 mr-1" />
                 <span className="hidden sm:inline">Export & Sil</span>
@@ -1596,17 +1596,17 @@ const CloudFiles = () => {
 
             {/* Bulk actions bar */}
             {selectedCount > 0 && (
-              <div className="border-b border-border/50 bg-primary/5 px-4 py-2 flex items-center justify-between flex-shrink-0">
+              <div className="border-b border-border/50 bg-primary/5 px-5 py-2 flex items-center justify-between flex-shrink-0">
                 <span className="text-xs font-medium">
                   {selectedCount} klasör seçildi
                 </span>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleBulkDownload}
                     disabled={bulkAction !== null}
-                    className="h-7 text-xs"
+                    className="h-7 text-xs rounded-lg"
                   >
                     {bulkAction === 'download' ? (
                       <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
@@ -1620,7 +1620,7 @@ const CloudFiles = () => {
                     variant="destructive"
                     onClick={handleBulkDelete}
                     disabled={bulkAction !== null}
-                    className="h-7 text-xs"
+                    className="h-7 text-xs rounded-lg"
                   >
                     {bulkAction === 'delete' ? (
                       <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
@@ -1637,7 +1637,7 @@ const CloudFiles = () => {
             <div 
               ref={scrollContainerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto p-4"
+              className="flex-1 overflow-y-auto p-5"
             >
               {loading ? (
                 <div className="flex items-center justify-center py-12">
@@ -1645,21 +1645,21 @@ const CloudFiles = () => {
                 </div>
               ) : folders.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Folder className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Cloud'da dosya bulunamadı</p>
+                  <Folder className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-xs">Cloud'da dosya bulunamadı</p>
                 </div>
               ) : displayedFolders.length === 0 && hideDownloaded ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
-                  <p>Tüm klasörler indirildi!</p>
-                  <Button variant="link" onClick={() => setHideDownloaded(false)} className="mt-2">
+                  <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-success opacity-50" />
+                  <p className="text-xs">Tüm klasörler indirildi!</p>
+                  <Button variant="link" onClick={() => setHideDownloaded(false)} className="mt-2 text-xs">
                     Tümünü göster
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {/* Select all */}
-                  <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg">
+                  <div className="flex items-center gap-2 p-2 bg-accent/50 rounded-lg">
                     <Checkbox
                       checked={selectedFolders.size === displayedFolders.length && displayedFolders.length > 0}
                       onCheckedChange={() => {
@@ -1689,8 +1689,8 @@ const CloudFiles = () => {
                     return (
                       <div 
                         key={folder.name} 
-                        className={`border rounded-xl bg-secondary/30 overflow-hidden ${
-                          isDownloaded ? 'border-green-500/50 bg-green-500/5' : 'border-border/50'
+                        className={`border rounded-xl overflow-hidden transition-colors ${
+                          isDownloaded ? 'border-success/30 bg-success/5' : 'border-border/50 bg-accent/30'
                         }`}
                       >
                         <div className="flex items-center gap-3 p-3">
@@ -1702,7 +1702,7 @@ const CloudFiles = () => {
                           {isDownloaded && (
                             <button
                               onClick={() => unmarkAsDownloaded(folder.name)}
-                              className="text-green-500 hover:text-green-600"
+                              className="text-success hover:text-success/80"
                               title="İndirildi - tıkla kaldır"
                             >
                               <CheckCircle2 className="w-4 h-4" />
@@ -1726,14 +1726,14 @@ const CloudFiles = () => {
                             </div>
                           </button>
 
-                          <div className="flex gap-1">
+                          <div className="flex gap-0.5">
                             {!isDownloaded && (
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => markAsDownloaded(folder.name)}
                                 title="İndirildi olarak işaretle"
-                                className="h-7 w-7 text-muted-foreground hover:text-green-500"
+                                className="h-7 w-7 text-muted-foreground hover:text-success"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                               </Button>
@@ -1814,13 +1814,13 @@ const CloudFiles = () => {
           {/* JSON ARCHIVE TAB */}
           <TabsContent value="json-archive" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Action bar */}
-            <div className="px-4 py-2 border-b border-border/50 flex gap-2 flex-shrink-0">
+            <div className="px-5 py-2 border-b border-border/50 flex gap-1.5 flex-shrink-0">
               <Button
                 variant="default"
                 size="sm"
                 onClick={downloadAllJsonPacks}
                 disabled={jsonArchiveLoading || dbPacks.length === 0}
-                className="text-xs h-8 gap-1"
+                className="text-xs h-7 gap-1 rounded-lg"
               >
                 <Archive className="w-3.5 h-3.5" />
                 Tümünü İndir ({dbPacks.length})
@@ -1830,7 +1830,7 @@ const CloudFiles = () => {
                 size="sm"
                 onClick={downloadSelectedJsonPacks}
                 disabled={jsonArchiveLoading || selectedJsonPacks.size === 0}
-                className="text-xs h-8 gap-1"
+                className="text-xs h-7 gap-1 rounded-lg"
               >
                 <Download className="w-3.5 h-3.5" />
                 Seçilenleri İndir ({selectedJsonPacks.size})
@@ -1840,27 +1840,27 @@ const CloudFiles = () => {
                 size="sm"
                 onClick={loadDbPacks}
                 disabled={jsonArchiveLoading}
-                className="h-8 w-8 p-0 ml-auto"
+                className="h-7 w-7 p-0 ml-auto rounded-lg"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${jsonArchiveLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
 
             {/* Pack list */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-5">
               {jsonArchiveLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
               ) : dbPacks.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <FileJson className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Veritabanında pack bulunamadı</p>
+                  <FileJson className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-xs">Veritabanında pack bulunamadı</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {/* Select all */}
-                  <div className="flex items-center gap-2 p-2 bg-secondary/30 rounded-lg">
+                  <div className="flex items-center gap-2 p-2 bg-accent/50 rounded-lg">
                     <Checkbox
                       checked={selectedJsonPacks.size === dbPacks.length && dbPacks.length > 0}
                       onCheckedChange={selectAllJsonPacks}
@@ -1884,8 +1884,8 @@ const CloudFiles = () => {
                     return (
                       <div
                         key={pack.id}
-                        className={`border rounded-xl bg-secondary/30 overflow-hidden p-3 flex items-center gap-3 ${
-                          isSelected ? 'border-primary/50 bg-primary/5' : 'border-border/50'
+                        className={`border rounded-xl overflow-hidden p-3 flex items-center gap-3 transition-colors ${
+                          isSelected ? 'border-primary/30 bg-primary/5' : 'border-border/50 bg-accent/30'
                         }`}
                       >
                         <Checkbox
@@ -1942,14 +1942,14 @@ const CloudFiles = () => {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-secondary/50 rounded-lg p-2">
-                <p className="text-muted-foreground text-xs">Bu batch</p>
-                <p className="font-medium">{batchExport.totalFoldersInBatch} klasör</p>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="bg-accent/50 rounded-xl p-2.5">
+                <p className="text-muted-foreground text-[10px] uppercase">Bu batch</p>
+                <p className="font-medium text-xs">{batchExport.totalFoldersInBatch} klasör</p>
               </div>
-              <div className="bg-secondary/50 rounded-lg p-2">
-                <p className="text-muted-foreground text-xs">Toplam export</p>
-                <p className="font-medium">{batchExport.totalFoldersExported} klasör</p>
+              <div className="bg-accent/50 rounded-xl p-2.5">
+                <p className="text-muted-foreground text-[10px] uppercase">Toplam export</p>
+                <p className="font-medium text-xs">{batchExport.totalFoldersExported} klasör</p>
               </div>
             </div>
 
@@ -1973,7 +1973,7 @@ const CloudFiles = () => {
             )}
 
             {batchExport.currentFolderName && batchExport.phase !== "waiting_confirm" && batchExport.phase !== "complete" && (
-              <div className="text-xs text-muted-foreground truncate bg-secondary/50 px-3 py-2 rounded-lg">
+              <div className="text-xs text-muted-foreground truncate bg-accent/50 px-3 py-2 rounded-xl">
                 {batchExport.currentFolderName}
               </div>
             )}
@@ -2012,15 +2012,15 @@ const CloudFiles = () => {
             )}
 
             {batchExport.phase === "complete" && (
-              <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20 text-center">
-                <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                <p className="font-medium text-green-700 dark:text-green-300 text-sm">
+              <div className="p-4 bg-success/10 rounded-xl border border-success/20 text-center">
+                <CheckCircle className="w-8 h-8 text-success mx-auto mb-2" />
+                <p className="font-medium text-sm">
                   Tüm veriler başarıyla export edildi!
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-[11px] text-muted-foreground mt-1">
                   Toplam {batchExport.totalFoldersExported} klasör işlendi.
                 </p>
-                <Button className="mt-3" size="sm" onClick={closeBatchExport}>
+                <Button className="mt-3 rounded-xl" size="sm" onClick={closeBatchExport}>
                   Kapat
                 </Button>
               </div>

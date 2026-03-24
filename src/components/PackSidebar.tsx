@@ -217,7 +217,7 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <button className="w-full border border-dashed border-border rounded-xl p-2.5 text-center hover:border-primary/50 hover:bg-secondary/30 transition-colors cursor-pointer">
+        <button className="w-full border border-dashed border-border rounded-xl p-2.5 text-center hover:border-primary/30 hover:bg-accent/50 transition-colors cursor-pointer">
           <Upload className="w-3.5 h-3.5 mx-auto mb-0.5 text-muted-foreground" />
           <p className="text-[10px] text-muted-foreground">Upload JSON</p>
         </button>
@@ -238,7 +238,7 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
               setError(null);
             }}
             placeholder='{"package_meta": {...}, "global_render_settings": {...}, "shots": [...]}'
-            className="w-full h-48 p-3 text-sm font-mono bg-secondary border-0 rounded-lg focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
+            className="w-full h-48 p-3 text-xs font-mono bg-accent border-0 rounded-xl focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
             disabled={isUploading}
           />
           {error && (
@@ -319,10 +319,10 @@ const PackCard = ({
       className={`
         group relative p-2.5 rounded-xl cursor-pointer transition-all duration-200
         ${isSelected && !isSelectionMode
-          ? 'bg-primary/10 ring-1 ring-primary shadow-sm' 
+          ? 'bg-primary/5 ring-1 ring-primary/50 shadow-sm' 
           : isChecked && isSelectionMode
-            ? 'bg-primary/15 ring-1 ring-primary/50'
-            : 'bg-secondary/40 hover:bg-secondary/70'
+            ? 'bg-primary/10 ring-1 ring-primary/30'
+            : 'bg-accent/50 hover:bg-accent'
         }
       `}
     >
@@ -416,7 +416,7 @@ const PackCard = ({
           {tags.slice(0, 2).map((tag, idx) => (
             <span 
               key={idx}
-              className="text-[8px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground"
+              className="text-[8px] px-1.5 py-0.5 rounded-full bg-accent text-muted-foreground"
             >
               {tag}
             </span>
@@ -697,8 +697,8 @@ export const PackSidebar = ({
           </div>
         )}
 
-        {/* Gender Filter with Download */}
-        <div className="flex gap-1 mb-2">
+        {/* Gender Filter */}
+        <div className="flex gap-0.5 mb-2">
           {GENDER_FILTERS.map((filter) => (
             <div key={filter.value} className="flex-1 flex">
               <button
@@ -706,7 +706,7 @@ export const PackSidebar = ({
                 className={`flex-1 px-2 py-1.5 text-[10px] font-medium transition-all ${
                   genderFilter === filter.value
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
+                    : 'bg-accent/50 text-muted-foreground hover:bg-accent'
                 } ${filter.value !== "all" ? 'rounded-l-lg' : 'rounded-lg'}`}
               >
                 {filter.label}
@@ -720,7 +720,7 @@ export const PackSidebar = ({
                   className={`px-1.5 py-1.5 text-[10px] rounded-r-lg transition-all border-l ${
                     genderFilter === filter.value
                       ? 'bg-primary/80 text-primary-foreground border-primary-foreground/20 hover:bg-primary/70'
-                      : 'bg-secondary/50 text-muted-foreground border-border/50 hover:bg-secondary'
+                      : 'bg-accent/50 text-muted-foreground border-border/30 hover:bg-accent'
                   }`}
                   title={`Download ${filter.label} packs`}
                 >
@@ -732,7 +732,7 @@ export const PackSidebar = ({
         </div>
 
         {/* Generation Status Filter */}
-        <div className="flex gap-1 mb-3">
+        <div className="flex gap-0.5 mb-3">
           {GENERATION_FILTERS.map((filter) => (
             <button
               key={filter.value}
@@ -740,7 +740,7 @@ export const PackSidebar = ({
               className={`flex-1 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all ${
                 generationFilter === filter.value
                   ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary/50 text-muted-foreground hover:bg-secondary'
+                  : 'bg-accent/50 text-muted-foreground hover:bg-accent'
               }`}
             >
               {filter.label}
