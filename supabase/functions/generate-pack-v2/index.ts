@@ -2423,6 +2423,7 @@ ${textPrompt}
 ${styleContext}
 ${lightingContext}
 ${colorContext}
+${customPromptContext}
 
 ## YOUR MISSION:
 Create a complete ${styleType} style pack with exactly ${sceneCount} scenes.
