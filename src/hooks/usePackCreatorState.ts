@@ -186,6 +186,10 @@ export function usePackCreatorState() {
     setState(prev => ({ ...prev, colorPalette: palette }));
   }, []);
 
+  const setCustomPrompt = useCallback((prompt: string) => {
+    setState(prev => ({ ...prev, customPrompt: prompt }));
+  }, []);
+
   const setGeneratedPacks = useCallback((packs: GeneratedPack[] | ((prev: GeneratedPack[]) => GeneratedPack[])) => {
     setState(prev => ({
       ...prev,
