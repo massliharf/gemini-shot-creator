@@ -1689,8 +1689,8 @@ const CloudFiles = () => {
                     return (
                       <div 
                         key={folder.name} 
-                        className={`border rounded-xl bg-secondary/30 overflow-hidden ${
-                          isDownloaded ? 'border-green-500/50 bg-green-500/5' : 'border-border/50'
+                        className={`border rounded-xl overflow-hidden transition-colors ${
+                          isDownloaded ? 'border-success/30 bg-success/5' : 'border-border/50 bg-accent/30'
                         }`}
                       >
                         <div className="flex items-center gap-3 p-3">
