@@ -2179,13 +2179,26 @@ serve(async (req) => {
     const isPortraitClone = packType === "portrait-clone";
     const isDopArchitect = packType === "dop-architect";
     const isAllSeeingEye = packType === "all-seeing-eye";
+    const isCreativeScene = packType === "creative";
+    const isProduct = packType === "product";
+    const isNonPortrait = isCreativeScene || isProduct;
     
     let basePrompt: string;
     let styleType: string;
     let anchorStart: string;
     let protocolName: string;
     
-    if (is3D) {
+    if (isCreativeScene) {
+      basePrompt = CREATIVE_SCENE_DIRECTOR_PROMPT;
+      styleType = "creative scene";
+      anchorStart = "Create a cinematic image";
+      protocolName = "Creative Scene Director";
+    } else if (isProduct) {
+      basePrompt = PRODUCT_SHOT_DIRECTOR_PROMPT;
+      styleType = "product photography";
+      anchorStart = "Create a product photograph";
+      protocolName = "Product Shot Director";
+    } else if (is3D) {
       basePrompt = OMNISCIENT_3D_ARCHITECT_PROMPT;
       styleType = "3D character";
       anchorStart = "Create a 3D render close-up portrait of the character in this image";
