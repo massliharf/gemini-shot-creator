@@ -12,7 +12,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { User, Plus, X, Image, Palette } from "lucide-react";
+import { User, Plus, X, Image, Palette, Type } from "lucide-react";
 import { ReferenceImage } from "@/hooks/useReferenceImages";
 import { GenerationMode } from "@/hooks/useGenerationSettings";
 
