@@ -18,7 +18,7 @@ export const IconRail = () => {
   const location = useLocation();
 
   return (
-    <nav className="w-[60px] h-full flex-shrink-0 bg-foreground flex flex-col items-center py-3 gap-1">
+    <nav className="w-[60px] h-full flex-shrink-0 bg-foreground dark:bg-card flex flex-col items-center py-3 gap-1 border-r border-transparent dark:border-border/50">
       {/* Logo */}
       <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center mb-4">
         <span className="text-white font-bold text-sm">L</span>

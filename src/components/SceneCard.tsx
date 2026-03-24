@@ -121,15 +121,18 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
             </div>
           </>
         ) : (
-          <div className="w-full h-full min-h-[200px] flex flex-col items-center justify-center gap-2">
+          <div className="w-full h-full min-h-[120px] flex flex-col items-center justify-center gap-1.5">
             {isGenerating ? (
-              <Loader2 className="w-5 h-5 text-muted-foreground/50 animate-spin" />
+              <div className="flex flex-col items-center gap-1.5">
+                <Loader2 className="w-4 h-4 text-muted-foreground/50 animate-spin" />
+                <span className="text-[10px] text-muted-foreground/40">Generating...</span>
+              </div>
             ) : (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={(e) => { e.stopPropagation(); onGenerate(); }}
-                className={`rounded-lg text-xs font-medium ${isError ? "text-destructive" : "text-muted-foreground"}`}
+                className={`rounded-lg text-xs font-medium h-7 px-3 ${isError ? "text-destructive hover:text-destructive" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {isError ? "Retry" : "Generate"}
               </Button>
