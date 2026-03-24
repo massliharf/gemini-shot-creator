@@ -273,7 +273,7 @@ export const PackList = ({
     const custom = allCategories.filter(c => !knownOrder.includes(c)).sort();
     return [...sorted, ...custom];
   }, [groupedPacks]);
-    return <div className="h-full min-h-0 flex flex-col bg-background border-r border-border overflow-hidden">
+    return <div className="h-full min-h-0 flex flex-col bg-background overflow-hidden">
       {/* Header */}
       <div className="px-4 py-4 flex items-center justify-between">
         <h2 className="font-semibold">Packs ({packs.length})</h2>
