@@ -829,7 +829,7 @@ export default function PackCreator() {
                 </div>
               </div>
             )}
-          </Card>
+          </div>
 
           {/* Generate Button */}
           <Button
