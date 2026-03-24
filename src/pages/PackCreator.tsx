@@ -584,7 +584,7 @@ export default function PackCreator() {
           </div>
 
           {/* Input Mode Tabs */}
-          <Card className="p-4 border-border/50">
+          <div className="bg-accent/50 rounded-xl p-4">
             <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "image" | "text")}>
               <TabsList className="grid grid-cols-2 w-full">
                 <TabsTrigger value="image" className="flex items-center gap-2">
