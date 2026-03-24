@@ -46,7 +46,7 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
   };
 
   return (
-    <div className="relative bg-muted/50 overflow-hidden group cursor-pointer h-full w-full flex flex-col rounded-lg" onClick={() => hasImage && onClick?.()}>
+    <div className="relative bg-accent/40 dark:bg-accent/60 overflow-hidden group cursor-pointer h-full w-full flex flex-col rounded-lg" onClick={() => hasImage && onClick?.()}>
       {/* Scene Label */}
       <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
         <span className="text-[10px] font-medium text-foreground/80 bg-background/70 backdrop-blur-sm px-1.5 py-0.5 rounded-md">
