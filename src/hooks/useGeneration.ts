@@ -359,21 +359,9 @@ export const useGeneration = ({
 
     const currentPack = packs.get(packId)!;
     
-    // Prepare base64 images once for all scenes
+    // Prepare base64 images once for all scenes (may be empty for text-only)
     const imagePromises = validImages.map(img => referenceImageToBase64(img));
     const base64Images = (await Promise.all(imagePromises)).filter(Boolean) as { base64: string; mimeType: string }[];
-    
-    if (base64Images.length === 0) {
-      toast.error('Failed to prepare reference images');
-      setPacks(prev => {
-        const updated = new Map(prev);
-        const existingPack = updated.get(packId);
-        if (!existingPack) return prev;
-        updated.set(packId, { ...existingPack, isGenerating: false });
-        return updated;
-      });
-      return;
-    }
 
     const queueItems = scenesToGenerate.map(scene => {
       const sceneIdNum = normalizeSceneId(scene.id);
