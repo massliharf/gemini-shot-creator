@@ -2343,11 +2343,23 @@ Output pure JSON only.`;
 
 ---
 
-## OMNISCIENT VISUAL ANALYSIS TASK:
+## ${isNonPortrait ? "VISUAL STYLE ANALYSIS" : "OMNISCIENT VISUAL ANALYSIS"} TASK:
 
 Analyze the uploaded reference image and extract its visual DNA.
 
-${isGodEye ? `### TWO-LAYER EXTRACTION:
+${isNonPortrait ? `### STYLE EXTRACTION:
+
+Extract the complete visual language from this reference image:
+- **Visual Style**: Photography genre, artistic movement, cinematic influence
+- **Technical Setup**: Camera system, lens characteristics, depth of field approach
+- **Lighting**: Quality, direction, color temperature, mood
+- **Color Science**: Palette, grading, saturation, contrast approach
+- **Composition**: Framing style, compositional rules, spatial relationships
+- **Atmosphere**: Environmental mood, texture, finishing style
+${isProduct ? "- **Product Presentation**: How the subject/object is showcased, hero angle, styling" : "- **Scene Dynamics**: Action, movement, environmental storytelling"}
+
+### SCENE GENERATION:
+Create ${sceneCount} diverse scenes that replicate this visual style with ${isProduct ? "different product angles and compositions" : "varied framings - mix of close-ups, medium shots, full-body, and wide compositions"}.` : isGodEye ? `### TWO-LAYER EXTRACTION:
 
 **Layer 1 - Global Style Anchor (2-4 sentences):**
 - Photography genre and primary influences
@@ -2387,12 +2399,12 @@ Identify face placement, headroom, eye-line positioning, negative space within t
 **Layer 7 - Quality Markers:**
 Note face sharpness, eye detail, skin texture rendering, grain structure, finishing style.`}
 
-### SUBJECT NEUTRALIZATION:
+${isNonPortrait ? "" : `### SUBJECT NEUTRALIZATION:
 
 Replace all identity-specific features with generic descriptors:
 - "A person" instead of specific identity
 - Focus on expression, head tilt, gaze direction
-- Describe everything AROUND the face with obsessive detail
+- Describe everything AROUND the face with obsessive detail`}
 
 ### SPECIFICATIONS:
 - Category: ${category}${subcategory ? ` / ${subcategory}` : ""}
@@ -2402,10 +2414,13 @@ ${styleContext}
 ${lightingContext}
 ${colorContext}
 
-### CRITICAL FRAMING REQUIREMENTS:
+${isNonPortrait ? `### FRAMING FREEDOM:
+- ANY framing allowed across the ${sceneCount} scenes
+- Mix compositions: close-up, medium, full-body, wide, aerial
+- ${isProduct ? "Product is always the hero element" : "Diverse angles and perspectives encouraged"}` : `### CRITICAL FRAMING REQUIREMENTS:
 - All ${sceneCount} scenes must use close-up to medium close-up framing
 - Face clearly visible and sharp in every scene
-- Forbidden: Full body, wide shots, distant framing
+- Forbidden: Full body, wide shots, distant framing`}
 
 ### NAMING REQUIREMENTS:
 - pack_id uses underscores: "category_style_identifier"
@@ -2416,8 +2431,8 @@ ${colorContext}
 - meta.category = "${category}"
 - global_style_anchor = ${isGodEye ? "Concise 2-4 sentence aesthetic DNA" : "Dense 60-100 word paragraph capturing visual DNA, starts with \"" + anchorStart + "...\""}
 - ${sceneCount} scenes with complete, standalone descriptions
-- Diversify across: Lighting, Expressions, Backgrounds, Framing
-- POSITIVE descriptions only, face sharp and prominent in every scene
+- Diversify across: Lighting, ${isNonPortrait ? "Compositions, Angles, Environments" : "Expressions, Backgrounds, Framing"}
+- POSITIVE descriptions only${isNonPortrait ? "" : ", face sharp and prominent in every scene"}
 
 Output pure JSON only.`;
     }
