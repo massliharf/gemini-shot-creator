@@ -8,11 +8,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { User, Plus, X, ImagePlus, Image, Palette } from "lucide-react";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { User, Plus, X, Image, Palette } from "lucide-react";
 import { ReferenceImage } from "@/hooks/useReferenceImages";
 import { GenerationMode } from "@/hooks/useGenerationSettings";
 
@@ -61,8 +61,6 @@ export const BottomBar = ({
   generationMode,
   onGenerationModeChange,
 }: BottomBarProps) => {
-  const [showAddMenu, setShowAddMenu] = useState(false);
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (file) onImageUpload(file, index);
@@ -75,9 +73,13 @@ export const BottomBar = ({
   const hasEmptySlot = images.some(img => !img.previewUrl);
   const isStyleTransfer = generationMode === "style-transfer";
 
+  const handleAddImage = () => {
+    if (!hasEmptySlot && canAddMore) onAddImageSlot();
+  };
+
   return (
     <div className="fixed bottom-0 left-0 right-0 flex justify-center p-4 pointer-events-none z-50">
-      <div className="flex items-center gap-2 glass-panel rounded-2xl px-3 py-2 shadow-lg pointer-events-auto">
+      <div className="flex items-center gap-1.5 bg-card/90 dark:bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl px-3 py-2 shadow-lg pointer-events-auto">
         {/* Reference Images */}
         {images.map((image, index) => (
           <div key={index} className="relative group">
@@ -103,50 +105,52 @@ export const BottomBar = ({
                 </button>
               </div>
             ) : (
-              <label
-                htmlFor={`bottom-ref-image-${index}`}
-                className="w-9 h-9 rounded-lg border border-dashed border-border flex items-center justify-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
-              >
-                <User className="w-3.5 h-3.5 text-muted-foreground" />
-              </label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <label
+                    htmlFor={`bottom-ref-image-${index}`}
+                    className="w-9 h-9 rounded-lg border border-dashed border-border flex items-center justify-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+                  >
+                    <User className="w-3.5 h-3.5 text-muted-foreground" />
+                  </label>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">Upload reference photo</TooltipContent>
+              </Tooltip>
             )}
           </div>
         ))}
 
-        {/* Add Image */}
-        <Popover open={showAddMenu} onOpenChange={setShowAddMenu}>
-          <PopoverTrigger asChild>
-            <button className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-              <Plus className="w-4 h-4" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-52 p-1.5" align="center">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 h-8 text-xs"
-              onClick={() => {
-                if (!hasEmptySlot && canAddMore) onAddImageSlot();
-                setShowAddMenu(false);
-              }}
-              disabled={!canAddMore}
-            >
-              <ImagePlus className="w-3.5 h-3.5" />
-              {canAddMore ? `Add Reference (${images.length}/${maxImages})` : `Max reached`}
-            </Button>
-          </PopoverContent>
-        </Popover>
+        {/* Add Image - simplified: direct action */}
+        {canAddMore && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                onClick={handleAddImage}
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Add reference ({images.length}/{maxImages})</TooltipContent>
+          </Tooltip>
+        )}
 
         <div className="w-px h-6 bg-border/50" />
 
         {/* Mode */}
         <Select value={generationMode} onValueChange={(v) => onGenerationModeChange(v as GenerationMode)}>
-          <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium gap-1.5 hover:bg-accent transition-colors">
-            {isStyleTransfer ? (
-              <><Palette className="w-3.5 h-3.5" /><span>Style</span></>
-            ) : (
-              <><Image className="w-3.5 h-3.5" /><span>Portrait</span></>
-            )}
-          </SelectTrigger>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium gap-1.5 hover:bg-accent transition-colors">
+                {isStyleTransfer ? (
+                  <><Palette className="w-3.5 h-3.5" /><span>Style</span></>
+                ) : (
+                  <><Image className="w-3.5 h-3.5" /><span>Portrait</span></>
+                )}
+              </SelectTrigger>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Generation mode</TooltipContent>
+          </Tooltip>
           <SelectContent>
             <SelectItem value="portrait">
               <div className="flex items-center gap-2"><Image className="w-3.5 h-3.5" /><span>Portrait</span></div>
@@ -172,9 +176,14 @@ export const BottomBar = ({
 
         {/* Aspect Ratio */}
         <Select value={aspectRatio} onValueChange={onAspectRatioChange}>
-          <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium hover:bg-accent transition-colors">
-            <SelectValue />
-          </SelectTrigger>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium hover:bg-accent transition-colors">
+                <SelectValue />
+              </SelectTrigger>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Aspect ratio</TooltipContent>
+          </Tooltip>
           <SelectContent>
             {["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"].map(r => (
               <SelectItem key={r} value={r}>{r}</SelectItem>
@@ -184,9 +193,14 @@ export const BottomBar = ({
 
         {/* Model */}
         <Select value={selectedModel} onValueChange={onModelChange}>
-          <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium hover:bg-accent transition-colors">
-            <span>{modelLabel}</span>
-          </SelectTrigger>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium hover:bg-accent transition-colors">
+                <span>{modelLabel}</span>
+              </SelectTrigger>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">AI model</TooltipContent>
+          </Tooltip>
           <SelectContent>
             <SelectItem value="gemini-2.5-flash-image">Flash</SelectItem>
             <SelectItem value="gemini-3.1-flash-image-preview">3.1 Flash</SelectItem>
@@ -197,9 +211,14 @@ export const BottomBar = ({
         {/* Resolution */}
         {isProModel && (
           <Select value={resolution} onValueChange={onResolutionChange}>
-            <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium hover:bg-accent transition-colors">
-              <span>{resolution}</span>
-            </SelectTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <SelectTrigger className="w-auto h-8 px-3 rounded-lg border-0 bg-transparent text-xs font-medium hover:bg-accent transition-colors">
+                  <span>{resolution}</span>
+                </SelectTrigger>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">Resolution</TooltipContent>
+            </Tooltip>
             <SelectContent>
               <SelectItem value="1K">1K</SelectItem>
               <SelectItem value="2K">2K</SelectItem>
