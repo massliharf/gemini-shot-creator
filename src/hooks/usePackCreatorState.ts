@@ -249,6 +249,7 @@ export function usePackCreatorState() {
     setSelectedInfluences,
     setLightingPreference,
     setColorPalette,
+    setCustomPrompt,
     setGeneratedPacks,
     setAutoRender,
     setRenderModel,
