@@ -856,8 +856,8 @@ export default function PackCreator() {
 
           {/* Generated Packs */}
           {generatedPacks.length > 0 && (
-            <Card className="p-4 border-border/50 space-y-3">
-              <Label className="text-sm font-medium">Generated Packs ({generatedPacks.length})</Label>
+            <div className="bg-accent/50 rounded-xl p-4 space-y-3">
+              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Generated Packs ({generatedPacks.length})</Label>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {generatedPacks.map((gen) => (
                   <div
