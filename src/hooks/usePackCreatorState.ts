@@ -230,6 +230,7 @@ export function usePackCreatorState() {
     selectedInfluences: state.selectedInfluences,
     lightingPreference: state.lightingPreference,
     colorPalette: state.colorPalette,
+    customPrompt: state.customPrompt,
     generatedPacks: state.generatedPacks,
     autoRender: state.autoRender,
     renderModel: state.renderModel,
