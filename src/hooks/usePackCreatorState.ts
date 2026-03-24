@@ -17,7 +17,7 @@ interface GeneratedPack {
   error?: string;
 }
 
-type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye";
+type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye" | "creative" | "product";
 type Gender = "male" | "female" | "unisex";
 
 interface PackCreatorState {
