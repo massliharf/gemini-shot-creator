@@ -100,10 +100,13 @@ export const useGeneration = ({
 
     const packData = packs.get(packId);
     const validImages = getValidReferenceImages();
-    if (!packData || validImages.length === 0) {
-      toast.error('Please upload reference image');
+    if (!packData) {
+      toast.error('Pack not found');
       return;
     }
+
+    // Determine effective mode: if no reference images, force text-only
+    const effectiveMode = validImages.length === 0 ? "text-only" : generationMode;
 
     const scene = packData.scenes.find(s => normalizeSceneId(s.id) === normalizeSceneId(sceneId));
     if (!scene) return;
@@ -168,13 +171,9 @@ export const useGeneration = ({
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        // Prepare base64 images - convert all reference images
+        // Prepare base64 images - convert all reference images (may be empty for text-only)
         const imagePromises = validImages.map(img => referenceImageToBase64(img));
         const base64Images = (await Promise.all(imagePromises)).filter(Boolean) as { base64: string; mimeType: string }[];
-        
-        if (base64Images.length === 0) {
-          throw new Error('No valid reference images');
-        }
 
         // Build final prompt: scene.prompt + style_anchor.prompt
         const finalPrompt = buildFinalPrompt(packData.pack, String(sceneId).padStart(2, "0"));
@@ -184,7 +183,7 @@ export const useGeneration = ({
           body: { 
             queueId: insertedItem.id,
             // Send all images as an array
-            referenceImages: base64Images,
+            referenceImages: base64Images.length > 0 ? base64Images : undefined,
             // Keep legacy fields for backward compatibility
             selfieBase64: base64Images[0]?.base64,
             selfieMimeType: base64Images[0]?.mimeType,
@@ -197,7 +196,7 @@ export const useGeneration = ({
             aspectRatio,
             resolution,
             generationGender,
-            generationMode,
+            generationMode: effectiveMode,
           },
         });
 
@@ -322,10 +321,13 @@ export const useGeneration = ({
 
     const packData = packs.get(packId);
     const validImages = getValidReferenceImages();
-    if (!packData || validImages.length === 0) {
-      toast.error('Please upload reference image');
+    if (!packData) {
+      toast.error('Pack not found');
       return;
     }
+
+    // Determine effective mode: if no reference images, force text-only
+    const effectiveMode = validImages.length === 0 ? "text-only" : generationMode;
 
     // Filter scenes: skip already successful ones unless forced
     const scenesToGenerate = skipCompleted 
@@ -357,21 +359,9 @@ export const useGeneration = ({
 
     const currentPack = packs.get(packId)!;
     
-    // Prepare base64 images once for all scenes
+    // Prepare base64 images once for all scenes (may be empty for text-only)
     const imagePromises = validImages.map(img => referenceImageToBase64(img));
     const base64Images = (await Promise.all(imagePromises)).filter(Boolean) as { base64: string; mimeType: string }[];
-    
-    if (base64Images.length === 0) {
-      toast.error('Failed to prepare reference images');
-      setPacks(prev => {
-        const updated = new Map(prev);
-        const existingPack = updated.get(packId);
-        if (!existingPack) return prev;
-        updated.set(packId, { ...existingPack, isGenerating: false });
-        return updated;
-      });
-      return;
-    }
 
     const queueItems = scenesToGenerate.map(scene => {
       const sceneIdNum = normalizeSceneId(scene.id);
@@ -465,7 +455,7 @@ export const useGeneration = ({
             body: { 
               queueId: queueItem.id,
               // Send all images as an array
-              referenceImages: base64Images,
+              referenceImages: base64Images.length > 0 ? base64Images : undefined,
               // Keep legacy fields for backward compatibility
               selfieBase64: base64Images[0]?.base64,
               selfieMimeType: base64Images[0]?.mimeType,
@@ -478,7 +468,7 @@ export const useGeneration = ({
               aspectRatio,
               resolution,
               generationGender,
-              generationMode,
+              generationMode: effectiveMode,
             },
           });
 

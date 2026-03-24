@@ -148,7 +148,7 @@ const Index = () => {
   }
 
   const packInfos = getPackInfos();
-  const canGenerate = selectedPack !== null && hasValidReferenceImage;
+  const canGenerate = selectedPack !== null;
 
   return (
     <>
