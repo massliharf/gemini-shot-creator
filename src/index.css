@@ -1,40 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Clean light theme - minimal, professional */
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 15% 15%;
+    --background: 0 0% 99%;
+    --foreground: 0 0% 9%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 220 15% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 220 15% 15%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 220 10% 96%;
-    --secondary-foreground: 220 15% 15%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
 
-    --muted: 220 10% 94%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 0 0% 94.5%;
+    --muted-foreground: 0 0% 44%;
 
-    --accent: 220 10% 92%;
-    --accent-foreground: 220 15% 15%;
+    --accent: 0 0% 95%;
+    --accent-foreground: 0 0% 9%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 10% 90%;
-    --input: 220 10% 94%;
-    --ring: 220 15% 15%;
+    --border: 0 0% 92%;
+    --input: 0 0% 94%;
+    --ring: 0 0% 9%;
 
-    --radius: 12px;
+    --radius: 10px;
 
     --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
@@ -42,8 +42,9 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 5%;
 
-    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.05);
-    --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.08);
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.04);
+    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.06);
+    --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.08);
   }
 }
 
@@ -54,6 +55,10 @@
 
   body {
     @apply bg-background text-foreground antialiased h-full overflow-hidden;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   html,
@@ -63,8 +68,8 @@
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
@@ -72,24 +77,24 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
+    background: hsl(0 0% 85%);
     border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground));
+    background: hsl(0 0% 70%);
   }
 
   /* Firefox scrollbar */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted)) transparent;
+    scrollbar-color: hsl(0 0% 85%) transparent;
   }
 }
 
 @layer utilities {
   .panel-card {
-    @apply bg-card rounded-3xl p-4;
+    @apply bg-card rounded-2xl p-4;
   }
   
   .image-grid {
@@ -98,5 +103,9 @@
 
   .hover-overlay {
     @apply opacity-0 group-hover:opacity-100 transition-opacity duration-200;
+  }
+
+  .glass-panel {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
   }
 }

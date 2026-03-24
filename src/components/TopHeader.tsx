@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { HelpCircle, Menu } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Menu } from "lucide-react";
 
 interface TopHeaderProps {
   userEmail?: string;
@@ -13,50 +13,39 @@ export const TopHeader = ({ userEmail, onSignOut, onMenuClick }: TopHeaderProps)
   const navigate = useNavigate();
 
   return (
-    <header className="h-16 flex items-center justify-between px-4 lg:px-6 bg-background border-b border-border">
+    <header className="h-14 flex items-center justify-between px-4 lg:px-5 bg-background border-b border-border/60">
       {/* Left: Mobile menu trigger */}
       <Button
         variant="ghost"
         size="icon"
-        className="h-10 w-10 rounded-xl lg:hidden"
+        className="h-9 w-9 rounded-lg lg:hidden"
         onClick={() => onMenuClick?.()}
         aria-label="Open menu"
       >
-        <Menu className="w-5 h-5" />
+        <Menu className="w-4 h-4" />
       </Button>
 
+      {/* Spacer */}
+      <div className="flex-1" />
+
       {/* Right: Actions */}
-      <div className="flex items-center gap-3 ml-auto">
+      <div className="flex items-center gap-2">
         <Button
           variant="ghost"
-          size="icon"
-          className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
-        >
-          <HelpCircle className="w-5 h-5" />
-        </Button>
-
-        <Button
-          variant="outline"
           size="sm"
-          className="rounded-full px-5 h-10 border-border font-medium"
+          className="rounded-lg px-3 h-8 text-xs text-muted-foreground hover:text-foreground font-medium"
           onClick={() => navigate("/cloud-files")}
         >
-          My Library
+          Library
         </Button>
 
-        <Button
-          size="sm"
-          className="rounded-full px-5 h-10 bg-foreground text-background hover:bg-foreground/90 font-semibold"
-        >
-          PRO
-        </Button>
+        <div className="w-px h-5 bg-border/60" />
 
         <Avatar
-          className="h-10 w-10 cursor-pointer border-2 border-background shadow-sm"
+          className="h-8 w-8 cursor-pointer ring-1 ring-border/50"
           onClick={onSignOut}
         >
-          <AvatarImage src="" />
-          <AvatarFallback className="bg-warning text-warning-foreground text-sm font-medium">
+          <AvatarFallback className="bg-foreground text-background text-xs font-semibold">
             {userEmail?.charAt(0).toUpperCase() || "U"}
           </AvatarFallback>
         </Avatar>

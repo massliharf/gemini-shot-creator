@@ -1,7 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Paintbrush, Eye, FileText, Menu, Layers, Sparkles, Quote, Glasses, MessageSquarePlus } from "lucide-react";
+import { Paintbrush, Eye, FileText, Layers, Sparkles, Quote, Glasses, MessageSquarePlus } from "lucide-react";
 
 export const navItems = [
   { icon: Paintbrush, label: "Styles", path: "/styles" },
@@ -19,38 +18,34 @@ export const IconRail = () => {
   const location = useLocation();
 
   return (
-    <nav className="w-16 h-full flex-shrink-0 bg-black flex flex-col items-center py-2 px-2">
-      {/* Hamburger Menu */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-12 w-12 rounded-xl mb-3 text-gray-400 hover:text-white hover:bg-gray-800"
-      >
-        <Menu className="w-5 h-5" />
-      </Button>
+    <nav className="w-[60px] h-full flex-shrink-0 bg-foreground flex flex-col items-center py-3 gap-1">
+      {/* Logo */}
+      <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center mb-4">
+        <span className="text-white font-bold text-sm">L</span>
+      </div>
 
       {/* Navigation Icons */}
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-0.5 flex-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
 
           return (
             <Tooltip key={item.path}>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-12 w-12 rounded-xl transition-all ${
+                <button
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150 ${
                     isActive
-                      ? "bg-gray-700 text-white hover:bg-gray-600"
-                      : "text-gray-400 hover:text-white hover:bg-gray-800"
+                      ? "bg-white/15 text-white"
+                      : "text-white/40 hover:text-white/70 hover:bg-white/5"
                   }`}
                   onClick={() => navigate(item.path)}
                 >
-                  <item.icon className="w-5 h-5" />
-                </Button>
+                  <item.icon className="w-[18px] h-[18px]" strokeWidth={isActive ? 2 : 1.5} />
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
+              <TooltipContent side="right" className="text-xs">
+                {item.label}
+              </TooltipContent>
             </Tooltip>
           );
         })}
