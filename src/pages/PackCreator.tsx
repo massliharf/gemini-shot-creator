@@ -7,16 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Upload, Wand2, Loader2, X, Check, Home, Camera, Box, 
-  Sparkles, Palette, Sun, Layers, Eye, RefreshCw, Trash2
+  Sparkles, Palette, Sun, Layers, Eye, RefreshCw, Trash2,
+  ImageIcon, Play
 } from "lucide-react";
 import type { PackFile } from "@/types/pack";
-import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
+import { getPackId, getPackName, getSceneCount, hasScenes, buildFinalPrompt, getConfig, getScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
 import { usePackCreatorState } from "@/hooks/usePackCreatorState";
@@ -38,72 +40,31 @@ interface GeneratedPack {
   error?: string;
 }
 
+interface RenderProgress {
+  packId: string;
+  packName: string;
+  totalScenes: number;
+  completedScenes: number;
+  failedScenes: number;
+  sceneResults: { sceneId: string; imageUrl?: string; error?: string; status: 'pending' | 'rendering' | 'success' | 'error' }[];
+}
+
 const SCENE_COUNT_OPTIONS = [8, 12, 16, 20];
 
 type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
-  { 
-    value: "photography", 
-    label: "Visual Architect", 
-    icon: <Layers className="h-5 w-5" />,
-    description: "7-layer detailed prompt architecture"
-  },
-  { 
-    value: "god-eye", 
-    label: "God-Eye Director", 
-    icon: <Camera className="h-5 w-5" />,
-    description: "2-layer concise style anchor system"
-  },
-  { 
-    value: "artist", 
-    label: "Artist v1", 
-    icon: <Palette className="h-5 w-5" />,
-    description: "Technical DNA + scene continuation"
-  },
-  { 
-    value: "eye", 
-    label: "Eye Director", 
-    icon: <Eye className="h-5 w-5" />,
-    description: "Complete photoshoot session - 12 moments"
-  },
-  { 
-    value: "3d", 
-    label: "3D Character", 
-    icon: <Box className="h-5 w-5" />,
-    description: "Render engine aesthetics"
-  },
-  { 
-    value: "artisto", 
-    label: "Artisto", 
-    icon: <Sparkles className="h-5 w-5" />,
-    description: "Art Director portrait style system"
-  },
-  { 
-    value: "reverse", 
-    label: "Reverse Engineer", 
-    icon: <RefreshCw className="h-5 w-5" />,
-    description: "Clone style from reference image"
-  },
-  { 
-    value: "portrait-clone", 
-    label: "Portrait Clone", 
-    icon: <Camera className="h-5 w-5" />,
-    description: "Style clone with close-up enforcement"
-  },
-  { 
-    value: "dop-architect", 
-    label: "DoP Architect", 
-    icon: <Sun className="h-5 w-5" />,
-    description: "Adaptive intelligence with wardrobe strategy"
-  },
-  { 
-    value: "all-seeing-eye", 
-    label: "All Seeing Eye", 
-    icon: <Eye className="h-5 w-5" />,
-    description: "God Mode visual engineering"
-  },
+  { value: "photography", label: "Visual Architect", icon: <Layers className="h-5 w-5" />, description: "7-layer detailed prompt architecture" },
+  { value: "god-eye", label: "God-Eye Director", icon: <Camera className="h-5 w-5" />, description: "2-layer concise style anchor system" },
+  { value: "artist", label: "Artist v1", icon: <Palette className="h-5 w-5" />, description: "Technical DNA + scene continuation" },
+  { value: "eye", label: "Eye Director", icon: <Eye className="h-5 w-5" />, description: "Complete photoshoot session - 12 moments" },
+  { value: "3d", label: "3D Character", icon: <Box className="h-5 w-5" />, description: "Render engine aesthetics" },
+  { value: "artisto", label: "Artisto", icon: <Sparkles className="h-5 w-5" />, description: "Art Director portrait style system" },
+  { value: "reverse", label: "Reverse Engineer", icon: <RefreshCw className="h-5 w-5" />, description: "Clone style from reference image" },
+  { value: "portrait-clone", label: "Portrait Clone", icon: <Camera className="h-5 w-5" />, description: "Style clone with close-up enforcement" },
+  { value: "dop-architect", label: "DoP Architect", icon: <Sun className="h-5 w-5" />, description: "Adaptive intelligence with wardrobe strategy" },
+  { value: "all-seeing-eye", label: "All Seeing Eye", icon: <Eye className="h-5 w-5" />, description: "God Mode visual engineering" },
 ];
 
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
@@ -113,37 +74,27 @@ const GENDER_OPTIONS: { value: Gender; label: string }[] = [
 ];
 
 const LIGHTING_PRESETS = [
-  "Natural window light",
-  "Golden hour warmth",
-  "Studio 3-point setup",
-  "Dramatic chiaroscuro",
-  "Soft diffused overcast",
-  "Rim-lit silhouette",
-  "Hard flash aesthetic",
-  "Neon/colored gels",
+  "Natural window light", "Golden hour warmth", "Studio 3-point setup", "Dramatic chiaroscuro",
+  "Soft diffused overcast", "Rim-lit silhouette", "Hard flash aesthetic", "Neon/colored gels",
 ];
 
 const COLOR_PALETTES = [
-  "Warm earth tones",
-  "Cool blue shadows",
-  "High contrast B&W",
-  "Desaturated cinematic",
-  "Vibrant saturated",
-  "Film emulation (Portra)",
-  "Film emulation (Kodachrome)",
-  "Muted pastels",
+  "Warm earth tones", "Cool blue shadows", "High contrast B&W", "Desaturated cinematic",
+  "Vibrant saturated", "Film emulation (Portra)", "Film emulation (Kodachrome)", "Muted pastels",
 ];
 
 const STYLE_INFLUENCES = [
-  "Annie Leibovitz",
-  "Peter Lindbergh",
-  "Mario Testino",
-  "Richard Avedon",
-  "Helmut Newton",
-  "Steven Meisel",
-  "Tim Walker",
-  "Paolo Roversi",
+  "Annie Leibovitz", "Peter Lindbergh", "Mario Testino", "Richard Avedon",
+  "Helmut Newton", "Steven Meisel", "Tim Walker", "Paolo Roversi",
 ];
+
+const RENDER_MODELS = [
+  { value: "gemini-2.5-flash-image", label: "Flash", description: "Fast & cheap" },
+  { value: "gemini-3.1-flash-image-preview", label: "Flash 3.1", description: "Pro quality, fast" },
+  { value: "gemini-3-pro-image-preview", label: "Pro", description: "Best quality" },
+];
+
+const ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9"];
 
 export default function PackCreator() {
   const navigate = useNavigate();
@@ -151,38 +102,20 @@ export default function PackCreator() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
   
-  // Generation state (transient, not persisted)
+  // Generation state (transient)
   const [isGenerating, setIsGenerating] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
+  const [generationPhase, setGenerationPhase] = useState<"idle" | "creating-pack" | "rendering">("idle");
+  const [renderProgress, setRenderProgress] = useState<RenderProgress[]>([]);
   
-  // Persisted state from hook
+  // Persisted state
   const {
-    inputMode,
-    textPrompt,
-    packType,
-    sceneCount,
-    category,
-    subcategory,
-    gender,
-    showAdvanced,
-    selectedInfluences,
-    lightingPreference,
-    colorPalette,
-    generatedPacks,
-    images,
-    setInputMode,
-    setTextPrompt,
-    setPackType,
-    setSceneCount,
-    setCategory,
-    setSubcategory,
-    setGender,
-    setShowAdvanced,
-    setSelectedInfluences,
-    setLightingPreference,
-    setColorPalette,
-    setGeneratedPacks,
-    setImages,
+    inputMode, textPrompt, packType, sceneCount, category, subcategory,
+    gender, showAdvanced, selectedInfluences, lightingPreference, colorPalette,
+    generatedPacks, images, autoRender, renderModel, renderAspectRatio, renderResolution,
+    setInputMode, setTextPrompt, setPackType, setSceneCount, setCategory, setSubcategory,
+    setGender, setShowAdvanced, setSelectedInfluences, setLightingPreference, setColorPalette,
+    setGeneratedPacks, setImages, setAutoRender, setRenderModel, setRenderAspectRatio, setRenderResolution,
   } = usePackCreatorState();
 
   useEffect(() => {
@@ -249,34 +182,36 @@ export default function PackCreator() {
     setSelectedInfluences(prev => 
       prev.includes(influence)
         ? prev.filter(i => i !== influence)
-        : [...prev, influence].slice(0, 3) // Max 3
+        : [...prev, influence].slice(0, 3)
     );
   };
 
-  const savePackToDatabase = async (pack: PackFile): Promise<boolean> => {
-    if (!user) return false;
+  const savePackToDatabase = async (pack: PackFile): Promise<{ saved: boolean; dbId?: string }> => {
+    if (!user) return { saved: false };
 
     const packId = getPackId(pack);
     const packName = getPackName(pack);
 
     if (!packId || !packName || !hasScenes(pack)) {
       console.error("Invalid pack structure");
-      return false;
+      return { saved: false };
     }
 
     try {
-      const { error } = await supabase
+      const { data: insertedData, error } = await supabase
         .from('packs')
         .insert({
           pack_name: packName,
           pack_id: packId,
           pack_data: pack as any,
           user_id: user.id,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) {
         console.error("Failed to save pack:", error);
-        return false;
+        return { saved: false };
       }
 
       // Also store JSON in storage
@@ -284,18 +219,124 @@ export default function PackCreator() {
         const jsonBlob = new Blob([JSON.stringify(pack, null, 2)], { type: "application/json" });
         await supabase.storage
           .from("generated-images")
-          .upload(`${packId}/pack.json`, jsonBlob, {
-            upsert: true,
-            contentType: "application/json",
-          });
+          .upload(`${packId}/pack.json`, jsonBlob, { upsert: true, contentType: "application/json" });
       } catch (e) {
         console.warn("Failed to upload pack.json to storage:", e);
       }
 
-      return true;
+      return { saved: true, dbId: insertedData?.id };
     } catch (err) {
       console.error("Error saving pack:", err);
-      return false;
+      return { saved: false };
+    }
+  };
+
+  // ===== Auto-render: generate images for all scenes in a pack =====
+  const renderPackImages = async (pack: PackFile, dbId: string, referenceBase64: string) => {
+    if (!user) return;
+    
+    const scenes = getScenes(pack);
+    const packId = getPackId(pack);
+    const packName = getPackName(pack);
+    
+    const progress: RenderProgress = {
+      packId,
+      packName,
+      totalScenes: scenes.length,
+      completedScenes: 0,
+      failedScenes: 0,
+      sceneResults: scenes.map(s => ({ sceneId: s.id, status: 'pending' as const })),
+    };
+    
+    setRenderProgress(prev => [...prev, progress]);
+    
+    // Extract base64 data from data URL
+    const base64Data = referenceBase64.includes(',') ? referenceBase64.split(',')[1] : referenceBase64;
+    const mimeMatch = referenceBase64.match(/^data:([^;]+);base64/);
+    const mimeType = mimeMatch?.[1] || "image/jpeg";
+    
+    // Process scenes in batches of 3 to avoid rate limiting
+    const batchSize = 3;
+    for (let i = 0; i < scenes.length; i += batchSize) {
+      const batch = scenes.slice(i, i + batchSize);
+      
+      await Promise.allSettled(
+        batch.map(async (scene) => {
+          // Update scene status to rendering
+          setRenderProgress(prev => prev.map(p => 
+            p.packId === packId 
+              ? { ...p, sceneResults: p.sceneResults.map(sr => sr.sceneId === scene.id ? { ...sr, status: 'rendering' as const } : sr) }
+              : p
+          ));
+          
+          try {
+            // Create queue item
+            const { data: queueItem, error: queueError } = await supabase
+              .from('generation_queue')
+              .insert({
+                pack_id: dbId,
+                shot_id: parseInt(scene.id, 10),
+                shot_data: { ...scene, scene_id: parseInt(scene.id, 10), selectedModel: renderModel, aspectRatio: renderAspectRatio } as any,
+                status: 'queued',
+                user_id: user.id,
+              })
+              .select()
+              .single();
+
+            if (queueError) throw queueError;
+
+            const finalPrompt = buildFinalPrompt(pack, scene.id);
+            
+            const { data, error } = await supabase.functions.invoke('generate-image', {
+              body: {
+                queueId: queueItem.id,
+                referenceImages: [{ base64: base64Data, mimeType }],
+                selfieBase64: base64Data,
+                selfieMimeType: mimeType,
+                finalPrompt,
+                model: renderModel,
+                aspectRatio: renderAspectRatio,
+                resolution: renderResolution,
+              },
+            });
+
+            if (error) throw error;
+            if (data && data.success === false) throw new Error(data.message || "Render failed");
+
+            // Success
+            setRenderProgress(prev => prev.map(p => 
+              p.packId === packId 
+                ? { 
+                    ...p, 
+                    completedScenes: p.completedScenes + 1,
+                    sceneResults: p.sceneResults.map(sr => 
+                      sr.sceneId === scene.id ? { ...sr, status: 'success' as const, imageUrl: data?.imageUrl } : sr
+                    )
+                  }
+                : p
+            ));
+          } catch (err) {
+            console.error(`Scene ${scene.id} render failed:`, err);
+            setRenderProgress(prev => prev.map(p => 
+              p.packId === packId 
+                ? { 
+                    ...p, 
+                    failedScenes: p.failedScenes + 1,
+                    completedScenes: p.completedScenes + 1,
+                    sceneResults: p.sceneResults.map(sr => 
+                      sr.sceneId === scene.id ? { ...sr, status: 'error' as const, error: err instanceof Error ? err.message : "Unknown error" } : sr
+                    )
+                  }
+                : p
+            ));
+          }
+        })
+      );
+      
+      // Small delay between batches
+      if (i + batchSize < scenes.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
   };
 
@@ -308,6 +349,8 @@ export default function PackCreator() {
 
     setIsGenerating(true);
     setCompletedCount(0);
+    setGenerationPhase("creating-pack");
+    if (autoRender) setRenderProgress([]);
 
     // Mark all pending as generating
     setImages(prev => prev.map(p => 
@@ -323,20 +366,14 @@ export default function PackCreator() {
           const { data, error } = await supabase.functions.invoke("generate-pack-v2", {
             body: {
               imageBase64: img.base64,
-              sceneCount,
-              packType,
-              gender,
-              category,
-              subcategory,
+              sceneCount, packType, gender, category, subcategory,
               styleInfluences: selectedInfluences,
-              lightingPreference,
-              colorPalette,
+              lightingPreference, colorPalette,
             },
           });
 
           if (error) throw error;
 
-          // Handle both single pack and multiple packs response
           const packsToSave: PackFile[] = [];
           if (data.success && data.packs && Array.isArray(data.packs)) {
             packsToSave.push(...data.packs);
@@ -348,17 +385,15 @@ export default function PackCreator() {
             throw new Error(data.error || "Failed to create pack");
           }
 
-          // Save all packs
           const savedResults = await Promise.all(
             packsToSave.map(async (pack) => {
-              const saved = await savePackToDatabase(pack);
-              return { pack, saved };
+              const { saved, dbId } = await savePackToDatabase(pack);
+              return { pack, saved, dbId };
             })
           );
           
           setCompletedCount(prev => prev + 1);
-          
-          return { id: img.id, packs: savedResults };
+          return { id: img.id, packs: savedResults, referenceBase64: img.base64 };
         } catch (error) {
           setCompletedCount(prev => prev + 1);
           throw { id: img.id, error };
@@ -366,9 +401,9 @@ export default function PackCreator() {
       })
     );
 
-    // Update all image statuses based on results
+    // Update image statuses
     let totalSavedCount = 0;
-    let totalPackCount = 0;
+    const packsToRender: { pack: PackFile; dbId: string; referenceBase64: string }[] = [];
     
     setImages(prev => prev.map(p => {
       const result = results.find(r => {
@@ -381,48 +416,54 @@ export default function PackCreator() {
 
       if (result.status === "fulfilled") {
         const packsData = result.value.packs;
-        totalPackCount += packsData.length;
         
-        // Add all packs to generated packs list
-        for (const { pack, saved } of packsData) {
+        for (const { pack, saved, dbId } of packsData) {
           if (saved) totalSavedCount++;
           setGeneratedPacks(prevPacks => [{
             id: `${result.value.id}-${getPackId(pack)}`,
             pack,
             saved,
           }, ...prevPacks]);
+          
+          // Queue for rendering if auto-render is on
+          if (autoRender && saved && dbId) {
+            packsToRender.push({ pack, dbId, referenceBase64: result.value.referenceBase64 });
+          }
         }
 
         const allSaved = packsData.every(pd => pd.saved);
         const firstPack = packsData[0]?.pack;
         
-        return {
-          ...p,
-          status: allSaved ? 'saved' as const : 'success' as const,
-          pack: firstPack,
-        };
+        return { ...p, status: allSaved ? 'saved' as const : 'success' as const, pack: firstPack };
       } else {
-        return {
-          ...p,
-          status: 'error' as const,
-          error: result.reason?.error?.message || "Unknown error",
-        };
+        return { ...p, status: 'error' as const, error: result.reason?.error?.message || "Unknown error" };
       }
     }));
 
-    setIsGenerating(false);
-
-    const successImageCount = results.filter(r => r.status === "fulfilled").length;
     const failCount = results.filter(r => r.status === "rejected").length;
 
     if (totalSavedCount > 0) {
       toast.success(`${totalSavedCount} pack(s) created and saved!`);
-    } else if (successImageCount > 0) {
-      toast.warning(`${totalPackCount} pack(s) created but not saved`);
     }
     if (failCount > 0) {
       toast.error(`${failCount} image(s) failed`);
     }
+
+    // Phase 2: Auto-render images
+    if (autoRender && packsToRender.length > 0) {
+      setGenerationPhase("rendering");
+      toast.info(`Starting image rendering for ${packsToRender.length} pack(s)...`);
+      
+      for (const { pack, dbId, referenceBase64 } of packsToRender) {
+        await renderPackImages(pack, dbId, referenceBase64);
+      }
+      
+      const totalRendered = renderProgress.reduce((sum, p) => sum + p.completedScenes - p.failedScenes, 0);
+      toast.success(`Rendering complete!`);
+    }
+
+    setIsGenerating(false);
+    setGenerationPhase("idle");
   };
 
   const handleGenerateText = async () => {
@@ -432,26 +473,20 @@ export default function PackCreator() {
     }
 
     setIsGenerating(true);
+    setGenerationPhase("creating-pack");
+    if (autoRender) setRenderProgress([]);
     const genId = `gen-${Date.now()}`;
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-pack-v2", {
         body: {
-          textPrompt,
-          sceneCount,
-          packType,
-          gender,
-          category,
-          subcategory,
-          styleInfluences: selectedInfluences,
-          lightingPreference,
-          colorPalette,
+          textPrompt, sceneCount, packType, gender, category, subcategory,
+          styleInfluences: selectedInfluences, lightingPreference, colorPalette,
         },
       });
 
       if (error) throw error;
 
-      // Handle both single pack and multiple packs response
       const packsToSave: PackFile[] = [];
       if (data.success && data.packs && Array.isArray(data.packs)) {
         packsToSave.push(...data.packs);
@@ -463,9 +498,11 @@ export default function PackCreator() {
         throw new Error(data.error || "Failed to create pack");
       }
 
+      const packsToRender: { pack: PackFile; dbId: string }[] = [];
       let savedCount = 0;
+      
       for (const pack of packsToSave) {
-        const saved = await savePackToDatabase(pack);
+        const { saved, dbId } = await savePackToDatabase(pack);
         if (saved) savedCount++;
 
         setGeneratedPacks(prev => [{
@@ -473,14 +510,127 @@ export default function PackCreator() {
           pack,
           saved,
         }, ...prev]);
+        
+        if (autoRender && saved && dbId) {
+          packsToRender.push({ pack, dbId });
+        }
       }
 
       toast.success(savedCount > 0 ? `${savedCount} pack(s) created and saved!` : "Pack(s) created (save failed)");
+      
+      // Auto-render for text mode — no reference image, just prompts
+      if (autoRender && packsToRender.length > 0) {
+        setGenerationPhase("rendering");
+        toast.info(`Starting image rendering for ${packsToRender.length} pack(s)...`);
+        
+        for (const { pack, dbId } of packsToRender) {
+          // Text mode: no reference image, generate from prompt only
+          await renderPackImagesFromText(pack, dbId);
+        }
+        
+        toast.success("Rendering complete!");
+      }
     } catch (error) {
       console.error("Generation error:", error);
       toast.error(error instanceof Error ? error.message : "Generation failed");
     } finally {
       setIsGenerating(false);
+      setGenerationPhase("idle");
+    }
+  };
+
+  // Render images for text-based packs (no reference image)
+  const renderPackImagesFromText = async (pack: PackFile, dbId: string) => {
+    if (!user) return;
+    
+    const scenes = getScenes(pack);
+    const packId = getPackId(pack);
+    const packName = getPackName(pack);
+    
+    const progress: RenderProgress = {
+      packId, packName,
+      totalScenes: scenes.length,
+      completedScenes: 0, failedScenes: 0,
+      sceneResults: scenes.map(s => ({ sceneId: s.id, status: 'pending' as const })),
+    };
+    
+    setRenderProgress(prev => [...prev, progress]);
+    
+    const batchSize = 3;
+    for (let i = 0; i < scenes.length; i += batchSize) {
+      const batch = scenes.slice(i, i + batchSize);
+      
+      await Promise.allSettled(
+        batch.map(async (scene) => {
+          setRenderProgress(prev => prev.map(p => 
+            p.packId === packId 
+              ? { ...p, sceneResults: p.sceneResults.map(sr => sr.sceneId === scene.id ? { ...sr, status: 'rendering' as const } : sr) }
+              : p
+          ));
+          
+          try {
+            const { data: queueItem, error: queueError } = await supabase
+              .from('generation_queue')
+              .insert({
+                pack_id: dbId,
+                shot_id: parseInt(scene.id, 10),
+                shot_data: { ...scene, scene_id: parseInt(scene.id, 10) } as any,
+                status: 'queued',
+                user_id: user.id,
+              })
+              .select()
+              .single();
+
+            if (queueError) throw queueError;
+
+            const finalPrompt = buildFinalPrompt(pack, scene.id);
+            
+            // Use Lovable AI gateway for text-only generation (no reference image)
+            const { data, error } = await supabase.functions.invoke('generate-text-image', {
+              body: {
+                prompt: finalPrompt,
+                model: renderModel,
+                aspectRatio: renderAspectRatio,
+                resolution: renderResolution,
+                queueId: queueItem.id,
+              },
+            });
+
+            if (error) throw error;
+            if (data && data.success === false) throw new Error(data.message || "Render failed");
+
+            setRenderProgress(prev => prev.map(p => 
+              p.packId === packId 
+                ? { 
+                    ...p, 
+                    completedScenes: p.completedScenes + 1,
+                    sceneResults: p.sceneResults.map(sr => 
+                      sr.sceneId === scene.id ? { ...sr, status: 'success' as const, imageUrl: data?.imageUrl } : sr
+                    )
+                  }
+                : p
+            ));
+          } catch (err) {
+            console.error(`Scene ${scene.id} render failed:`, err);
+            setRenderProgress(prev => prev.map(p => 
+              p.packId === packId 
+                ? { 
+                    ...p, 
+                    failedScenes: p.failedScenes + 1,
+                    completedScenes: p.completedScenes + 1,
+                    sceneResults: p.sceneResults.map(sr => 
+                      sr.sceneId === scene.id ? { ...sr, status: 'error' as const, error: err instanceof Error ? err.message : "Unknown error" } : sr
+                    )
+                  }
+                : p
+            ));
+          }
+        })
+      );
+      
+      if (i + batchSize < scenes.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
   };
 
@@ -497,6 +647,11 @@ export default function PackCreator() {
   const errorCount = images.filter(i => i.status === 'error').length;
   const generatingCount = images.filter(i => i.status === 'generating').length;
   const progress = generatingCount > 0 ? (completedCount / generatingCount) * 100 : 0;
+
+  // Calculate total render progress
+  const totalRenderScenes = renderProgress.reduce((sum, p) => sum + p.totalScenes, 0);
+  const totalRenderCompleted = renderProgress.reduce((sum, p) => sum + p.completedScenes, 0);
+  const renderPercent = totalRenderScenes > 0 ? (totalRenderCompleted / totalRenderScenes) * 100 : 0;
 
   if (!isAuthenticated) return null;
 
@@ -520,6 +675,12 @@ export default function PackCreator() {
                  packType === "all-seeing-eye" ? "All Seeing Eye" :
                  "Omniscient Visual Architect"}
               </h1>
+              {autoRender && (
+                <Badge variant="secondary" className="text-[10px] h-5">
+                  <Play className="h-3 w-3 mr-1" />
+                  Auto-Render
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
               <span>
@@ -598,17 +759,10 @@ export default function PackCreator() {
               </TabsList>
 
               <TabsContent value="image" className="mt-4 space-y-4">
-                {/* Upload Area */}
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-medium">Batch Upload (unlimited)</Label>
                   {images.length > 0 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={clearAllImages} 
-                      className="text-xs h-6" 
-                      disabled={isGenerating}
-                    >
+                    <Button variant="ghost" size="sm" onClick={clearAllImages} className="text-xs h-6" disabled={isGenerating}>
                       <Trash2 className="h-3 w-3 mr-1" />
                       Clear All
                     </Button>
@@ -619,17 +773,9 @@ export default function PackCreator() {
                   <Upload className="h-5 w-5 text-muted-foreground mb-1.5" />
                   <span className="text-xs text-muted-foreground">Drop images or click to upload</span>
                   <span className="text-[10px] text-muted-foreground/70 mt-0.5">Parallel processing</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImagesUpload}
-                    className="hidden"
-                    disabled={isGenerating}
-                  />
+                  <input type="file" accept="image/*" multiple onChange={handleImagesUpload} className="hidden" disabled={isGenerating} />
                 </label>
 
-                {/* Image Grid */}
                 {images.length > 0 && (
                   <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
                     {images.map(img => (
@@ -672,11 +818,14 @@ export default function PackCreator() {
                   </div>
                 )}
 
-                {/* Progress */}
-                {isGenerating && generatingCount > 0 && (
+                {/* Phase 1: Pack generation progress */}
+                {isGenerating && generationPhase === "creating-pack" && generatingCount > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span>Generating in parallel... {completedCount} / {generatingCount}</span>
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="h-3 w-3 animate-pulse text-primary" />
+                        Phase 1: Creating packs... {completedCount} / {generatingCount}
+                      </span>
                       <span>{Math.round(progress)}%</span>
                     </div>
                     <Progress value={progress} className="h-1" />
@@ -707,19 +856,11 @@ export default function PackCreator() {
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Label className="text-xs font-medium whitespace-nowrap">Scenes:</Label>
-                <Select
-                  value={sceneCount.toString()}
-                  onValueChange={(v) => setSceneCount(parseInt(v))}
-                  disabled={isGenerating}
-                >
-                  <SelectTrigger className="w-24 h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={sceneCount.toString()} onValueChange={(v) => setSceneCount(parseInt(v))} disabled={isGenerating}>
+                  <SelectTrigger className="w-24 h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {SCENE_COUNT_OPTIONS.map((count) => (
-                      <SelectItem key={count} value={count.toString()}>
-                        {count} scenes
-                      </SelectItem>
+                      <SelectItem key={count} value={count.toString()}>{count} scenes</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -727,30 +868,16 @@ export default function PackCreator() {
               
               <div className="flex items-center gap-2">
                 <Label className="text-xs font-medium whitespace-nowrap">Category:</Label>
-                <Input
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Portrait, Fashion..."
-                  disabled={isGenerating}
-                  className="w-32 h-9 text-sm"
-                />
+                <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Portrait, Fashion..." disabled={isGenerating} className="w-32 h-9 text-sm" />
               </div>
 
               <div className="flex items-center gap-2">
                 <Label className="text-xs font-medium whitespace-nowrap">Gender:</Label>
-                <Select
-                  value={gender}
-                  onValueChange={(v) => setGender(v as Gender)}
-                  disabled={isGenerating}
-                >
-                  <SelectTrigger className="w-24 h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={gender} onValueChange={(v) => setGender(v as Gender)} disabled={isGenerating}>
+                  <SelectTrigger className="w-24 h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {GENDER_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -768,64 +895,100 @@ export default function PackCreator() {
 
             {showAdvanced && (
               <div className="space-y-3 pt-3 border-t border-border/30">
-                {/* Style Influences */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium flex items-center gap-2">
-                    <Sparkles className="h-3 w-3" />
-                    Style Influences (max 3)
-                  </Label>
+                  <Label className="text-xs font-medium flex items-center gap-2"><Sparkles className="h-3 w-3" />Style Influences (max 3)</Label>
                   <div className="flex flex-wrap gap-2">
                     {STYLE_INFLUENCES.map((influence) => (
-                      <Badge
-                        key={influence}
-                        variant={selectedInfluences.includes(influence) ? "default" : "outline"}
-                        className="cursor-pointer text-xs"
-                        onClick={() => toggleInfluence(influence)}
-                      >
+                      <Badge key={influence} variant={selectedInfluences.includes(influence) ? "default" : "outline"} className="cursor-pointer text-xs" onClick={() => toggleInfluence(influence)}>
                         {influence}
                       </Badge>
                     ))}
                   </div>
                 </div>
 
-                {/* Lighting Preference */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium flex items-center gap-2">
-                    <Sun className="h-3 w-3" />
-                    Lighting Preference
-                  </Label>
+                  <Label className="text-xs font-medium flex items-center gap-2"><Sun className="h-3 w-3" />Lighting Preference</Label>
                   <div className="flex flex-wrap gap-2">
                     {LIGHTING_PRESETS.map((preset) => (
-                      <Badge
-                        key={preset}
-                        variant={lightingPreference === preset ? "default" : "outline"}
-                        className="cursor-pointer text-xs"
-                        onClick={() => setLightingPreference(lightingPreference === preset ? "" : preset)}
-                      >
+                      <Badge key={preset} variant={lightingPreference === preset ? "default" : "outline"} className="cursor-pointer text-xs" onClick={() => setLightingPreference(lightingPreference === preset ? "" : preset)}>
                         {preset}
                       </Badge>
                     ))}
                   </div>
                 </div>
 
-                {/* Color Palette */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium flex items-center gap-2">
-                    <Palette className="h-3 w-3" />
-                    Color Palette
-                  </Label>
+                  <Label className="text-xs font-medium flex items-center gap-2"><Palette className="h-3 w-3" />Color Palette</Label>
                   <div className="flex flex-wrap gap-2">
                     {COLOR_PALETTES.map((palette) => (
-                      <Badge
-                        key={palette}
-                        variant={colorPalette === palette ? "default" : "outline"}
-                        className="cursor-pointer text-xs"
-                        onClick={() => setColorPalette(colorPalette === palette ? "" : palette)}
-                      >
+                      <Badge key={palette} variant={colorPalette === palette ? "default" : "outline"} className="cursor-pointer text-xs" onClick={() => setColorPalette(colorPalette === palette ? "" : palette)}>
                         {palette}
                       </Badge>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Auto-Render Toggle & Settings */}
+          <div className="bg-accent/50 rounded-xl p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <Label className="text-xs font-medium">Auto-Render Images</Label>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Automatically generate images for each scene after pack creation
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={autoRender}
+                onCheckedChange={setAutoRender}
+                disabled={isGenerating}
+              />
+            </div>
+
+            {autoRender && (
+              <div className="flex items-center gap-3 flex-wrap pt-3 border-t border-border/30">
+                <div className="flex items-center gap-2">
+                  <Label className="text-[11px] font-medium whitespace-nowrap text-muted-foreground">Model:</Label>
+                  <Select value={renderModel} onValueChange={setRenderModel} disabled={isGenerating}>
+                    <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {RENDER_MODELS.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>
+                          <span className="font-medium">{m.label}</span>
+                          <span className="text-muted-foreground ml-1">— {m.description}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Label className="text-[11px] font-medium whitespace-nowrap text-muted-foreground">Ratio:</Label>
+                  <Select value={renderAspectRatio} onValueChange={setRenderAspectRatio} disabled={isGenerating}>
+                    <SelectTrigger className="w-20 h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ASPECT_RATIOS.map((ar) => (
+                        <SelectItem key={ar} value={ar}>{ar}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Label className="text-[11px] font-medium whitespace-nowrap text-muted-foreground">Res:</Label>
+                  <Select value={renderResolution} onValueChange={setRenderResolution} disabled={isGenerating}>
+                    <SelectTrigger className="w-20 h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1K">1K</SelectItem>
+                      <SelectItem value="2K">2K</SelectItem>
+                      <SelectItem value="4K">4K</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
@@ -841,7 +1004,10 @@ export default function PackCreator() {
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Creating Visual Universe{generatingCount > 1 ? `s (${completedCount}/${generatingCount})` : ''}...
+                {generationPhase === "creating-pack" 
+                  ? `Creating Visual Universe${generatingCount > 1 ? `s (${completedCount}/${generatingCount})` : ''}...`
+                  : `Rendering Images (${totalRenderCompleted}/${totalRenderScenes})...`
+                }
               </>
             ) : (
               <>
@@ -850,12 +1016,65 @@ export default function PackCreator() {
                   ? `Generate ${images.filter(i => i.status === 'pending' || i.status === 'error').length} Pack(s) (${sceneCount} scenes each)`
                   : `Generate Style Pack (${sceneCount} scenes)`
                 }
+                {autoRender && " + Render"}
               </>
             )}
           </Button>
 
+          {/* Phase 2: Render Progress */}
+          {generationPhase === "rendering" && renderProgress.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5">
+                  <ImageIcon className="h-3 w-3 animate-pulse text-primary" />
+                  Phase 2: Rendering images... {totalRenderCompleted} / {totalRenderScenes}
+                </span>
+                <span>{Math.round(renderPercent)}%</span>
+              </div>
+              <Progress value={renderPercent} className="h-1" />
+            </div>
+          )}
+
+          {/* Render Results */}
+          {renderProgress.length > 0 && (
+            <div className="space-y-3">
+              {renderProgress.map((rp) => (
+                <div key={rp.packId} className="bg-accent/50 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium">{rp.packName}</Label>
+                    <span className="text-[10px] text-muted-foreground">
+                      {rp.completedScenes - rp.failedScenes}/{rp.totalScenes} rendered
+                      {rp.failedScenes > 0 && <span className="text-destructive ml-1">({rp.failedScenes} failed)</span>}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                    {rp.sceneResults.map((sr) => (
+                      <div key={sr.sceneId} className="relative aspect-[4/5] rounded-lg overflow-hidden border border-border/50 bg-card">
+                        {sr.status === 'success' && sr.imageUrl ? (
+                          <img src={sr.imageUrl} alt={`Scene ${sr.sceneId}`} className="w-full h-full object-cover" />
+                        ) : sr.status === 'rendering' ? (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : sr.status === 'error' ? (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <X className="h-4 w-4 text-destructive" />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-[10px] text-muted-foreground">{sr.sceneId}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Generated Packs */}
-          {generatedPacks.length > 0 && (
+          {generatedPacks.length > 0 && renderProgress.length === 0 && (
             <div className="bg-accent/50 rounded-xl p-4 space-y-3">
               <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Generated Packs ({generatedPacks.length})</Label>
               <div className="space-y-1.5 max-h-64 overflow-y-auto">
@@ -866,7 +1085,7 @@ export default function PackCreator() {
                   >
                     <div className="flex items-center gap-2.5">
                       {gen.saved ? (
-                        <Check className="h-3.5 w-3.5 text-success" />
+                        <Check className="h-3.5 w-3.5 text-green-500" />
                       ) : (
                         <X className="h-3.5 w-3.5 text-destructive" />
                       )}
@@ -877,12 +1096,7 @@ export default function PackCreator() {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs rounded-lg"
-                      onClick={() => navigate("/")}
-                    >
+                    <Button variant="ghost" size="sm" className="h-6 text-xs rounded-lg" onClick={() => navigate("/")}>
                       View
                     </Button>
                   </div>
