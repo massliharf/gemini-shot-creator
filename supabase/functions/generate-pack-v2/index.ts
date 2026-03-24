@@ -2400,6 +2400,9 @@ serve(async (req) => {
     const colorContext = colorPalette 
       ? `Color palette direction: ${colorPalette}.` 
       : "";
+    const customPromptContext = customPrompt
+      ? `\n## CUSTOM PROMPT DIRECTION (CRITICAL - Follow this style/tone for ALL scene prompts):\n${customPrompt}\n`
+      : "";
 
     // Build the user prompt
     let userPrompt = basePrompt;
