@@ -1645,8 +1645,8 @@ const CloudFiles = () => {
                 </div>
               ) : folders.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Folder className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Cloud'da dosya bulunamadı</p>
+                  <Folder className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-xs">Cloud'da dosya bulunamadı</p>
                 </div>
               ) : displayedFolders.length === 0 && hideDownloaded ? (
                 <div className="text-center py-12 text-muted-foreground">
