@@ -1570,13 +1570,13 @@ const CloudFiles = () => {
 
           {/* FILES TAB */}
           <TabsContent value="files" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
-            {/* Action bar for files tab */}
-            <div className="px-4 py-2 border-b border-border/50 flex gap-2 flex-shrink-0">
+            {/* Action bar */}
+            <div className="px-5 py-2 border-b border-border/50 flex gap-1.5 flex-shrink-0">
               <Button
                 variant={hideDownloaded ? "default" : "outline"}
                 size="sm"
                 onClick={() => setHideDownloaded(!hideDownloaded)}
-                className="gap-1 text-xs h-8"
+                className="gap-1 text-xs h-7 rounded-lg"
               >
                 {hideDownloaded ? <FilterX className="w-3.5 h-3.5" /> : <Filter className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{hideDownloaded ? 'Tümünü Göster' : 'Gizle'}</span>
@@ -1587,7 +1587,7 @@ const CloudFiles = () => {
                 size="sm" 
                 onClick={startBatchExport}
                 disabled={loading || batchExport.isRunning}
-                className="text-xs h-8"
+                className="text-xs h-7 rounded-lg"
               >
                 <Download className="w-3.5 h-3.5 mr-1" />
                 <span className="hidden sm:inline">Export & Sil</span>
