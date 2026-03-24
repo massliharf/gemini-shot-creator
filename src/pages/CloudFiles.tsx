@@ -1854,8 +1854,8 @@ const CloudFiles = () => {
                 </div>
               ) : dbPacks.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <FileJson className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Veritabanında pack bulunamadı</p>
+                  <FileJson className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-xs">Veritabanında pack bulunamadı</p>
                 </div>
               ) : (
                 <div className="space-y-2">
