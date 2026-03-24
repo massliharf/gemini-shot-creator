@@ -2287,7 +2287,11 @@ ${colorContext}
 ## YOUR MISSION:
 Create a complete ${styleType} style pack with exactly ${sceneCount} scenes.
 
-${isGodEye ? `Apply the Two-Layer System:
+${isNonPortrait ? `Follow the protocol instructions above exactly.
+- Full creative freedom over composition and framing
+- ${isProduct ? "Focus on the product/object as the hero" : "Mix of framings: close-up, medium, full-body, wide shots"}
+- ${isProduct ? "Human subjects are optional (hands, silhouettes only if needed)" : "Back-turned poses, action shots, and environmental compositions are all allowed"}
+- Rich, cinematic scene descriptions (80-150 words each)` : isGodEye ? `Apply the Two-Layer System:
 1. Global Style Anchor - Concise aesthetic DNA (2-4 sentences)
 2. Scene Prompts - Complete, standalone descriptions with all 8 components
 
@@ -2308,13 +2312,16 @@ Each scene must include:
 6. Compositional Rules - Face placement, headroom, eye positioning
 7. Quality Markers - Tack-sharp focus on face and eyes`}
 
-Use generic subject descriptors only ("A person", "The subject")
-Face is CLEARLY VISIBLE and SHARP in ALL scenes
+${isNonPortrait ? `Use descriptive, cinematic language.` : `Use generic subject descriptors only ("A person", "The subject")
+Face is CLEARLY VISIBLE and SHARP in ALL scenes`}
 
-## CRITICAL FRAMING REQUIREMENTS:
+${isNonPortrait ? `## FRAMING FREEDOM:
+- ANY framing is allowed: extreme close-up to extreme wide
+- Full body, action shots, environmental, aerial views all welcome
+- ${isProduct ? "Product/object must be the clear hero element" : "Mix diverse compositions across scenes"}` : `## CRITICAL FRAMING REQUIREMENTS:
 - MINIMUM: Tight head-and-shoulders (headshot)
 - MAXIMUM: Mid-chest up (upper body portrait)
-- FORBIDDEN: Full body, wide shots, distant framing, back turned
+- FORBIDDEN: Full body, wide shots, distant framing, back turned`}
 
 ## NAMING REQUIREMENTS:
 - pack_id uses underscores: "category_style_identifier"
@@ -2325,9 +2332,9 @@ Face is CLEARLY VISIBLE and SHARP in ALL scenes
 ## OUTPUT REQUIREMENTS:
 - global_style_anchor = ${isGodEye ? "2-4 sentences defining aesthetic DNA" : "60-100 words, starts with \"" + anchorStart + "...\""}
 - Each scene.prompt is complete and standalone
-- ${sceneCount} meaningfully different scenes within tight framing
+- ${sceneCount} meaningfully different scenes${isNonPortrait ? "" : " within tight framing"}
 - POSITIVE descriptions only (no negation)
-- Face prominent, sharp, and primary focal point in EVERY scene
+${isNonPortrait ? "" : "- Face prominent, sharp, and primary focal point in EVERY scene"}
 
 Output pure JSON only.`;
     } else {
