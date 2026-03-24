@@ -1650,9 +1650,9 @@ const CloudFiles = () => {
                 </div>
               ) : displayedFolders.length === 0 && hideDownloaded ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
-                  <p>Tüm klasörler indirildi!</p>
-                  <Button variant="link" onClick={() => setHideDownloaded(false)} className="mt-2">
+                  <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-success opacity-50" />
+                  <p className="text-xs">Tüm klasörler indirildi!</p>
+                  <Button variant="link" onClick={() => setHideDownloaded(false)} className="mt-2 text-xs">
                     Tümünü göster
                   </Button>
                 </div>
