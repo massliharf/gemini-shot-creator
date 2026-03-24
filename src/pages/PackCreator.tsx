@@ -615,10 +615,10 @@ export default function PackCreator() {
                   )}
                 </div>
 
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border/50 rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
-                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                  <span className="text-sm text-muted-foreground">Drop images or click to upload</span>
-                  <span className="text-xs text-muted-foreground/70 mt-1">Upload as many as you want - parallel processing</span>
+                <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-border rounded-xl cursor-pointer hover:bg-card transition-colors">
+                  <Upload className="h-5 w-5 text-muted-foreground mb-1.5" />
+                  <span className="text-xs text-muted-foreground">Drop images or click to upload</span>
+                  <span className="text-[10px] text-muted-foreground/70 mt-0.5">Parallel processing</span>
                   <input
                     type="file"
                     accept="image/*"
