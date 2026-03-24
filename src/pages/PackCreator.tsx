@@ -767,7 +767,7 @@ export default function PackCreator() {
             </button>
 
             {showAdvanced && (
-              <div className="space-y-4 pt-2 border-t border-border/50">
+              <div className="space-y-3 pt-3 border-t border-border/30">
                 {/* Style Influences */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium flex items-center gap-2">
