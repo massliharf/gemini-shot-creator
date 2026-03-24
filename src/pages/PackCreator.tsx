@@ -51,10 +51,11 @@ interface RenderProgress {
 
 const SCENE_COUNT_OPTIONS = [8, 12, 16, 20];
 
-type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye" | "creative" | "product";
+type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" | "reverse" | "portrait-clone" | "dop-architect" | "all-seeing-eye" | "creative" | "product" | "glamour";
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
+  { value: "glamour", label: "Glamour Portrait", icon: <Sparkles className="h-5 w-5" />, description: "Deep reference analysis + artistic fashion scenes" },
   { value: "creative", label: "Creative Scene", icon: <Film className="h-5 w-5" />, description: "Full creative freedom - any composition" },
   { value: "product", label: "Product Shot", icon: <ShoppingBag className="h-5 w-5" />, description: "Product/object photography" },
   { value: "photography", label: "Visual Architect", icon: <Layers className="h-5 w-5" />, description: "7-layer portrait architecture" },
