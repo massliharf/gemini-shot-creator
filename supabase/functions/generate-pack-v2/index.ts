@@ -2319,7 +2319,12 @@ serve(async (req) => {
     let anchorStart: string;
     let protocolName: string;
     
-    if (isCreativeScene) {
+    if (isGlamour) {
+      basePrompt = GLAMOUR_PORTRAIT_DIRECTOR_PROMPT;
+      styleType = "glamour portrait";
+      anchorStart = "Create a glamour portrait of the person in this image";
+      protocolName = "Glamour Portrait Director";
+    } else if (isCreativeScene) {
       basePrompt = CREATIVE_SCENE_DIRECTOR_PROMPT;
       styleType = "creative scene";
       anchorStart = "Create a cinematic image";
