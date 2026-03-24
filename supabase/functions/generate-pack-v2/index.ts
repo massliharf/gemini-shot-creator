@@ -2311,7 +2311,8 @@ serve(async (req) => {
     const isAllSeeingEye = packType === "all-seeing-eye";
     const isCreativeScene = packType === "creative";
     const isProduct = packType === "product";
-    const isNonPortrait = isCreativeScene || isProduct;
+    const isGlamour = packType === "glamour";
+    const isNonPortrait = isCreativeScene || isProduct || isGlamour;
     
     let basePrompt: string;
     let styleType: string;
