@@ -219,7 +219,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
 
     // Prepend (newest first)
     setItems((prev) => [...tempItems, ...prev]);
-    setActiveGenerations(count);
+    setActiveGenerations((prev) => prev + count);
 
     // Fire all in parallel
     for (const item of tempItems) {
