@@ -472,7 +472,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
                 size="icon"
                 className="h-10 w-10 rounded-xl flex-shrink-0"
                 onClick={handleGenerate}
-                disabled={!prompt.trim() || isGenerating}
+                disabled={!prompt.trim()}
               >
                 {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
