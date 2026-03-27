@@ -465,7 +465,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
                 onKeyDown={handleKeyDown}
                 placeholder="Describe the image you want..."
                 className="min-h-[44px] max-h-[120px] resize-none text-sm rounded-xl"
-                disabled={isGenerating}
+                rows={1}
                 rows={1}
               />
               <Button
