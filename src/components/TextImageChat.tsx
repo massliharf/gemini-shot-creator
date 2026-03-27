@@ -57,17 +57,29 @@ interface TextImageChatProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const CHAT_SETTINGS_KEY = "text-image-chat-settings";
+const loadChatSettings = () => {
+  try { const s = localStorage.getItem(CHAT_SETTINGS_KEY); if (s) return JSON.parse(s); } catch {} return {};
+};
+
 export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
+  const saved = loadChatSettings();
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState("flash-3.1");
-  const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [resolution, setResolution] = useState("1K");
-  const [imageCount, setImageCount] = useState(1);
+  const [model, setModel] = useState(saved.model || "flash-3.1");
+  const [aspectRatio, setAspectRatio] = useState(saved.aspectRatio || "1:1");
+  const [resolution, setResolution] = useState(saved.resolution || "1K");
+  const [imageCount, setImageCount] = useState(saved.imageCount || 1);
   const [activeGenerations, setActiveGenerations] = useState(0);
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [refImages, setRefImages] = useState<RefImage[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist settings
+  useEffect(() => {
+    try { localStorage.setItem(CHAT_SETTINGS_KEY, JSON.stringify({ model, aspectRatio, resolution, imageCount })); } catch {}
+  }, [model, aspectRatio, resolution, imageCount]);
   const galleryRef = useRef<HTMLDivElement>(null);
 
   // Fullscreen state
