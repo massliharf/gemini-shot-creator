@@ -15,6 +15,7 @@ import { FullscreenImageView } from "@/components/FullscreenImageView";
 import { User } from "@supabase/supabase-js";
 
 const MAX_REF_IMAGES = 5;
+const SETTINGS_KEY = "text-to-image-settings";
 
 const fileToBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -50,25 +51,42 @@ const ASPECT_RATIO_OPTIONS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "
 const RESOLUTION_OPTIONS = ["1K", "2K", "4K"];
 const COUNT_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12];
 
+const loadSettings = () => {
+  try {
+    const saved = localStorage.getItem(SETTINGS_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  return {};
+};
+
 const TextToImage = () => {
+  const savedSettings = loadSettings();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState("flash-3.1");
-  const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [resolution, setResolution] = useState("1K");
-  const [imageCount, setImageCount] = useState(1);
+  const [model, setModel] = useState(savedSettings.model || "flash-3.1");
+  const [aspectRatio, setAspectRatio] = useState(savedSettings.aspectRatio || "1:1");
+  const [resolution, setResolution] = useState(savedSettings.resolution || "1K");
+  const [imageCount, setImageCount] = useState(savedSettings.imageCount || 1);
   const [activeGenerations, setActiveGenerations] = useState(0);
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [refImages, setRefImages] = useState<RefImage[]>([]);
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const galleryRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   const isProModel = model === "pro" || model === "flash-3.1";
   const isGenerating = activeGenerations > 0;
+
+  // Persist settings
+  useEffect(() => {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ model, aspectRatio, resolution, imageCount }));
+    } catch { /* ignore */ }
+  }, [model, aspectRatio, resolution, imageCount]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -83,11 +101,7 @@ const TextToImage = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  useEffect(() => { if (user) loadHistory(); }, [user]);
-
-  useEffect(() => {
-    if (galleryRef.current) galleryRef.current.scrollTop = 0;
-  }, [items.length]);
+  useEffect(() => { if (user && !historyLoaded) loadHistory(); }, [user, historyLoaded]);
 
   const loadHistory = async () => {
     setLoadingHistory(true);
@@ -99,6 +113,7 @@ const TextToImage = () => {
         .limit(200);
       if (error) throw error;
       setItems((data || []).map((d: any) => ({ ...d, status: "success" as GenStatus })));
+      setHistoryLoaded(true);
     } catch (e) { console.error("Failed to load history:", e); }
     finally { setLoadingHistory(false); }
   };
@@ -137,7 +152,7 @@ const TextToImage = () => {
   );
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating) return;
+    if (!prompt.trim()) return;
     const currentPrompt = prompt;
     const currentModel = model;
     const currentAR = aspectRatio;
@@ -155,7 +170,7 @@ const TextToImage = () => {
       });
     }
     setItems((prev) => [...tempItems, ...prev]);
-    setActiveGenerations(count);
+    setActiveGenerations((prev) => prev + count);
     for (const item of tempItems) {
       generateSingle(currentPrompt, currentModel, currentAR, currentRes, currentRefs, item.id);
     }
@@ -336,7 +351,7 @@ const TextToImage = () => {
                 <button
                   className="h-10 w-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors flex-shrink-0"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isGenerating || refImages.length >= MAX_REF_IMAGES}
+                  disabled={refImages.length >= MAX_REF_IMAGES}
                 >
                   <Upload className="w-4 h-4" />
                 </button>
@@ -353,12 +368,12 @@ const TextToImage = () => {
                   value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={handleKeyDown}
                   placeholder="Describe the image you want..."
                   className="min-h-[44px] max-h-[120px] resize-none text-sm rounded-xl border-border/50 bg-accent/50"
-                  disabled={isGenerating} rows={1}
+                  rows={1}
                 />
                 <Button
                   size="icon"
                   className="h-10 w-10 rounded-xl flex-shrink-0 bg-foreground text-background hover:bg-foreground/90"
-                  onClick={handleGenerate} disabled={!prompt.trim() || isGenerating}
+                  onClick={handleGenerate} disabled={!prompt.trim()}
                 >
                   {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
