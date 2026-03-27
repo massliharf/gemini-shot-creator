@@ -90,9 +90,9 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
 
   // Load history
   useEffect(() => {
-    if (!open) return;
+    if (!open || historyLoaded) return;
     loadHistory();
-  }, [open]);
+  }, [open, historyLoaded]);
 
   // Scroll to top on new items
   useEffect(() => {
