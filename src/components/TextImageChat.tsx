@@ -57,17 +57,29 @@ interface TextImageChatProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const CHAT_SETTINGS_KEY = "text-image-chat-settings";
+const loadChatSettings = () => {
+  try { const s = localStorage.getItem(CHAT_SETTINGS_KEY); if (s) return JSON.parse(s); } catch {} return {};
+};
+
 export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
+  const saved = loadChatSettings();
   const [prompt, setPrompt] = useState("");
-  const [model, setModel] = useState("flash-3.1");
-  const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [resolution, setResolution] = useState("1K");
-  const [imageCount, setImageCount] = useState(1);
+  const [model, setModel] = useState(saved.model || "flash-3.1");
+  const [aspectRatio, setAspectRatio] = useState(saved.aspectRatio || "1:1");
+  const [resolution, setResolution] = useState(saved.resolution || "1K");
+  const [imageCount, setImageCount] = useState(saved.imageCount || 1);
   const [activeGenerations, setActiveGenerations] = useState(0);
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [refImages, setRefImages] = useState<RefImage[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist settings
+  useEffect(() => {
+    try { localStorage.setItem(CHAT_SETTINGS_KEY, JSON.stringify({ model, aspectRatio, resolution, imageCount })); } catch {}
+  }, [model, aspectRatio, resolution, imageCount]);
   const galleryRef = useRef<HTMLDivElement>(null);
 
   // Fullscreen state
@@ -78,9 +90,9 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
 
   // Load history
   useEffect(() => {
-    if (!open) return;
+    if (!open || historyLoaded) return;
     loadHistory();
-  }, [open]);
+  }, [open, historyLoaded]);
 
   // Scroll to top on new items
   useEffect(() => {
@@ -105,6 +117,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
           status: "success" as GenStatus,
         }))
       );
+      setHistoryLoaded(true);
     } catch (e) {
       console.error("Failed to load history:", e);
     } finally {
@@ -178,7 +191,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
   );
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating) return;
+    if (!prompt.trim()) return;
 
     const currentPrompt = prompt;
     const currentModel = model;
@@ -206,7 +219,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
 
     // Prepend (newest first)
     setItems((prev) => [...tempItems, ...prev]);
-    setActiveGenerations(count);
+    setActiveGenerations((prev) => prev + count);
 
     // Fire all in parallel
     for (const item of tempItems) {
@@ -452,14 +465,13 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
                 onKeyDown={handleKeyDown}
                 placeholder="Describe the image you want..."
                 className="min-h-[44px] max-h-[120px] resize-none text-sm rounded-xl"
-                disabled={isGenerating}
                 rows={1}
               />
               <Button
                 size="icon"
                 className="h-10 w-10 rounded-xl flex-shrink-0"
                 onClick={handleGenerate}
-                disabled={!prompt.trim() || isGenerating}
+                disabled={!prompt.trim()}
               >
                 {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
