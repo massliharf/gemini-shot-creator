@@ -117,6 +117,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
           status: "success" as GenStatus,
         }))
       );
+      setHistoryLoaded(true);
     } catch (e) {
       console.error("Failed to load history:", e);
     } finally {
