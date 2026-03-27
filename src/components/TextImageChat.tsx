@@ -190,7 +190,7 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
   );
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating) return;
+    if (!prompt.trim()) return;
 
     const currentPrompt = prompt;
     const currentModel = model;
