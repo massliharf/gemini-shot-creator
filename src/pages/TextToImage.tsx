@@ -126,8 +126,7 @@ const TextToImage = () => {
           hasMore = false;
         }
       }
-      if (error) throw error;
-      setItems((data || []).map((d: any) => ({ ...d, status: "success" as GenStatus })));
+      setItems(allData.map((d: any) => ({ ...d, status: "success" as GenStatus })));
       setHistoryLoaded(true);
     } catch (e) { console.error("Failed to load history:", e); }
     finally { setLoadingHistory(false); }
