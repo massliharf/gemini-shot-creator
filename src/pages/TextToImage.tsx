@@ -106,11 +106,26 @@ const TextToImage = () => {
   const loadHistory = async () => {
     setLoadingHistory(true);
     try {
-      const { data, error } = await supabase
-        .from("text_generations")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200);
+      // Load all generations in batches of 1000
+      let allData: any[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error: batchError } = await supabase
+          .from("text_generations")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(from, from + batchSize - 1);
+        if (batchError) throw batchError;
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          from += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
       if (error) throw error;
       setItems((data || []).map((d: any) => ({ ...d, status: "success" as GenStatus })));
       setHistoryLoaded(true);
