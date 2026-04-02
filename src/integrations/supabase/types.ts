@@ -115,6 +115,124 @@ export type Database = {
         }
         Relationships: []
       }
+      style_projects: {
+        Row: {
+          analysis_text: string | null
+          created_at: string
+          id: string
+          name: string
+          reference_image_urls: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          analysis_text?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          reference_image_urls?: Json | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          analysis_text?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          reference_image_urls?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      style_prompt_images: {
+        Row: {
+          aspect_ratio: string
+          created_at: string
+          id: string
+          image_path: string | null
+          image_url: string | null
+          model: string
+          prompt_id: string
+          resolution: string
+          user_id: string
+        }
+        Insert: {
+          aspect_ratio?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          image_url?: string | null
+          model?: string
+          prompt_id: string
+          resolution?: string
+          user_id: string
+        }
+        Update: {
+          aspect_ratio?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          image_url?: string | null
+          model?: string
+          prompt_id?: string
+          resolution?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_prompt_images_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "style_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      style_prompts: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          prompt_label: string | null
+          prompt_text: string
+          sort_order: number
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          prompt_label?: string | null
+          prompt_text: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          prompt_label?: string | null
+          prompt_text?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_prompts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "style_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       text_generations: {
         Row: {
           aspect_ratio: string

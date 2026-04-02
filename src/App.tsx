@@ -14,6 +14,7 @@ import CloudFiles from "./pages/CloudFiles";
 import QuoteGenerator from "./pages/QuoteGenerator";
 import GlassesGenerator from "./pages/GlassesGenerator";
 import TextToImage from "./pages/TextToImage";
+import PromptGenerator from "./pages/PromptGenerator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/quote-generator" element={<QuoteGenerator />} />
             <Route path="/glasses-generator" element={<GlassesGenerator />} />
             <Route path="/text-to-image" element={<TextToImage />} />
+            <Route path="/prompt-generator" element={<PromptGenerator />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
