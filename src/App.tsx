@@ -37,6 +37,7 @@ const App = () => (
             <Route path="/quote-generator" element={<QuoteGenerator />} />
             <Route path="/glasses-generator" element={<GlassesGenerator />} />
             <Route path="/text-to-image" element={<TextToImage />} />
+            <Route path="/prompt-generator" element={<PromptGenerator />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
