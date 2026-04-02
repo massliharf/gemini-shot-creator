@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Paintbrush, Eye, FileText, Layers, Sparkles, Quote, Glasses, MessageSquarePlus } from "lucide-react";
+import { Paintbrush, Eye, FileText, Layers, Sparkles, Quote, Glasses, MessageSquarePlus, Wand2 } from "lucide-react";
 
 export const navItems = [
   { icon: Paintbrush, label: "Styles", path: "/styles" },
