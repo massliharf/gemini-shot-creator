@@ -14,6 +14,7 @@ import CloudFiles from "./pages/CloudFiles";
 import QuoteGenerator from "./pages/QuoteGenerator";
 import GlassesGenerator from "./pages/GlassesGenerator";
 import TextToImage from "./pages/TextToImage";
+import PromptGenerator from "./pages/PromptGenerator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
