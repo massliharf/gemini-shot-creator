@@ -68,10 +68,10 @@ serve(async (req) => {
       );
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, message: "GEMINI_API_KEY not configured" }),
+        JSON.stringify({ success: false, message: "LOVABLE_API_KEY not configured" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -98,37 +98,55 @@ serve(async (req) => {
 
     console.log(`=== ANALYZE STYLE === User: ${user.id}, Images: ${referenceImages.length}`);
 
-    // Build content parts
+    // Build message content parts for Lovable AI gateway (OpenAI-compatible format)
     const contentParts: any[] = [];
     for (const ref of referenceImages) {
       if (ref.base64 && ref.mimeType) {
         contentParts.push({
-          inlineData: { mimeType: ref.mimeType, data: ref.base64 },
+          type: "image_url",
+          image_url: {
+            url: `data:${ref.mimeType};base64,${ref.base64}`,
+          },
         });
       }
     }
-
     contentParts.push({
+      type: "text",
       text: `Analyze the provided reference image(s) following the ruleset and return ONLY a valid JSON response.\n\n${STYLE_RULESET}`,
     });
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${GEMINI_API_KEY}`;
-
-    const aiResp = await fetch(geminiUrl, {
+    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        contents: [{ parts: contentParts }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.7,
-        },
+        model: "google/gemini-3.1-pro-preview",
+        messages: [
+          {
+            role: "user",
+            content: contentParts,
+          },
+        ],
       }),
     });
 
     if (!aiResp.ok) {
       const errorText = await aiResp.text();
-      console.error("Gemini error:", aiResp.status, errorText);
+      console.error("AI gateway error:", aiResp.status, errorText);
+      if (aiResp.status === 429) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Rate limit exceeded, please try again later." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (aiResp.status === 402) {
+        return new Response(
+          JSON.stringify({ success: false, message: "AI credits exhausted. Please add funds." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(
         JSON.stringify({ success: false, message: `AI error: ${aiResp.status}` }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -136,11 +154,11 @@ serve(async (req) => {
     }
 
     const aiData = await aiResp.json();
-    const responseText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const responseText = aiData.choices?.[0]?.message?.content || "";
+    console.log("AI response length:", responseText.length);
 
     let parsed: any;
     try {
-      // Try direct parse first
       parsed = JSON.parse(responseText);
     } catch {
       // Try extracting JSON from markdown code blocks
