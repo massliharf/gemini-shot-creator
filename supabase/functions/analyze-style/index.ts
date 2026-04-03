@@ -7,64 +7,47 @@ const corsHeaders = {
 };
 
 const STYLE_RULESET = `
-# VISUAL STYLE ANALYSIS & PROMPT GENERATION RULESET
+Analyze this image with full technical detail for replication purposes. Cover lighting or light simulation, color palette (hex codes), composition, texture, grain or surface quality, mood, and a one-line style identity with an artist, photographer, film, or motion reference if applicable.
 
-You are a visual style analysis engine. When a user uploads one or more reference images, you produce structured prompt templates that apply this style to any subject.
-
-## ANALYSIS PROCESS
-Analyze the reference image(s) layer by layer:
-1. General Composition (format, framing, camera angle, DoF)
-2. Lighting (source, direction, quality, shadows, color temperature, exposure)
-3. Color Palette (dominant/accent colors with hex, harmony, saturation, grading)
-4. Image Quality & Texture (resolution feel, grain, sharpness, lens characteristics)
-5. Subject & Scene (subject, expression, clothing, background, props, depth layers)
-6. Visual Style Identity Summary
-
-## PROMPT ARCHITECTURE
-Each prompt follows: [CORE STYLE BLOCK] + [SUBJECT] + [TECHNICAL BLOCK] + [MODIFIER BLOCK]
-
-## HARD RULES
-- State colors with hex values
-- Anchor light to its source with technical specifics
-- Describe DoF in photographic language
-- Quantify grain and noise
-- Use technical, specific language — avoid generic words like "beautiful" or "stunning"
-- Most important properties come first in prompts
+Then give me the output as described below.
 
 ## OUTPUT FORMAT
 You MUST respond with ONLY a valid JSON object. No markdown, no explanation, no extra text.
 
 The JSON must have this exact structure:
 {
-  "analysis": "A single paragraph visual style identity summary",
+  "analysis": "Full technical analysis paragraph covering lighting, color palette (hex codes), composition, texture, grain, mood, and a one-line style identity with artist/photographer/film/motion reference if applicable",
   "style_name": "Short descriptive name for this style (2-4 words)",
   "prompts": [
     {
-      "label": "Template",
-      "text": "The placeholder template prompt with [SUBJECT], [SETTING] etc tags"
-    },
-    {
       "label": "Replication",
-      "text": "Full prompt to reproduce the reference image exactly"
+      "text": "A replication prompt that recreates this exact image"
     },
     {
-      "label": "Portrait Variation",
-      "text": "Ready-to-use prompt: human/portrait in this style"
+      "label": "Template",
+      "text": "A master template prompt with only the necessary placeholders for this specific style — could be [SUBJECT], [SCENE], [MOOD], [COLOR_ACCENT], [MATERIAL] or whatever actually makes sense for this style. Don't force placeholders that don't fit."
     },
     {
-      "label": "Product Variation",
-      "text": "Ready-to-use prompt: object/product/still life in this style"
+      "label": "Example 1",
+      "text": "First filled example using the template — pick something that fits the style best (a character, an object, an environment, a concept)"
     },
     {
-      "label": "Landscape Variation",
-      "text": "Ready-to-use prompt: location/landscape/architecture in this style"
+      "label": "Example 2",
+      "text": "Second filled example using the template — different subject than Example 1"
+    },
+    {
+      "label": "Example 3",
+      "text": "Third filled example using the template — different subject than Examples 1 and 2"
     }
   ],
-  "negative_prompt": "Properties to suppress during generation"
+  "negative_prompt": "Properties to suppress during generation",
+  "hex_codes": ["#HEXCODE1", "#HEXCODE2", "...precise hex codes for colors found in the image"]
 }
 
 If multiple distinct-style images are provided, create a "STYLE FUSION" set as well — add extra prompts with label prefix "Fusion: ".
 If images share the same style, extract the strongest shared patterns into the prompts.
+
+Be precise and technical. No vague adjectives.
 
 RESPOND WITH ONLY THE JSON. NO OTHER TEXT.
 `;
@@ -129,7 +112,7 @@ serve(async (req) => {
       text: `Analyze the provided reference image(s) following the ruleset and return ONLY a valid JSON response.\n\n${STYLE_RULESET}`,
     });
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${GEMINI_API_KEY}`;
 
     const aiResp = await fetch(geminiUrl, {
       method: "POST",
