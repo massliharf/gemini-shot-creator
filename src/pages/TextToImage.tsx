@@ -230,6 +230,57 @@ const TextToImage = () => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleGenerate(); }
   };
 
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const handleDownloadAll = async () => {
+    const downloadable = items.filter((it) => it.status === "success" && it.image_url);
+    if (downloadable.length === 0) { toast.info("No images to download"); return; }
+
+    setDownloadingAll(true);
+    try {
+      const zip = new JSZip();
+
+      // Build manifest
+      const manifest = downloadable.map((it, i) => ({
+        file: `${String(i + 1).padStart(3, "0")}.png`,
+        prompt: it.prompt,
+        model: it.model,
+        aspect_ratio: it.aspect_ratio,
+        resolution: it.resolution,
+        created_at: it.created_at,
+      }));
+      zip.file("prompts.json", JSON.stringify(manifest, null, 2));
+
+      // Also a simple text version
+      const textLines = downloadable.map((it, i) =>
+        `${String(i + 1).padStart(3, "0")}.png\n  Prompt: ${it.prompt}\n  Model: ${it.model} | AR: ${it.aspect_ratio} | Res: ${it.resolution}\n  Date: ${it.created_at}`
+      );
+      zip.file("prompts.txt", textLines.join("\n\n"));
+
+      // Fetch images with concurrency limit
+      await mapLimit(downloadable, 4, async (it, idx) => {
+        try {
+          const resp = await fetch(it.image_url!);
+          const blob = await resp.blob();
+          zip.file(`${String(idx + 1).padStart(3, "0")}.png`, blob);
+        } catch {
+          // skip failed downloads
+        }
+      });
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      triggerDownload(url, `text-to-image-${new Date().toISOString().slice(0, 10)}.zip`);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      toast.success(`${downloadable.length} image downloaded as ZIP`);
+    } catch (e: any) {
+      console.error("Download all failed:", e);
+      toast.error("Download failed");
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
   // Fullscreen
   const successItems = items.filter((it) => it.status === "success" && it.image_url);
   const fullscreenItem = fullscreenIndex !== null ? successItems[fullscreenIndex] : null;
