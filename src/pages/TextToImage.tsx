@@ -336,6 +336,18 @@ const TextToImage = () => {
             )}
 
             <div className="flex items-center gap-1.5 ml-auto">
+              {successItems.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2.5 text-xs gap-1.5"
+                  onClick={handleDownloadAll}
+                  disabled={downloadingAll}
+                >
+                  {downloadingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Archive className="w-3 h-3" />}
+                  Download All ({successItems.length})
+                </Button>
+              )}
               <span className="text-xs text-muted-foreground">Count:</span>
               <Select value={String(imageCount)} onValueChange={(v) => setImageCount(Number(v))}>
                 <SelectTrigger className="w-auto h-7 px-2.5 rounded-md border-0 bg-accent text-xs font-medium">
