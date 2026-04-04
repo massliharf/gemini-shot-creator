@@ -8,8 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Send, Loader2, ImageIcon, Trash2, Download, X, Plus, Upload,
-  RefreshCw, AlertCircle,
+  RefreshCw, AlertCircle, Archive,
 } from "lucide-react";
+import JSZip from "jszip";
+import { triggerDownload, mapLimit } from "@/lib/download-utils";
 import { AppLayout } from "@/components/AppLayout";
 import { FullscreenImageView } from "@/components/FullscreenImageView";
 import { User } from "@supabase/supabase-js";
