@@ -52,6 +52,70 @@ Be precise and technical. No vague adjectives.
 RESPOND WITH ONLY THE JSON. NO OTHER TEXT.
 `;
 
+const MAX_OUTPUT_TOKENS = 8192;
+
+const extractResponseText = (aiData: any) => {
+  const parts = aiData?.candidates?.[0]?.content?.parts ?? [];
+  return parts
+    .map((part: any) => (typeof part?.text === "string" ? part.text : ""))
+    .join("")
+    .trim();
+};
+
+const extractJsonPayload = (responseText: string) => {
+  if (!responseText) return "";
+
+  const fencedMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fencedMatch?.[1]) return fencedMatch[1].trim();
+
+  const firstBrace = responseText.indexOf("{");
+  const lastBrace = responseText.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return responseText.slice(firstBrace, lastBrace + 1).trim();
+  }
+
+  return responseText.trim();
+};
+
+const normalizeAnalysisPayload = (payload: any) => {
+  const promptsSource = Array.isArray(payload?.prompts)
+    ? payload.prompts
+    : Array.isArray(payload?.variants)
+      ? payload.variants
+      : [];
+
+  const prompts = promptsSource
+    .map((prompt: any, index: number) => ({
+      label:
+        typeof prompt?.label === "string" && prompt.label.trim()
+          ? prompt.label.trim()
+          : `Prompt ${index + 1}`,
+      text:
+        typeof prompt?.text === "string"
+          ? prompt.text.trim()
+          : typeof prompt?.prompt === "string"
+            ? prompt.prompt.trim()
+            : "",
+    }))
+    .filter((prompt: { text: string }) => prompt.text.length > 0);
+
+  const hexCodes = Array.isArray(payload?.hex_codes)
+    ? payload.hex_codes
+        .filter((code: unknown) => typeof code === "string")
+        .map((code: string) => (code.startsWith("#") ? code.toUpperCase() : `#${code.toUpperCase()}`))
+        .filter((code: string) => /^#[0-9A-F]{6}$/.test(code))
+    : [];
+
+  return {
+    analysis: typeof payload?.analysis === "string" ? payload.analysis.trim() : "",
+    styleName: typeof payload?.style_name === "string" ? payload.style_name.trim() : "",
+    negativePrompt:
+      typeof payload?.negative_prompt === "string" ? payload.negative_prompt.trim() : "",
+    hexCodes,
+    prompts,
+  };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -87,6 +151,19 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const failProject = async (message: string) => {
+      if (projectId) {
+        await supabase
+          .from("style_projects")
+          .update({
+            status: "failed",
+            name: "Analysis Failed",
+            analysis_text: message,
+          })
+          .eq("id", projectId);
+      }
+    };
+
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
@@ -121,6 +198,7 @@ serve(async (req) => {
         contents: [{ parts: contentParts }],
         generationConfig: {
           responseMimeType: "application/json",
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
           temperature: 0.7,
         },
       }),
@@ -136,51 +214,126 @@ serve(async (req) => {
     }
 
     const aiData = await aiResp.json();
-    const responseText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const finishReason = aiData?.candidates?.[0]?.finishReason || "UNKNOWN";
+    const responseText = extractResponseText(aiData);
+
+    console.log("Analyze finishReason:", finishReason);
+    console.log("Analyze usageMetadata:", JSON.stringify(aiData?.usageMetadata || {}));
+
+    if (!responseText) {
+      const message = finishReason === "MAX_TOKENS"
+        ? "Analysis output was truncated. Try fewer or smaller reference images."
+        : "AI returned an empty analysis response.";
+      await failProject(message);
+      return new Response(
+        JSON.stringify({ success: false, message, finishReason }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const jsonPayload = extractJsonPayload(responseText);
 
     let parsed: any;
     try {
-      parsed = JSON.parse(responseText);
+      parsed = JSON.parse(jsonPayload);
     } catch {
-      const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[1].trim());
-      } else {
-        console.error("Failed to parse AI response:", responseText.substring(0, 500));
-        return new Response(
-          JSON.stringify({ success: false, message: "Failed to parse AI response" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      console.error("Failed to parse AI response:", responseText.substring(0, 500));
+      const message = finishReason === "MAX_TOKENS"
+        ? "Analysis output was truncated before the JSON completed. Try fewer or smaller reference images."
+        : "Failed to parse AI response";
+      await failProject(message);
+      return new Response(
+        JSON.stringify({ success: false, message, finishReason }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const normalized = normalizeAnalysisPayload(parsed);
+    const hasValidAnalysis = normalized.analysis.length > 0;
+    const hasValidStyleName = normalized.styleName.length > 0;
+    const hasValidPrompts = normalized.prompts.length > 0;
+
+    if (!hasValidAnalysis || !hasValidStyleName || !hasValidPrompts) {
+      const message = finishReason === "MAX_TOKENS"
+        ? "Analysis was incomplete. Try fewer or smaller reference images."
+        : "AI returned incomplete analysis data.";
+      console.error("Incomplete analysis payload:", JSON.stringify(parsed).substring(0, 500));
+      await failProject(message);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message,
+          finishReason,
+          details: {
+            hasValidAnalysis,
+            hasValidStyleName,
+            hasValidPrompts,
+          },
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Update project with analysis
     if (projectId) {
-      await supabase
+      const { error: projectUpdateError } = await supabase
         .from("style_projects")
         .update({
-          analysis_text: parsed.analysis || "",
-          name: parsed.style_name || "Untitled Style",
+          analysis_text: normalized.analysis,
+          name: normalized.styleName,
           status: "completed",
         })
         .eq("id", projectId)
         .eq("user_id", user.id);
 
-      if (Array.isArray(parsed.prompts)) {
-        const promptRows = parsed.prompts.map((p: any, i: number) => ({
-          project_id: projectId,
-          user_id: user.id,
-          prompt_text: p.text,
-          prompt_label: p.label || `Prompt ${i + 1}`,
-          sort_order: i,
-        }));
+      if (projectUpdateError) {
+        console.error("Failed to update style project:", projectUpdateError);
+        return new Response(
+          JSON.stringify({ success: false, message: "Failed to save analyzed project" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-        await supabase.from("style_prompts").insert(promptRows);
+      const { error: deletePromptError } = await supabase
+        .from("style_prompts")
+        .delete()
+        .eq("project_id", projectId)
+        .eq("user_id", user.id);
+
+      if (deletePromptError) {
+        console.error("Failed to clear old prompts:", deletePromptError);
+      }
+
+      const promptRows = normalized.prompts.map((p: any, i: number) => ({
+        project_id: projectId,
+        user_id: user.id,
+        prompt_text: p.text,
+        prompt_label: p.label || `Prompt ${i + 1}`,
+        sort_order: i,
+      }));
+
+      const { error: promptInsertError } = await supabase.from("style_prompts").insert(promptRows);
+      if (promptInsertError) {
+        console.error("Failed to save prompts:", promptInsertError);
+        await failProject("Analysis completed but prompts could not be saved.");
+        return new Response(
+          JSON.stringify({ success: false, message: "Failed to save generated prompts" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     }
 
     return new Response(
-      JSON.stringify({ success: true, data: parsed }),
+      JSON.stringify({
+        success: true,
+        data: {
+          analysis: normalized.analysis,
+          style_name: normalized.styleName,
+          prompts: normalized.prompts,
+          negative_prompt: normalized.negativePrompt,
+          hex_codes: normalized.hexCodes,
+        },
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

@@ -11,6 +11,7 @@ import { FullscreenImageView } from "@/components/FullscreenImageView";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User } from "@supabase/supabase-js";
+import { prepareImageForAi } from "@/lib/prepare-image-for-ai";
 
 const MODEL_OPTIONS = [
   { value: "flash", label: "Flash" },
@@ -19,14 +20,6 @@ const MODEL_OPTIONS = [
 ];
 const ASPECT_RATIO_OPTIONS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9"];
 const RESOLUTION_OPTIONS = ["1K", "2K", "4K"];
-
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve((reader.result as string).split(",")[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 
 interface StyleProject {
   id: string;
@@ -211,8 +204,7 @@ const PromptGenerator = () => {
       const referenceImages: { base64: string; mimeType: string }[] = [];
       for (const file of files) {
         try {
-          const b64 = await fileToBase64(file);
-          referenceImages.push({ base64: b64, mimeType: file.type || "image/jpeg" });
+          referenceImages.push(await prepareImageForAi(file));
         } catch { /* skip */ }
       }
 
