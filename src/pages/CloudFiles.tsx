@@ -642,7 +642,11 @@ const CloudFiles = () => {
       // Mark as downloaded
       markAsDownloaded(folder.name);
 
-      toast.success(`${packName} indirildi`);
+      if (missingFiles.length > 0) {
+        toast.success(`${packName} indirildi (${missingFiles.length} eksik dosya atlandı)`);
+      } else {
+        toast.success(`${packName} indirildi`);
+      }
     } catch (error) {
       console.error("Download error:", error);
       toast.error("İndirme başarısız");
