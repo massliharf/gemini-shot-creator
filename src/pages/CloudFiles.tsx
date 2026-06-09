@@ -603,15 +603,32 @@ const CloudFiles = () => {
         }
       }
 
+      const missingFiles: string[] = [];
       for (const file of folder.files) {
-        const { data, error } = await supabase.storage
-          .from("generated-images")
-          .download(file.path);
+        try {
+          const { data, error } = await supabase.storage
+            .from("generated-images")
+            .download(file.path);
 
-        if (error) throw error;
-        if (data && folderZip) {
-          folderZip.file(file.name, data);
+          if (error) {
+            console.warn(`Skipping file ${file.path}:`, error);
+            missingFiles.push(file.name);
+            continue;
+          }
+          if (data && folderZip) {
+            folderZip.file(file.name, data);
+          }
+        } catch (err) {
+          console.warn(`Skipping file ${file.path}:`, err);
+          missingFiles.push(file.name);
         }
+      }
+
+      if (folderZip && missingFiles.length > 0) {
+        folderZip.file(
+          "_missing_files.txt",
+          `These files could not be downloaded (orphaned in storage):\n\n${missingFiles.join("\n")}`
+        );
       }
 
       const blob = await zip.generateAsync({ type: "blob" });
@@ -625,7 +642,11 @@ const CloudFiles = () => {
       // Mark as downloaded
       markAsDownloaded(folder.name);
 
-      toast.success(`${packName} indirildi`);
+      if (missingFiles.length > 0) {
+        toast.success(`${packName} indirildi (${missingFiles.length} eksik dosya atlandı)`);
+      } else {
+        toast.success(`${packName} indirildi`);
+      }
     } catch (error) {
       console.error("Download error:", error);
       toast.error("İndirme başarısız");
