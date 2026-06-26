@@ -221,6 +221,17 @@ serve(async (req) => {
     console.log("Analyze finishReason:", finishReason);
     console.log("Analyze usageMetadata:", JSON.stringify(aiData?.usageMetadata || {}));
 
+    // Log token usage to gemini_usage_logs
+    await logGeminiUsage({
+      userId: user.id,
+      functionName: "analyze-style",
+      model: "gemini-3.1-pro-preview",
+      usageMetadata: aiData?.usageMetadata,
+      imageCount: 0,
+      status: responseText ? "success" : "no_response",
+      metadata: { referenceImageCount: referenceImages.length, finishReason },
+    });
+
     if (!responseText) {
       const message = finishReason === "MAX_TOKENS"
         ? "Analysis output was truncated. Try fewer or smaller reference images."
