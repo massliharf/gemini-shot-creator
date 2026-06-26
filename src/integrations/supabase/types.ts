@@ -41,6 +41,54 @@ export type Database = {
         }
         Relationships: []
       }
+      gemini_usage_logs: {
+        Row: {
+          candidates_tokens: number
+          created_at: string
+          estimated_cost_usd: number
+          function_name: string
+          id: string
+          image_count: number
+          metadata: Json | null
+          model: string
+          prompt_tokens: number
+          resolution: string | null
+          status: string
+          total_tokens: number
+          user_id: string
+        }
+        Insert: {
+          candidates_tokens?: number
+          created_at?: string
+          estimated_cost_usd?: number
+          function_name: string
+          id?: string
+          image_count?: number
+          metadata?: Json | null
+          model: string
+          prompt_tokens?: number
+          resolution?: string | null
+          status?: string
+          total_tokens?: number
+          user_id: string
+        }
+        Update: {
+          candidates_tokens?: number
+          created_at?: string
+          estimated_cost_usd?: number
+          function_name?: string
+          id?: string
+          image_count?: number
+          metadata?: Json | null
+          model?: string
+          prompt_tokens?: number
+          resolution?: string | null
+          status?: string
+          total_tokens?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       generation_queue: {
         Row: {
           created_at: string | null
