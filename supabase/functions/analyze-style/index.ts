@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
+import { logGeminiUsage } from "../_shared/gemini-usage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -219,6 +220,17 @@ serve(async (req) => {
 
     console.log("Analyze finishReason:", finishReason);
     console.log("Analyze usageMetadata:", JSON.stringify(aiData?.usageMetadata || {}));
+
+    // Log token usage to gemini_usage_logs
+    await logGeminiUsage({
+      userId: user.id,
+      functionName: "analyze-style",
+      model: "gemini-3.1-pro-preview",
+      usageMetadata: aiData?.usageMetadata,
+      imageCount: 0,
+      status: responseText ? "success" : "no_response",
+      metadata: { referenceImageCount: referenceImages.length, finishReason },
+    });
 
     if (!responseText) {
       const message = finishReason === "MAX_TOKENS"

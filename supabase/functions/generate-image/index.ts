@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
+import { logGeminiUsage } from "../_shared/gemini-usage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -232,6 +233,40 @@ Match the style precisely while generating the described content.`;
       candidatesTokens: usage.candidatesTokenCount || 0,
       totalTokens: usage.totalTokenCount || 0,
     };
+
+    // Resolve user id from Authorization header (best-effort) and log usage
+    let loggedUserId: string | null = null;
+    try {
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const token = authHeader.replace("Bearer ", "");
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) loggedUserId = user.id;
+      }
+    } catch (e) {
+      console.warn("Could not resolve user for usage log");
+    }
+
+    // Detect if an image was produced (check before further branching)
+    const respPartsForCount = aiData.candidates?.[0]?.content?.parts || [];
+    const hasImage = respPartsForCount.some((p: any) => {
+      const inline = p.inlineData || p.inline_data;
+      const mt = inline?.mimeType || inline?.mime_type;
+      return typeof mt === "string" && mt.startsWith("image/");
+    });
+
+    if (loggedUserId) {
+      await logGeminiUsage({
+        userId: loggedUserId,
+        functionName: "generate-image",
+        model: resolvedModel,
+        usageMetadata: usage,
+        imageCount: hasImage ? 1 : 0,
+        resolution: isProModel ? validResolution : "1K",
+        status: hasImage ? "success" : "no_image",
+        metadata: { aspectRatio: validAspectRatio, generationMode },
+      });
+    }
 
     // Check finish reason
     const finishReason = aiData.candidates?.[0]?.finishReason;
