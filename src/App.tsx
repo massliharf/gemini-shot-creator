@@ -39,6 +39,7 @@ const App = () => (
             <Route path="/glasses-generator" element={<GlassesGenerator />} />
             <Route path="/text-to-image" element={<TextToImage />} />
             <Route path="/prompt-generator" element={<PromptGenerator />} />
+            <Route path="/usage" element={<Usage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
