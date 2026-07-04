@@ -14,6 +14,9 @@ type Pricing = {
 const PRICING: Record<string, Pricing> = {
   "gemini-2.5-flash-image": { inputPer1M: 0.30, outputPer1M: 2.50, imageOut: 0.039 },
   "gemini-3.1-flash-image-preview": { inputPer1M: 0.30, outputPer1M: 2.50, imageOut: 0.039 },
+  "gemini-3.1-flash-image": { inputPer1M: 0.30, outputPer1M: 2.50, imageOut: 0.039 },
+  "gemini-3.1-flash-lite-image": { inputPer1M: 0.15, outputPer1M: 1.25, imageOut: 0.02 },
+  "gemini-3-pro-image": { inputPer1M: 1.25, outputPer1M: 10.0, imageOut: 0.134, imageOut4K: 0.24 },
   "gemini-3-pro-image-preview": { inputPer1M: 1.25, outputPer1M: 10.0, imageOut: 0.134, imageOut4K: 0.24 },
   "gemini-3-pro-preview": { inputPer1M: 1.25, outputPer1M: 10.0 },
   "gemini-3.1-pro-preview": { inputPer1M: 1.25, outputPer1M: 10.0 },

@@ -14,6 +14,7 @@ const ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", 
 const MODELS = {
   flash: "gemini-2.5-flash-image",
   "flash-3.1": "gemini-3.1-flash-image-preview",
+  "flash-lite-3.1": "gemini-3.1-flash-lite-image",
   pro: "gemini-3-pro-image-preview",
 } as const;
 
@@ -111,9 +112,11 @@ serve(async (req) => {
     let resolvedModel: string;
     if (model === "flash" || model === "gemini-2.5-flash-image") {
       resolvedModel = MODELS.flash;
-    } else if (model === "gemini-3.1-flash-image-preview" || model === "flash-3.1") {
+    } else if (model === "gemini-3.1-flash-image-preview" || model === "gemini-3.1-flash-image" || model === "flash-3.1") {
       resolvedModel = MODELS["flash-3.1"];
-    } else if (model === "pro" || model === "gemini-3-pro-image-preview") {
+    } else if (model === "gemini-3.1-flash-lite-image" || model === "flash-lite-3.1") {
+      resolvedModel = MODELS["flash-lite-3.1"];
+    } else if (model === "pro" || model === "gemini-3-pro-image-preview" || model === "gemini-3-pro-image") {
       resolvedModel = MODELS.pro;
     } else {
       resolvedModel = MODELS.flash;
