@@ -16,6 +16,7 @@ import GlassesGenerator from "./pages/GlassesGenerator";
 import TextToImage from "./pages/TextToImage";
 import PromptGenerator from "./pages/PromptGenerator";
 import Usage from "./pages/Usage";
+import Studio from "./pages/Studio";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/text-to-image" element={<TextToImage />} />
             <Route path="/prompt-generator" element={<PromptGenerator />} />
             <Route path="/usage" element={<Usage />} />
+            <Route path="/studio" element={<Studio />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
