@@ -257,18 +257,18 @@ const TextToImage = () => {
       );
       zip.file("prompts.txt", textLines.join("\n\n"));
 
-      // Fetch images with concurrency limit
-      await mapLimit(downloadable, 4, async (it, idx) => {
+      // Fetch images with high concurrency; images are already compressed so we STORE (no deflate) — massive speedup.
+      await mapLimit(downloadable, 16, async (it, idx) => {
         try {
-          const resp = await fetch(it.image_url!);
-          const blob = await resp.blob();
-          zip.file(`${String(idx + 1).padStart(3, "0")}.png`, blob);
+          const resp = await fetch(it.image_url!, { cache: "force-cache" });
+          const buf = await resp.arrayBuffer();
+          zip.file(`${String(idx + 1).padStart(3, "0")}.png`, buf, { compression: "STORE" });
         } catch {
           // skip failed downloads
         }
       });
 
-      const content = await zip.generateAsync({ type: "blob" });
+      const content = await zip.generateAsync({ type: "blob", compression: "STORE" });
       const url = URL.createObjectURL(content);
       triggerDownload(url, `text-to-image-${new Date().toISOString().slice(0, 10)}.zip`);
       setTimeout(() => URL.revokeObjectURL(url), 10000);
