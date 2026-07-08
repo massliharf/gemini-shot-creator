@@ -370,16 +370,29 @@ const TextToImage = () => {
 
             <div className="flex items-center gap-1.5 ml-auto">
               {successItems.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2.5 text-xs gap-1.5"
-                  onClick={handleDownloadAll}
-                  disabled={downloadingAll}
-                >
-                  {downloadingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Archive className="w-3 h-3" />}
-                  Download All ({successItems.length})
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs gap-1.5"
+                    onClick={handleDownloadAll}
+                    disabled={downloadingAll || downloadingAndDeleting}
+                  >
+                    {downloadingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Archive className="w-3 h-3" />}
+                    Download All ({successItems.length})
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs gap-1.5 text-destructive hover:text-destructive"
+                    onClick={handleDownloadAllAndDelete}
+                    disabled={downloadingAll || downloadingAndDeleting}
+                    title="ZIP olarak indir ve buradan sil"
+                  >
+                    {downloadingAndDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    İndir & Sil
+                  </Button>
+                </>
               )}
               <span className="text-xs text-muted-foreground">Count:</span>
               <Select value={String(imageCount)} onValueChange={(v) => setImageCount(Number(v))}>
