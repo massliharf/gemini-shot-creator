@@ -231,53 +231,86 @@ const TextToImage = () => {
   };
 
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadingAndDeleting, setDownloadingAndDeleting] = useState(false);
+
+  const buildZipAndDownload = async (downloadable: GalleryItem[]) => {
+    const zip = new JSZip();
+    const manifest = downloadable.map((it, i) => ({
+      file: `${String(i + 1).padStart(3, "0")}.png`,
+      prompt: it.prompt,
+      model: it.model,
+      aspect_ratio: it.aspect_ratio,
+      resolution: it.resolution,
+      created_at: it.created_at,
+    }));
+    zip.file("prompts.json", JSON.stringify(manifest, null, 2));
+    const textLines = downloadable.map((it, i) =>
+      `${String(i + 1).padStart(3, "0")}.png\n  Prompt: ${it.prompt}\n  Model: ${it.model} | AR: ${it.aspect_ratio} | Res: ${it.resolution}\n  Date: ${it.created_at}`
+    );
+    zip.file("prompts.txt", textLines.join("\n\n"));
+
+    const failed: string[] = [];
+    await mapLimit(downloadable, 16, async (it, idx) => {
+      try {
+        const resp = await fetch(it.image_url!, { cache: "force-cache" });
+        if (!resp.ok) throw new Error(String(resp.status));
+        const buf = await resp.arrayBuffer();
+        zip.file(`${String(idx + 1).padStart(3, "0")}.png`, buf, { compression: "STORE" });
+      } catch {
+        failed.push(it.id);
+      }
+    });
+
+    const content = await zip.generateAsync({ type: "blob", compression: "STORE" });
+    const url = URL.createObjectURL(content);
+    triggerDownload(url, `text-to-image-${new Date().toISOString().slice(0, 10)}.zip`);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    return failed;
+  };
 
   const handleDownloadAll = async () => {
     const downloadable = items.filter((it) => it.status === "success" && it.image_url);
     if (downloadable.length === 0) { toast.info("No images to download"); return; }
-
     setDownloadingAll(true);
     try {
-      const zip = new JSZip();
-
-      // Build manifest
-      const manifest = downloadable.map((it, i) => ({
-        file: `${String(i + 1).padStart(3, "0")}.png`,
-        prompt: it.prompt,
-        model: it.model,
-        aspect_ratio: it.aspect_ratio,
-        resolution: it.resolution,
-        created_at: it.created_at,
-      }));
-      zip.file("prompts.json", JSON.stringify(manifest, null, 2));
-
-      // Also a simple text version
-      const textLines = downloadable.map((it, i) =>
-        `${String(i + 1).padStart(3, "0")}.png\n  Prompt: ${it.prompt}\n  Model: ${it.model} | AR: ${it.aspect_ratio} | Res: ${it.resolution}\n  Date: ${it.created_at}`
-      );
-      zip.file("prompts.txt", textLines.join("\n\n"));
-
-      // Fetch images with high concurrency; images are already compressed so we STORE (no deflate) — massive speedup.
-      await mapLimit(downloadable, 16, async (it, idx) => {
-        try {
-          const resp = await fetch(it.image_url!, { cache: "force-cache" });
-          const buf = await resp.arrayBuffer();
-          zip.file(`${String(idx + 1).padStart(3, "0")}.png`, buf, { compression: "STORE" });
-        } catch {
-          // skip failed downloads
-        }
-      });
-
-      const content = await zip.generateAsync({ type: "blob", compression: "STORE" });
-      const url = URL.createObjectURL(content);
-      triggerDownload(url, `text-to-image-${new Date().toISOString().slice(0, 10)}.zip`);
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      await buildZipAndDownload(downloadable);
       toast.success(`${downloadable.length} image downloaded as ZIP`);
     } catch (e: any) {
       console.error("Download all failed:", e);
       toast.error("Download failed");
     } finally {
       setDownloadingAll(false);
+    }
+  };
+
+  const handleDownloadAllAndDelete = async () => {
+    const downloadable = items.filter((it) => it.status === "success" && it.image_url);
+    if (downloadable.length === 0) { toast.info("No images to download"); return; }
+    const ok = window.confirm(
+      `${downloadable.length} görsel ZIP olarak indirilecek ve ardından buradan silinecek. Devam edilsin mi?`
+    );
+    if (!ok) return;
+
+    setDownloadingAndDeleting(true);
+    try {
+      const failed = await buildZipAndDownload(downloadable);
+      const toDelete = downloadable.filter((it) => !failed.includes(it.id) && !it.id.startsWith("temp-"));
+      const ids = toDelete.map((it) => it.id);
+      if (ids.length > 0) {
+        const { error } = await supabase.from("text_generations").delete().in("id", ids);
+        if (error) throw error;
+        setItems((prev) => prev.filter((g) => !ids.includes(g.id)));
+      }
+      if (failed.length > 0) {
+        toast.warning(`${ids.length} indirildi ve silindi. ${failed.length} görsel indirilemediği için silinmedi.`);
+      } else {
+        toast.success(`${ids.length} görsel indirildi ve silindi`);
+      }
+    } catch (e: any) {
+      console.error("Download & delete failed:", e);
+      toast.error("İşlem başarısız — görseller silinmedi");
+    } finally {
+      setDownloadingAndDeleting(false);
     }
   };
 
@@ -337,16 +370,29 @@ const TextToImage = () => {
 
             <div className="flex items-center gap-1.5 ml-auto">
               {successItems.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2.5 text-xs gap-1.5"
-                  onClick={handleDownloadAll}
-                  disabled={downloadingAll}
-                >
-                  {downloadingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Archive className="w-3 h-3" />}
-                  Download All ({successItems.length})
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs gap-1.5"
+                    onClick={handleDownloadAll}
+                    disabled={downloadingAll || downloadingAndDeleting}
+                  >
+                    {downloadingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <Archive className="w-3 h-3" />}
+                    Download All ({successItems.length})
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs gap-1.5 text-destructive hover:text-destructive"
+                    onClick={handleDownloadAllAndDelete}
+                    disabled={downloadingAll || downloadingAndDeleting}
+                    title="ZIP olarak indir ve buradan sil"
+                  >
+                    {downloadingAndDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    İndir & Sil
+                  </Button>
+                </>
               )}
               <span className="text-xs text-muted-foreground">Count:</span>
               <Select value={String(imageCount)} onValueChange={(v) => setImageCount(Number(v))}>
