@@ -38,76 +38,82 @@ export const PromptPanel = ({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <section className="flex flex-col gap-2" aria-label="Current pack">
       {/* Header Row - Navigation + Actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1" role="group" aria-label="Pack navigation">
           <Button
+            type="button"
             variant="ghost"
-            size="icon"
-            className="h-7 w-7"
+            size="icon-sm"
             onClick={onPrevPack}
             disabled={totalPacks <= 1}
+            aria-label="Previous pack"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft strokeWidth={1.5} aria-hidden="true" />
           </Button>
-          <span className="text-xs text-muted-foreground min-w-[40px] text-center">
+          <span className="text-caption text-muted-foreground min-w-[40px] text-center tabular-nums" aria-live="polite">
             {totalPacks > 0 ? `${currentIndex + 1}/${totalPacks}` : "—"}
           </span>
           <Button
+            type="button"
             variant="ghost"
-            size="icon"
-            className="h-7 w-7"
+            size="icon-sm"
             onClick={onNextPack}
             disabled={totalPacks <= 1}
+            aria-label="Next pack"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight strokeWidth={1.5} aria-hidden="true" />
           </Button>
         </div>
-        
-        <span className="text-sm font-medium text-foreground truncate flex-1 mx-2">
-          {packName}
-        </span>
 
-        <div className="flex items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7"
+        <h3 className="text-heading-sm text-foreground truncate flex-1 min-w-0 mx-1">
+          {packName}
+        </h3>
+
+        <div className="flex items-center gap-1" role="group" aria-label="Pack actions">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={handleCopyDescription}
             disabled={!description}
             title="Copy"
+            aria-label="Copy description"
           >
-            <Copy className="w-3.5 h-3.5" />
+            <Copy strokeWidth={1.5} aria-hidden="true" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7"
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={onDownload}
             disabled={!pack}
             title="Download"
+            aria-label="Download pack"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download strokeWidth={1.5} aria-hidden="true" />
           </Button>
           <Button
+            type="button"
+            variant="primary"
             onClick={onGenerate}
             disabled={!canGenerate || isGenerating}
-            size="sm"
-            className="h-7 px-3 text-xs gap-1"
+            size="md"
+            aria-busy={isGenerating || undefined}
           >
-            <Sparkles className="w-3.5 h-3.5" />
             {isGenerating ? "..." : "Create"}
+            <Sparkles strokeWidth={1.5} aria-hidden="true" />
           </Button>
         </div>
       </div>
 
       {/* Description - compact */}
       {description && (
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+        <p className="text-body-sm text-muted-foreground line-clamp-2">
           {description}
         </p>
       )}
-    </div>
+    </section>
   );
 };

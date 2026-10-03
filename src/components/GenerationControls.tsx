@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Download, Play } from "lucide-react";
+import { Download, Sparkles, Loader2 } from "lucide-react";
 
 interface GenerationControlsProps {
   canGenerate: boolean;
@@ -22,23 +22,25 @@ export const GenerationControls = ({
   hasGeneratedImages,
 }: GenerationControlsProps) => {
   return (
-    <div className="bg-accent/50 rounded-xl p-2.5">
+    <div className="bg-card text-card-foreground rounded-lg p-4">
       <div className="flex items-center gap-2">
         <Button
+          variant="primary"
           onClick={onGenerateAll}
           disabled={!canGenerate || isGenerating}
-          size="sm"
-          className="flex-1 h-7 text-xs font-medium rounded-lg"
+          size="lg"
+          className="flex-1 md:h-control-md md:text-label-md"
+          aria-busy={isGenerating || undefined}
         >
           {isGenerating ? (
             <>
-              <span className="w-3 h-3 mr-1.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-              {progress}/{totalShots}
+              <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
+              <span className="tabular-nums">{progress}/{totalShots}</span>
             </>
           ) : (
             <>
-              <Play className="w-3 h-3 mr-1" />
-              Generate All
+              Generate all
+              <Sparkles strokeWidth={1.5} aria-hidden="true" />
             </>
           )}
         </Button>
@@ -47,22 +49,22 @@ export const GenerationControls = ({
           <Button
             onClick={onDownloadAll}
             variant="outline"
-            size="sm"
-            className="h-7 text-xs px-2.5 rounded-lg"
+            size="lg"
+            className="md:h-control-md md:text-label-md"
           >
-            <Download className="w-3 h-3 mr-1" />
+            <Download strokeWidth={1.5} aria-hidden="true" />
             ZIP
           </Button>
         )}
       </div>
 
       {isGenerating && (
-        <div className="mt-2 space-y-1">
-          <div className="flex justify-between text-[10px]">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{Math.round((progress / totalShots) * 100)}%</span>
+        <div className="mt-4 space-y-2" role="status" aria-live="polite">
+          <div className="flex justify-between items-center">
+            <span className="text-overline text-muted-foreground">Progress</span>
+            <span className="text-caption text-foreground tabular-nums">{Math.round((progress / totalShots) * 100)}%</span>
           </div>
-          <Progress value={(progress / totalShots) * 100} className="h-1" />
+          <Progress value={(progress / totalShots) * 100} className="h-1" aria-label="Generation progress" />
         </div>
       )}
     </div>

@@ -18,9 +18,11 @@ import {
   FilterX,
   FileJson,
   Archive,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -1541,112 +1543,123 @@ const CloudFiles = () => {
   if (loading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" strokeWidth={1.5} aria-label="Yükleniyor" />
       </div>
     );
   }
 
   return (
     <AppLayout userEmail={user?.email}>
-      <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between flex-shrink-0">
-          <div>
-            <h1 className="text-sm font-semibold">Cloud Dosya Yöneticisi</h1>
-            <p className="text-[11px] text-muted-foreground">
-              {folders.length} klasör, {totalFiles} dosya
-              {downloadedCount > 0 && (
-                <span className="ml-2 text-success">
-                  • {downloadedCount} indirildi
-                </span>
-              )}
-            </p>
-          </div>
-
-          <div className="flex gap-1.5">
-            <Button variant="outline" size="sm" onClick={() => loadCloudData(true)} disabled={loading} className="h-7 w-7 p-0 rounded-lg">
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        </div>
-
-        {/* Tabs */}
+      <main className="flex-1 min-h-0 bg-background overflow-hidden flex flex-col">
         <Tabs value={activeTab} onValueChange={(val) => {
           setActiveTab(val);
           // Load packs when switching to json-archive tab
           if (val === "json-archive" && dbPacks.length === 0) {
             loadDbPacks();
           }
-        }} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="mx-4 mt-2 mb-0 w-fit flex-shrink-0">
-            <TabsTrigger value="files" className="gap-1.5 text-xs">
-              <Folder className="w-3.5 h-3.5" />
-              Dosyalar
-            </TabsTrigger>
-            <TabsTrigger value="json-archive" className="gap-1.5 text-xs">
-              <FileJson className="w-3.5 h-3.5" />
-              Pack JSON Arşivi
-            </TabsTrigger>
-          </TabsList>
+        }} className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Page header — list page pattern (§5): name + counts left, pill tabs + refresh right */}
+          <div className="px-4 md:px-8 pt-6 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 flex-shrink-0">
+            <div className="min-w-0">
+              <h1 className="text-heading-md text-foreground">Cloud dosya yöneticisi</h1>
+              <p className="text-body-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
+                <span>
+                  {folders.length} klasör, {totalFiles} dosya
+                </span>
+                {downloadedCount > 0 && (
+                  <Badge variant="success">
+                    <CheckCircle2 strokeWidth={1.5} aria-hidden="true" />
+                    {downloadedCount} indirildi
+                  </Badge>
+                )}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 max-w-full">
+              <TabsList className="w-fit max-w-full">
+                <TabsTrigger value="files">
+                  <Folder strokeWidth={1.5} aria-hidden="true" />
+                  Dosyalar
+                </TabsTrigger>
+                <TabsTrigger value="json-archive">
+                  <FileJson strokeWidth={1.5} aria-hidden="true" />
+                  Pack JSON arşivi
+                </TabsTrigger>
+              </TabsList>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => loadCloudData(true)}
+                disabled={loading}
+                aria-label="Yenile"
+                title="Yenile"
+              >
+                <RefreshCw className={loading ? "animate-spin" : ""} strokeWidth={1.5} aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
 
           {/* FILES TAB */}
-          <TabsContent value="files" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
-            {/* Action bar */}
-            <div className="px-5 py-2 border-b border-border/50 flex gap-1.5 flex-shrink-0">
+          <TabsContent value="files" className="flex-1 min-h-0 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
+            {/* Toolbar: outline filter + single black primary action */}
+            <div className="px-4 md:px-8 pb-4 flex items-center gap-2 flex-wrap flex-shrink-0" role="toolbar" aria-label="Dosya araçları">
               <Button
-                variant={hideDownloaded ? "default" : "outline"}
-                size="sm"
+                variant={hideDownloaded ? "secondary" : "outline"}
                 onClick={() => setHideDownloaded(!hideDownloaded)}
-                className="gap-1 text-xs h-7 rounded-lg"
+                aria-pressed={hideDownloaded}
               >
-                {hideDownloaded ? <FilterX className="w-3.5 h-3.5" /> : <Filter className="w-3.5 h-3.5" />}
-                <span className="hidden sm:inline">{hideDownloaded ? 'Tümünü Göster' : 'Gizle'}</span>
+                {hideDownloaded ? (
+                  <FilterX strokeWidth={1.5} aria-hidden="true" />
+                ) : (
+                  <Filter strokeWidth={1.5} aria-hidden="true" />
+                )}
+                <span>{hideDownloaded ? 'Tümünü göster' : 'İndirilenleri gizle'}</span>
               </Button>
-              
-              <Button 
-                variant="default" 
-                size="sm" 
+
+              <Button
+                variant="primary"
                 onClick={startBatchExport}
                 disabled={loading || batchExport.isRunning}
-                className="text-xs h-7 rounded-lg"
+                className="ml-auto"
               >
-                <Download className="w-3.5 h-3.5 mr-1" />
-                <span className="hidden sm:inline">Export & Sil</span>
+                <Download strokeWidth={1.5} aria-hidden="true" />
+                <span>Export & sil</span>
               </Button>
             </div>
 
-            {/* Bulk actions bar */}
+            {/* Contextual selection bar */}
             {selectedCount > 0 && (
-              <div className="border-b border-border/50 bg-primary/5 px-5 py-2 flex items-center justify-between flex-shrink-0">
-                <span className="text-xs font-medium">
+              <div
+                role="region"
+                aria-live="polite"
+                aria-label="Seçim işlemleri"
+                className="mx-4 md:mx-8 mb-4 rounded-lg bg-app px-4 py-2 flex items-center justify-between gap-3 flex-shrink-0"
+              >
+                <span className="text-label-md text-foreground tabular-nums">
                   {selectedCount} klasör seçildi
                 </span>
-                <div className="flex gap-1.5">
+                <div className="flex gap-2">
                   <Button
-                    size="sm"
                     variant="outline"
                     onClick={handleBulkDownload}
                     disabled={bulkAction !== null}
-                    className="h-7 text-xs rounded-lg"
                   >
                     {bulkAction === 'download' ? (
-                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                      <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
                     ) : (
-                      <Download className="w-3.5 h-3.5 mr-1" />
+                      <Download strokeWidth={1.5} aria-hidden="true" />
                     )}
                     İndir
                   </Button>
                   <Button
-                    size="sm"
-                    variant="destructive"
+                    variant="danger-outline"
                     onClick={handleBulkDelete}
                     disabled={bulkAction !== null}
-                    className="h-7 text-xs rounded-lg"
                   >
                     {bulkAction === 'delete' ? (
-                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                      <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
                     ) : (
-                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                      <Trash2 strokeWidth={1.5} aria-hidden="true" />
                     )}
                     Sil
                   </Button>
@@ -1655,33 +1668,51 @@ const CloudFiles = () => {
             )}
 
             {/* Folder list */}
-            <div 
+            <div
               ref={scrollContainerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto p-5"
+              className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 pb-8"
             >
               {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <div className="space-y-2" aria-busy="true" aria-label="Klasörler yükleniyor">
+                  <Skeleton className="h-control-md w-full rounded-md" />
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 min-h-[56px] md:min-h-12 px-3 rounded-lg bg-card">
+                      <Skeleton className="size-4 rounded-xs" />
+                      <Skeleton className="size-5 rounded-xs" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-3 w-1/2 rounded-xs" />
+                        <Skeleton className="h-2.5 w-20 rounded-xs" />
+                      </div>
+                      <Skeleton className="h-7 w-24 rounded-md" />
+                    </div>
+                  ))}
                 </div>
               ) : folders.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Folder className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-xs">Cloud'da dosya bulunamadı</p>
+                <div className="flex flex-col items-center justify-center text-center py-20 px-4 gap-2">
+                  <Folder className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+                  <h2 className="text-heading-md text-foreground">Cloud'da dosya bulunamadı</h2>
+                  <p className="text-body-sm text-muted-foreground">
+                    Üretilen görseller burada klasörler halinde listelenir. Yeni görseller ürettikten sonra yenileyin.
+                  </p>
                 </div>
               ) : displayedFolders.length === 0 && hideDownloaded ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-success opacity-50" />
-                  <p className="text-xs">Tüm klasörler indirildi!</p>
-                  <Button variant="link" onClick={() => setHideDownloaded(false)} className="mt-2 text-xs">
+                <div className="flex flex-col items-center justify-center text-center py-20 px-4 gap-2">
+                  <CheckCircle2 className="size-6 text-success" strokeWidth={1.5} aria-hidden="true" />
+                  <h2 className="text-heading-md text-foreground">Tüm klasörler indirildi!</h2>
+                  <p className="text-body-sm text-muted-foreground">
+                    İndirilen klasörler filtre nedeniyle gizleniyor.
+                  </p>
+                  <Button variant="outline" onClick={() => setHideDownloaded(false)} className="mt-2">
                     Tümünü göster
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {/* Select all */}
-                  <div className="flex items-center gap-2 p-2 bg-accent/50 rounded-lg">
+                  <div className="flex items-center gap-3 min-h-control-md px-3 rounded-md bg-control">
                     <Checkbox
+                      id="cloud-select-all"
                       checked={selectedFolders.size === displayedFolders.length && displayedFolders.length > 0}
                       onCheckedChange={() => {
                         if (selectedFolders.size === displayedFolders.length) {
@@ -1690,12 +1721,14 @@ const CloudFiles = () => {
                           setSelectedFolders(new Set(displayedFolders.map(f => f.name)));
                         }
                       }}
+                      aria-label="Tüm klasörleri seç"
                     />
-                    <span className="text-xs text-muted-foreground">
+                    <label htmlFor="cloud-select-all" className="text-label-md text-muted-foreground cursor-pointer select-none">
                       {selectedFolders.size === displayedFolders.length ? 'Tümünü kaldır' : 'Tümünü seç'}
-                    </span>
+                    </label>
                     {hideDownloaded && (
-                      <Badge variant="secondary" className="ml-auto text-[10px]">
+                      <Badge variant="neutral" className="ml-auto tabular-nums">
+                        <FilterX strokeWidth={1.5} aria-hidden="true" />
                         {folders.length - displayedFolders.length} gizli
                       </Badge>
                     )}
@@ -1708,106 +1741,119 @@ const CloudFiles = () => {
                     const displayName = folder.pack?.pack_name || folder.name;
 
                     return (
-                      <div 
-                        key={folder.name} 
-                        className={`border rounded-xl overflow-hidden transition-colors ${
-                          isDownloaded ? 'border-success/30 bg-success/5' : 'border-border/50 bg-accent/30'
+                      <div
+                        key={folder.name}
+                        aria-selected={isSelected}
+                        className={`group rounded-lg bg-card overflow-hidden transition-[box-shadow,background-color] duration-fast ${
+                          isSelected ? 'ring-1 ring-foreground/80' : 'hover:bg-control/40'
                         }`}
                       >
-                        <div className="flex items-center gap-3 p-3">
+                        <div className="flex items-center gap-3 min-h-[56px] md:min-h-12 px-3 py-2">
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => toggleSelectFolder(folder.name)}
+                            aria-label={`${displayName} klasörünü seç`}
                           />
-                          
-                          {isDownloaded && (
-                            <button
-                              onClick={() => unmarkAsDownloaded(folder.name)}
-                              className="text-success hover:text-success/80"
-                              title="İndirildi - tıkla kaldır"
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
-                          )}
-                          
+
                           <button
-                            className="flex-1 flex items-center gap-3 text-left hover:bg-accent/50 rounded p-1 -m-1"
+                            type="button"
+                            className="flex-1 min-w-0 flex items-center gap-3 text-left rounded-md px-2 py-1.5 -mx-2 hover:bg-control transition-colors duration-fast focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             onClick={() => setExpandedFolder(isExpanded ? null : folder.name)}
+                            aria-expanded={isExpanded}
                           >
                             {isExpanded ? (
-                              <FolderOpen className="w-4 h-4 text-primary" />
+                              <FolderOpen className="size-5 text-foreground shrink-0" strokeWidth={1.5} aria-hidden="true" />
                             ) : (
-                              <Folder className="w-4 h-4 text-muted-foreground" />
+                              <Folder className="size-5 text-muted-foreground shrink-0" strokeWidth={1.5} aria-hidden="true" />
                             )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium truncate">{displayName}</p>
-                              <p className="text-[10px] text-muted-foreground">
+                              <p className="text-label-md text-foreground truncate">{displayName}</p>
+                              <p className="text-caption text-muted-foreground tabular-nums">
                                 {folder.files.length} dosya
                               </p>
                             </div>
                           </button>
 
-                          <div className="flex gap-0.5">
+                          {isDownloaded && (
+                            <button
+                              type="button"
+                              onClick={() => unmarkAsDownloaded(folder.name)}
+                              className="inline-flex items-center gap-1 h-6 px-2 rounded-xs bg-success-bg text-success-text text-caption whitespace-nowrap shrink-0 transition-colors duration-fast hover:bg-control focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                              title="İndirildi - tıkla kaldır"
+                              aria-label="İndirildi işaretini kaldır"
+                            >
+                              <CheckCircle2 className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
+                              <span className="hidden sm:inline">İndirildi</span>
+                            </button>
+                          )}
+
+                          <div className="flex gap-1 shrink-0">
                             {!isDownloaded && (
                               <Button
-                                size="icon"
+                                size="icon-sm"
                                 variant="ghost"
                                 onClick={() => markAsDownloaded(folder.name)}
                                 title="İndirildi olarak işaretle"
-                                className="h-7 w-7 text-muted-foreground hover:text-success"
+                                aria-label="İndirildi olarak işaretle"
+                                className="text-muted-foreground hover:text-success"
                               >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <CheckCircle2 strokeWidth={1.5} aria-hidden="true" />
                               </Button>
                             )}
                             <Button
-                              size="icon"
+                              size="icon-sm"
                               variant="ghost"
                               onClick={() => downloadFolder(folder)}
                               disabled={downloading === folder.name}
-                              className="h-7 w-7"
+                              aria-label={`${displayName} klasörünü indir`}
+                              title="İndir"
                             >
                               {downloading === folder.name ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
                               ) : (
-                                <Download className="w-3.5 h-3.5" />
+                                <Download strokeWidth={1.5} aria-hidden="true" />
                               )}
                             </Button>
                             <Button
-                              size="icon"
+                              size="icon-sm"
                               variant="ghost"
                               onClick={() => deleteFolder(folder)}
                               disabled={deleting === folder.name}
-                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              aria-label={`${displayName} klasörünü sil`}
+                              title="Sil"
+                              className="text-muted-foreground hover:text-danger-text hover:bg-danger-bg"
                             >
                               {deleting === folder.name ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
                               ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 strokeWidth={1.5} aria-hidden="true" />
                               )}
                             </Button>
                           </div>
                         </div>
 
                         {isExpanded && (
-                          <div className="border-t border-border/50 bg-background/50 p-3">
-                            <ScrollArea className="max-h-48">
-                              <div className="space-y-1">
-                                {folder.files.map(file => (
-                                  <div
-                                    key={file.path}
-                                    className="flex items-center gap-2 text-xs p-1.5 rounded hover:bg-accent/50"
-                                  >
-                                    <Image className="w-3.5 h-3.5 text-muted-foreground" />
-                                    <span className="flex-1 truncate">{file.name}</span>
-                                    {file.size && (
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {formatFileSize(file.size)}
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </ScrollArea>
+                          <div className="px-2 pb-2">
+                            <div className="bg-app rounded-lg p-4">
+                              <ScrollArea className="max-h-64">
+                                <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 list-none m-0 p-0" aria-label={`${displayName} dosyaları`}>
+                                  {folder.files.map(file => (
+                                    <li
+                                      key={file.path}
+                                      className="flex items-center gap-2 min-h-touch md:min-h-10 px-3 py-2 rounded-md bg-card text-sm hover:bg-control-hover transition-colors duration-fast"
+                                    >
+                                      <Image className="size-4 text-muted-foreground shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                                      <span className="flex-1 min-w-0 truncate text-label-md text-foreground">{file.name}</span>
+                                      {file.size && (
+                                        <span className="text-caption text-tertiary-foreground tabular-nums shrink-0">
+                                          {formatFileSize(file.size)}
+                                        </span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </ScrollArea>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1818,11 +1864,10 @@ const CloudFiles = () => {
                     <div className="flex justify-center pt-4">
                       <Button
                         variant="outline"
-                        size="sm"
                         onClick={loadMoreFolders}
                         disabled={loadingMore}
                       >
-                        {loadingMore && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        {loadingMore && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />}
                         Daha fazla yükle
                       </Button>
                     </div>
@@ -1833,63 +1878,77 @@ const CloudFiles = () => {
           </TabsContent>
 
           {/* JSON ARCHIVE TAB */}
-          <TabsContent value="json-archive" className="flex-1 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
-            {/* Action bar */}
-            <div className="px-5 py-2 border-b border-border/50 flex gap-1.5 flex-shrink-0">
-              <Button
-                variant="default"
-                size="sm"
-                onClick={downloadAllJsonPacks}
-                disabled={jsonArchiveLoading || dbPacks.length === 0}
-                className="text-xs h-7 gap-1 rounded-lg"
-              >
-                <Archive className="w-3.5 h-3.5" />
-                Tümünü İndir ({dbPacks.length})
-              </Button>
+          <TabsContent value="json-archive" className="flex-1 min-h-0 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
+            {/* Toolbar */}
+            <div className="px-4 md:px-8 pb-4 flex items-center gap-2 flex-wrap flex-shrink-0" role="toolbar" aria-label="JSON arşivi araçları">
               <Button
                 variant="outline"
-                size="sm"
                 onClick={downloadSelectedJsonPacks}
                 disabled={jsonArchiveLoading || selectedJsonPacks.size === 0}
-                className="text-xs h-7 gap-1 rounded-lg"
+                className="tabular-nums"
               >
-                <Download className="w-3.5 h-3.5" />
-                Seçilenleri İndir ({selectedJsonPacks.size})
+                <Download strokeWidth={1.5} aria-hidden="true" />
+                Seçilenleri indir ({selectedJsonPacks.size})
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 onClick={loadDbPacks}
                 disabled={jsonArchiveLoading}
-                className="h-7 w-7 p-0 ml-auto rounded-lg"
+                aria-label="Pack listesini yenile"
+                title="Pack listesini yenile"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${jsonArchiveLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={jsonArchiveLoading ? 'animate-spin' : ''} strokeWidth={1.5} aria-hidden="true" />
+              </Button>
+              <Button
+                variant="primary"
+                onClick={downloadAllJsonPacks}
+                disabled={jsonArchiveLoading || dbPacks.length === 0}
+                className="tabular-nums ml-auto"
+              >
+                <Archive strokeWidth={1.5} aria-hidden="true" />
+                Tümünü indir ({dbPacks.length})
               </Button>
             </div>
 
             {/* Pack list */}
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 pb-8">
               {jsonArchiveLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <div className="space-y-2" aria-busy="true" aria-label="Pack listesi yükleniyor">
+                  <Skeleton className="h-control-md w-full rounded-md" />
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 min-h-[56px] md:min-h-12 px-3 rounded-lg bg-card">
+                      <Skeleton className="size-4 rounded-xs" />
+                      <Skeleton className="size-5 rounded-xs" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-3 w-1/2 rounded-xs" />
+                        <Skeleton className="h-2.5 w-40 rounded-xs" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : dbPacks.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <FileJson className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-xs">Veritabanında pack bulunamadı</p>
+                <div className="flex flex-col items-center justify-center text-center py-20 px-4 gap-2">
+                  <FileJson className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+                  <h2 className="text-heading-md text-foreground">Veritabanında pack bulunamadı</h2>
+                  <p className="text-body-sm text-muted-foreground">
+                    Pack Editor ile yüklediğiniz pack'lerin JSON'ları burada arşivlenir.
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {/* Select all */}
-                  <div className="flex items-center gap-2 p-2 bg-accent/50 rounded-lg">
+                  <div className="flex items-center gap-3 min-h-control-md px-3 rounded-md bg-control">
                     <Checkbox
+                      id="json-select-all"
                       checked={selectedJsonPacks.size === dbPacks.length && dbPacks.length > 0}
                       onCheckedChange={selectAllJsonPacks}
+                      aria-label="Tüm pack'leri seç"
                     />
-                    <span className="text-xs text-muted-foreground">
+                    <label htmlFor="json-select-all" className="text-label-md text-muted-foreground cursor-pointer select-none">
                       {selectedJsonPacks.size === dbPacks.length ? 'Tümünü kaldır' : 'Tümünü seç'}
-                    </span>
-                    <Badge variant="secondary" className="ml-auto text-[10px]">
+                    </label>
+                    <Badge variant="neutral" className="ml-auto tabular-nums">
                       {dbPacks.length} pack
                     </Badge>
                   </div>
@@ -1905,21 +1964,26 @@ const CloudFiles = () => {
                     return (
                       <div
                         key={pack.id}
-                        className={`border rounded-xl overflow-hidden p-3 flex items-center gap-3 transition-colors ${
-                          isSelected ? 'border-primary/30 bg-primary/5' : 'border-border/50 bg-accent/30'
+                        aria-selected={isSelected}
+                        className={`rounded-lg bg-card min-h-[56px] md:min-h-12 px-3 py-2 flex items-center gap-3 transition-[box-shadow,background-color] duration-fast ${
+                          isSelected ? 'ring-1 ring-foreground/80' : 'hover:bg-control/40'
                         }`}
                       >
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleJsonPackSelection(pack.id)}
+                          aria-label={`${pack.pack_name} pack'ini seç`}
                         />
-                        <FileJson className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <FileJson className="size-5 text-muted-foreground shrink-0" strokeWidth={1.5} aria-hidden="true" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{pack.pack_name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">
+                          <p className="text-label-md text-foreground truncate">{pack.pack_name}</p>
+                          <p className="text-caption text-muted-foreground truncate tabular-nums">
                             {pack.pack_id} • {createdAt}
                           </p>
                         </div>
+                        {isSelected && (
+                          <CheckCircle2 className="size-4 text-foreground shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                        )}
                       </div>
                     );
                   })}
@@ -1940,117 +2004,119 @@ const CloudFiles = () => {
           if (batchExport.phase === "waiting_confirm") e.preventDefault();
         }}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Download className="w-5 h-5" />
-              Batch Export & Sil
+            <DialogTitle className="text-heading-md flex items-center gap-2">
+              <Download className="size-5 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+              Batch export & sil
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-body-sm text-muted-foreground">
               Her 25 klasörde bir ZIP oluşturulur, indirmenizi bekler ve onayınız üzerine silinir.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-3">
+          <div className="space-y-5 py-2">
+            <div className="flex items-center gap-3" role="status" aria-live="polite">
               {batchExport.phase === "complete" ? (
-                <CheckCircle className="w-5 h-5 text-green-500" />
+                <CheckCircle className="size-5 text-success shrink-0" strokeWidth={1.5} aria-hidden="true" />
               ) : batchExport.phase === "waiting_confirm" ? (
-                <CheckCircle className="w-5 h-5 text-primary" />
+                <CheckCircle className="size-5 text-foreground shrink-0" strokeWidth={1.5} aria-hidden="true" />
               ) : (
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <Loader2 className="size-5 animate-spin text-muted-foreground shrink-0" strokeWidth={1.5} aria-hidden="true" />
               )}
-              <span className="text-sm font-medium">
+              <span className="text-label-md text-foreground tabular-nums">
                 Batch {batchExport.currentBatchNumber} - {getPhaseText()}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="bg-accent/50 rounded-xl p-2.5">
-                <p className="text-muted-foreground text-[10px] uppercase">Bu batch</p>
-                <p className="font-medium text-xs">{batchExport.totalFoldersInBatch} klasör</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-app rounded-lg p-4">
+                <p className="text-overline text-muted-foreground">Bu batch</p>
+                <p className="text-heading-md text-foreground tabular-nums">{batchExport.totalFoldersInBatch} klasör</p>
               </div>
-              <div className="bg-accent/50 rounded-xl p-2.5">
-                <p className="text-muted-foreground text-[10px] uppercase">Toplam export</p>
-                <p className="font-medium text-xs">{batchExport.totalFoldersExported} klasör</p>
+              <div className="bg-app rounded-lg p-4">
+                <p className="text-overline text-muted-foreground">Toplam export</p>
+                <p className="text-heading-md text-foreground tabular-nums">{batchExport.totalFoldersExported} klasör</p>
               </div>
             </div>
 
             {(batchExport.phase === "scanning" || batchExport.phase === "downloading" || batchExport.phase === "deleting") && (
               <div className="space-y-2">
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-caption text-muted-foreground tabular-nums">
                   <span>{batchExport.processedFoldersInBatch} / {batchExport.totalFoldersInBatch}</span>
                   <span>
-                    {batchExport.totalFoldersInBatch > 0 
-                      ? Math.round((batchExport.processedFoldersInBatch / batchExport.totalFoldersInBatch) * 100) 
+                    {batchExport.totalFoldersInBatch > 0
+                      ? Math.round((batchExport.processedFoldersInBatch / batchExport.totalFoldersInBatch) * 100)
                       : 0}%
                   </span>
                 </div>
-                <Progress 
-                  value={batchExport.totalFoldersInBatch > 0 
-                    ? (batchExport.processedFoldersInBatch / batchExport.totalFoldersInBatch) * 100 
-                    : 0} 
-                  className="h-2" 
+                <Progress
+                  value={batchExport.totalFoldersInBatch > 0
+                    ? (batchExport.processedFoldersInBatch / batchExport.totalFoldersInBatch) * 100
+                    : 0}
+                  className="h-1.5"
+                  aria-label="Batch ilerlemesi"
                 />
               </div>
             )}
 
             {batchExport.currentFolderName && batchExport.phase !== "waiting_confirm" && batchExport.phase !== "complete" && (
-              <div className="text-xs text-muted-foreground truncate bg-accent/50 px-3 py-2 rounded-xl">
+              <div className="text-code text-muted-foreground truncate bg-control px-3 py-2 rounded-md">
                 {batchExport.currentFolderName}
               </div>
             )}
 
             {batchExport.phase === "waiting_confirm" && (
-              <div className="space-y-3">
-                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                  <p className="text-sm font-medium text-primary mb-2">
-                    ✅ {batchExport.totalFoldersInBatch} klasör indirildi
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-label-md text-foreground flex items-center gap-2 tabular-nums">
+                    <CheckCircle2 className="size-4 shrink-0 text-success" strokeWidth={1.5} aria-hidden="true" />
+                    {batchExport.totalFoldersInBatch} klasör indirildi
                   </p>
                   {batchExport.downloadUrl && (
-                    <Button asChild className="w-full" variant="outline" size="sm">
+                    <Button asChild className="w-full" variant="outline">
                       <a href={batchExport.downloadUrl} download={batchExport.downloadFilename}>
-                        <Download className="w-4 h-4 mr-2" />
-                        Tekrar İndir
+                        <Download strokeWidth={1.5} aria-hidden="true" />
+                        Tekrar indir
                       </a>
                     </Button>
                   )}
                 </div>
 
-                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                  <p className="text-xs text-destructive-foreground mb-2">
-                    ⚠️ ZIP'i indirdiğinizden emin olduktan sonra tıklayın.
+                <div className="space-y-2">
+                  <p className="text-caption text-muted-foreground flex items-center gap-2">
+                    <AlertTriangle className="size-4 shrink-0 text-warning" strokeWidth={1.5} aria-hidden="true" />
+                    ZIP'i indirdiğinizden emin olduktan sonra tıklayın.
                   </p>
                   <Button
                     className="w-full"
-                    variant="destructive"
-                    size="sm"
+                    variant="danger"
                     onClick={confirmDownloadAndDelete}
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    İndirdim, Sil
+                    <Trash2 strokeWidth={1.5} aria-hidden="true" />
+                    İndirdim, sil
                   </Button>
                 </div>
               </div>
             )}
 
             {batchExport.phase === "complete" && (
-              <div className="p-4 bg-success/10 rounded-xl border border-success/20 text-center">
-                <CheckCircle className="w-8 h-8 text-success mx-auto mb-2" />
-                <p className="font-medium text-sm">
+              <div className="flex flex-col items-center text-center gap-1 pt-2">
+                <CheckCircle className="size-6 text-success mb-1" strokeWidth={1.5} aria-hidden="true" />
+                <p className="text-label-md text-foreground">
                   Tüm veriler başarıyla export edildi!
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-1">
+                <p className="text-caption text-muted-foreground tabular-nums">
                   Toplam {batchExport.totalFoldersExported} klasör işlendi.
                 </p>
-                <Button className="mt-3 rounded-xl" size="sm" onClick={closeBatchExport}>
+                <Button className="mt-3" variant="primary" onClick={closeBatchExport}>
                   Kapat
                 </Button>
               </div>
             )}
 
             {batchExport.phase !== "complete" && batchExport.phase !== "waiting_confirm" && (
-              <Button variant="outline" className="w-full" size="sm" onClick={cancelBatchExport}>
-                <X className="w-4 h-4 mr-2" />
-                İptal Et
+              <Button variant="outline" className="w-full" onClick={cancelBatchExport}>
+                <X strokeWidth={1.5} aria-hidden="true" />
+                İptal et
               </Button>
             )}
           </div>
@@ -2061,3 +2127,7 @@ const CloudFiles = () => {
 };
 
 export default CloudFiles;
+
+// TODO(magnific): deleteFolder/handleBulkDelete use window.confirm(); replacing with AlertDialog (danger) requires new open-state logic.
+// TODO(magnific): No search/sort state exists in this page, so the header has no search Input; the only filter is the "hide downloaded" outline toggle.
+// TODO(magnific): Files have no public URL in state, so file cards show icon + name instead of image thumbnails with aspect-ratio.

@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Wand2, Loader2, X, Check, Home, Camera, Box, Aperture, AlertCircle, ClipboardPaste } from "lucide-react";
+import { Upload, Loader2, X, Check, Home, Camera, Box, Aperture, ClipboardPaste, XCircle, CheckCircle2, ImageIcon, Layers, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes } from "@/types/pack";
 import { AppLayout } from "@/components/AppLayout";
@@ -108,48 +111,51 @@ const JsonUploader = ({ onPacksLoad, disabled }: { onPacksLoad: (packs: PackFile
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm" className="text-xs h-7 rounded-lg" disabled={disabled}>
-          <ClipboardPaste className="h-3 w-3 mr-1.5" />
+        <Button variant="outline" size="sm" disabled={disabled}>
+          <ClipboardPaste strokeWidth={1.5} aria-hidden="true" />
           Paste JSON
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-sm font-semibold">Paste JSON Pack</AlertDialogTitle>
-          <AlertDialogDescription className="text-xs">
+          <AlertDialogTitle className="text-heading-md">Paste JSON pack</AlertDialogTitle>
+          <AlertDialogDescription className="text-body-sm text-muted-foreground">
             Paste your JSON pack content below.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        
-        <div className="space-y-3">
-          <textarea
+
+        <div className="space-y-2">
+          <Label htmlFor="json-pack-input">JSON content</Label>
+          <Textarea
+            id="json-pack-input"
             value={jsonText}
             onChange={(e) => {
               setJsonText(e.target.value);
               setError(null);
             }}
             placeholder='{"package_meta": {...}, "global_render_settings": {...}, "shots": [...]}'
-            className="w-full h-48 p-3 text-xs font-mono bg-accent border-0 rounded-xl focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
+            className="h-48 text-code resize-none"
             disabled={isUploading}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "json-pack-error" : undefined}
           />
           {error && (
-            <div className="flex items-center gap-2 text-destructive text-xs">
-              <AlertCircle className="w-3.5 h-3.5" />
+            <div id="json-pack-error" role="alert" className="flex items-center gap-2 text-destructive text-caption">
+              <XCircle className="size-4" strokeWidth={1.5} aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isUploading} className="rounded-lg text-xs h-8">Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isUploading}>Cancel</AlertDialogCancel>
           <Button
             onClick={handlePaste}
             disabled={isUploading || !jsonText.trim()}
-            className="rounded-lg text-xs h-8"
           >
             {isUploading ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
                 Uploading...
               </>
             ) : (
@@ -182,25 +188,25 @@ const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode
   { 
     value: "photography", 
     label: "Photography", 
-    icon: <Camera className="h-4 w-4" />,
+    icon: <Camera className="size-4" strokeWidth={1.5} aria-hidden="true" />,
     description: "Realistic photography styles"
   },
   { 
     value: "eye", 
     label: "Eye Director", 
-    icon: <Aperture className="h-4 w-4" />,
+    icon: <Aperture className="size-4" strokeWidth={1.5} aria-hidden="true" />,
     description: "Complete photoshoot session"
   },
   { 
     value: "photo", 
     label: "Photo (Dense)", 
-    icon: <Camera className="h-4 w-4" />,
+    icon: <Camera className="size-4" strokeWidth={1.5} aria-hidden="true" />,
     description: "Dense Anchor Protocol"
   },
   { 
     value: "3d", 
     label: "3D Character", 
-    icon: <Box className="h-4 w-4" />,
+    icon: <Box className="size-4" strokeWidth={1.5} aria-hidden="true" />,
     description: "3D render styles"
   },
 ];
@@ -451,267 +457,318 @@ export default function Generator() {
 
   return (
     <AppLayout userEmail={userEmail}>
-      <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
-          <div>
-            <h1 className="text-sm font-semibold">Bulk Pack Generator</h1>
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-              <span>{images.length} images</span>
-              {savedCount > 0 && <span className="text-success">• {savedCount} saved</span>}
-              {errorCount > 0 && <span className="text-destructive">• {errorCount} failed</span>}
+      <main className="flex-1 min-h-0 min-w-0 bg-background flex flex-col lg:flex-row gap-2 p-2 overflow-y-auto lg:overflow-hidden">
+        {/* Tool panel */}
+        <aside
+          aria-label="Bulk Pack Generator settings"
+          className="w-full lg:w-tool-panel shrink-0 bg-card rounded-lg p-3 flex flex-col gap-4 lg:h-full lg:min-h-0 lg:overflow-y-auto"
+        >
+          {/* Tool title card */}
+          <div className="rounded-[12px] px-3 py-2 bg-cat-image/10 flex items-center gap-2">
+            <Layers className="size-4 text-cat-image" strokeWidth={1.5} aria-hidden="true" />
+            <h1 className="text-heading-sm text-foreground">Bulk Pack Generator</h1>
+          </div>
+
+          {/* Pack type selector */}
+          <div className="space-y-1.5">
+            <Label id="pack-type-label">Pack type</Label>
+            <div role="radiogroup" aria-labelledby="pack-type-label" className="flex flex-col gap-1">
+              {PACK_TYPE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={packType === option.value}
+                  onClick={() => setPackType(option.value)}
+                  disabled={isGenerating}
+                  className={cn(
+                    "flex items-center gap-2 min-h-control-md px-2 py-1.5 rounded-md text-left transition-colors duration-fast ease-standard",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                    "disabled:text-tertiary-foreground disabled:cursor-not-allowed",
+                    packType === option.value
+                      ? "bg-active text-foreground ring-1 ring-foreground/80"
+                      : "bg-control text-foreground hover:bg-control-hover",
+                  )}
+                >
+                  <div className={cn("shrink-0", packType === option.value ? "text-foreground" : "text-muted-foreground")}>
+                    {option.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-label-md text-foreground truncate">{option.label}</p>
+                    <p className="text-caption text-muted-foreground truncate">{option.description}</p>
+                  </div>
+                  {packType === option.value && <Check className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Generation Settings */}
-          <div className="bg-accent/50 rounded-xl p-4 space-y-4">
-            {/* Pack Type Selector */}
-            <div className="space-y-2">
-              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pack Type</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {PACK_TYPE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setPackType(option.value)}
-                    disabled={isGenerating}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
-                      packType === option.value
-                        ? 'border-primary bg-primary/5 shadow-sm'
-                        : 'border-border/50 hover:border-border hover:bg-card'
-                    } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <div className={`${packType === option.value ? 'text-primary' : 'text-muted-foreground'}`}>
-                      {option.icon}
-                    </div>
-                    <div>
-                      <p className={`text-xs font-medium ${packType === option.value ? 'text-primary' : 'text-foreground'}`}>
-                        {option.label}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground leading-tight">{option.description}</p>
-                    </div>
-                  </button>
+          <div className="space-y-1.5">
+            <Label htmlFor="gen-scenes">Scenes</Label>
+            <Select
+              value={sceneCount.toString()}
+              onValueChange={(v) => setSceneCount(parseInt(v))}
+              disabled={isGenerating}
+            >
+              <SelectTrigger id="gen-scenes">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SCENE_COUNT_OPTIONS.map((count) => (
+                  <SelectItem key={count} value={count.toString()}>
+                    {count}
+                  </SelectItem>
                 ))}
-              </div>
-            </div>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Inline Settings */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <Label className="text-[10px] text-muted-foreground uppercase">Scenes</Label>
-                <Select
-                  value={sceneCount.toString()}
-                  onValueChange={(v) => setSceneCount(parseInt(v))}
-                  disabled={isGenerating}
-                >
-                  <SelectTrigger className="w-20 h-7 text-xs rounded-lg border-0 bg-card">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SCENE_COUNT_OPTIONS.map((count) => (
-                      <SelectItem key={count} value={count.toString()}>
-                        {count}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center gap-1.5">
-                <Label className="text-[10px] text-muted-foreground uppercase">Category</Label>
-                <Input
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Portrait..."
-                  disabled={isGenerating}
-                  className="w-28 h-7 text-xs rounded-lg border-0 bg-card"
-                />
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <Label className="text-[10px] text-muted-foreground uppercase">Gender</Label>
-                <Select
-                  value={gender}
-                  onValueChange={(v) => setGender(v as Gender)}
-                  disabled={isGenerating}
-                >
-                  <SelectTrigger className="w-20 h-7 text-xs rounded-lg border-0 bg-card">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {GENDER_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            {/* Model Selector */}
-            <ModelSelector
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              aspectRatio={aspectRatio}
-              onAspectRatioChange={setAspectRatio}
-              resolution={resolution}
-              onResolutionChange={setResolution}
+          <div className="space-y-1.5">
+            <Label htmlFor="gen-category">Category</Label>
+            <Input
+              id="gen-category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="Portrait..."
+              disabled={isGenerating}
             />
           </div>
 
-          {/* Upload Area */}
-          <div className="bg-accent/50 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Reference Images</Label>
-              <div className="flex items-center gap-1.5">
-                <JsonUploader 
+          <div className="space-y-1.5">
+            <Label htmlFor="gen-gender">Gender</Label>
+            <Select
+              value={gender}
+              onValueChange={(v) => setGender(v as Gender)}
+              disabled={isGenerating}
+            >
+              <SelectTrigger id="gen-gender">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GENDER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Model / aspect ratio / resolution */}
+          <ModelSelector
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            aspectRatio={aspectRatio}
+            onAspectRatioChange={setAspectRatio}
+            resolution={resolution}
+            onResolutionChange={setResolution}
+          />
+
+          {/* Reference images */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <Label id="ref-images-heading">References</Label>
+              <div className="flex items-center gap-1">
+                <JsonUploader
                   onPacksLoad={handleJsonPacksLoad}
                   disabled={isGenerating}
                 />
                 {images.length > 0 && (
-                  <Button variant="ghost" size="sm" onClick={clearAll} className="text-xs h-7 rounded-lg" disabled={isGenerating}>
+                  <Button variant="ghost" size="sm" onClick={clearAll} disabled={isGenerating}>
+                    <X strokeWidth={1.5} aria-hidden="true" />
                     Clear
                   </Button>
                 )}
               </div>
             </div>
 
-            <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-border rounded-xl cursor-pointer hover:bg-card transition-colors">
-              <Upload className="h-5 w-5 text-muted-foreground mb-1.5" />
-              <span className="text-xs text-muted-foreground">Drag images or click to upload</span>
+            <label className="dropzone p-6 flex flex-col items-center justify-center w-full text-center cursor-pointer focus-within:border-ring">
+              <Upload className="size-5 text-muted-foreground mb-2" strokeWidth={1.5} aria-hidden="true" />
+              <span className="text-label-md text-foreground">Drag images or click to upload</span>
+              <span className="text-caption text-muted-foreground mt-1">PNG, JPG or WebP. Multiple files allowed.</span>
               <input
                 type="file"
                 accept="image/*"
                 multiple
                 onChange={handleImagesUpload}
-                className="hidden"
+                className="sr-only"
               />
             </label>
+          </div>
 
-            {/* Image Grid */}
+          {/* Generate */}
+          <div className="sticky bottom-0 -mx-3 -mb-3 px-3 pb-3 pt-2 bg-card safe-bottom mt-auto">
+            <Button
+              onClick={handleGenerateAll}
+              disabled={pendingCount === 0 || isGenerating}
+              size="lg"
+              fullWidth
+            >
+              {isGenerating ? (
+                <>
+                  Generating...
+                  <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
+                </>
+              ) : (
+                <>
+                  Generate & save ({pendingCount})
+                  <Sparkles strokeWidth={1.5} aria-hidden="true" />
+                </>
+              )}
+            </Button>
+          </div>
+        </aside>
+
+        {/* Results feed */}
+        <section aria-label="Results" className="flex-1 min-w-0 flex flex-col lg:min-h-0">
+          <div className="flex items-center gap-2 flex-wrap min-h-control-md px-1 pb-2">
+            <Badge>
+              <ImageIcon strokeWidth={1.5} aria-hidden="true" />
+              {images.length} images
+            </Badge>
+            {savedCount > 0 && (
+              <Badge variant="success">
+                <CheckCircle2 strokeWidth={1.5} aria-hidden="true" />
+                {savedCount} saved
+              </Badge>
+            )}
+            {errorCount > 0 && (
+              <Badge variant="danger">
+                <XCircle strokeWidth={1.5} aria-hidden="true" />
+                {errorCount} failed
+              </Badge>
+            )}
+            {savedCount > 0 && (
+              <Button
+                onClick={goToMainPage}
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+              >
+                <Home strokeWidth={1.5} aria-hidden="true" />
+                Home
+              </Button>
+            )}
+          </div>
+
+          <div className="flex-1 lg:min-h-0 lg:overflow-y-auto space-y-3 pb-4">
+            {images.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-24 text-center px-4">
+                <ImageIcon className="size-6 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
+                <h2 className="text-heading-md text-foreground">No references yet</h2>
+                <p className="text-body-sm text-muted-foreground mt-1 max-w-sm">
+                  Upload reference images in the panel to generate packs from them.
+                </p>
+              </div>
+            )}
+
+            {/* Uploaded thumbnails */}
             {images.length > 0 && (
-              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
-                {images.map(img => (
-                  <div key={img.id} className="relative group">
-                    <img
-                      src={img.preview}
-                      alt="Reference"
-                      className={`w-full aspect-square object-cover rounded-lg ring-2 ${
-                        img.status === 'saved' ? 'ring-success' :
-                        img.status === 'success' ? 'ring-primary' :
-                        img.status === 'error' ? 'ring-destructive' :
-                        img.status === 'generating' ? 'ring-warning animate-pulse' :
-                        'ring-border/50'
-                      }`}
-                    />
-                    {img.status === 'generating' && (
-                      <div className="absolute inset-0 bg-foreground/30 rounded-lg flex items-center justify-center">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary-foreground" />
-                      </div>
-                    )}
-                    {img.status === 'saved' && (
-                      <div className="absolute inset-0 bg-success/20 rounded-lg flex items-center justify-center">
-                        <Check className="h-3.5 w-3.5 text-success" />
-                      </div>
-                    )}
-                    <button
-                      onClick={() => removeImage(img.id)}
-                      className="absolute -top-1 -right-1 bg-card border border-border w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </div>
-                ))}
+              <div className="bg-app rounded-lg p-4 space-y-3">
+                <p className="text-overline text-muted-foreground">Uploaded</p>
+                <ul className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3" aria-label="Uploaded reference images">
+                  {images.map(img => (
+                    <li key={img.id} className="relative group rounded-md overflow-hidden bg-control aspect-square">
+                      <img
+                        src={img.preview}
+                        alt="Reference"
+                        className={cn(
+                          "size-full object-cover",
+                          img.status === 'generating' && 'animate-pulse',
+                        )}
+                      />
+                      {img.status === 'generating' && (
+                        <Badge className="absolute bottom-1 left-1" aria-label="Generating">
+                          <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
+                        </Badge>
+                      )}
+                      {img.status === 'saved' && (
+                        <Badge variant="success" className="absolute bottom-1 left-1" aria-label="Saved">
+                          <CheckCircle2 strokeWidth={1.5} aria-hidden="true" />
+                        </Badge>
+                      )}
+                      {img.status === 'error' && (
+                        <Badge variant="danger" className="absolute bottom-1 left-1" aria-label="Failed">
+                          <XCircle strokeWidth={1.5} aria-hidden="true" />
+                        </Badge>
+                      )}
+                      <button
+                        type="button"
+                        aria-label="Remove image"
+                        onClick={() => removeImage(img.id)}
+                        className="absolute top-1 right-1 bg-card/90 text-foreground size-6 rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <X className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
             {/* Progress */}
             {isGenerating && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-muted-foreground">Generating... {completedCount} / {generatingCount}</span>
-                  <span className="font-medium">{generatingCount > 0 ? Math.round(progress) : 0}%</span>
+              <div className="bg-app rounded-lg p-4 space-y-2" role="status" aria-live="polite">
+                <div className="flex items-center justify-between gap-3">
+                  <Badge>
+                    <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
+                    Generating {completedCount} / {generatingCount}
+                  </Badge>
+                  <span className="text-caption text-muted-foreground tabular-nums">{generatingCount > 0 ? Math.round(progress) : 0}%</span>
                 </div>
-                <Progress value={generatingCount > 0 ? progress : 0} className="h-1" />
+                <Progress value={generatingCount > 0 ? progress : 0} aria-label="Generation progress" />
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex gap-2">
-              <Button
-                onClick={handleGenerateAll}
-                disabled={pendingCount === 0 || isGenerating}
-                className="flex-1 h-9 rounded-xl text-xs font-medium"
-                size="sm"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="h-3.5 w-3.5 mr-1.5" />
-                    Generate & Save ({pendingCount})
-                  </>
-                )}
-              </Button>
-              {savedCount > 0 && (
-                <Button
-                  onClick={goToMainPage}
-                  variant="outline"
-                  size="sm"
-                  className="h-9 rounded-xl text-xs"
-                >
-                  <Home className="h-3.5 w-3.5 mr-1.5" />
-                  Home
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Saved Packs List */}
-          {images.filter(i => i.status === 'saved' && i.pack).length > 0 && (
-            <div className="bg-success/5 border border-success/20 rounded-xl p-4 space-y-3">
-              <Label className="text-[11px] font-medium uppercase tracking-wide text-success">Saved Packs</Label>
-              <div className="space-y-1.5">
-                {images.filter(i => i.status === 'saved' && i.pack).map(img => (
-                  <div key={img.id} className="flex items-center gap-3 p-2.5 bg-success/5 rounded-lg">
-                    <img src={img.preview} className="w-9 h-9 object-cover rounded-lg shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">
+            {/* Saved packs */}
+            {images.filter(i => i.status === 'saved' && i.pack).length > 0 && (
+              <section aria-labelledby="saved-packs-heading" className="bg-app rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 id="saved-packs-heading" className="text-overline text-muted-foreground">Saved packs</h2>
+                  <Button onClick={goToMainPage} variant="ghost" size="sm">
+                    <Home strokeWidth={1.5} aria-hidden="true" />
+                    View packs
+                  </Button>
+                </div>
+                <ul className="flex flex-col gap-1">
+                  {images.filter(i => i.status === 'saved' && i.pack).map(img => (
+                    <li key={img.id} className="flex items-center gap-3 min-h-control-md px-2 py-1 rounded-md hover:bg-control transition-colors duration-fast ease-standard">
+                      <img src={img.preview} alt="" className="size-6 object-cover rounded-xs shrink-0" />
+                      <p className="text-label-md text-foreground truncate flex-1 min-w-0">
                         {img.pack ? getPackName(img.pack) : 'Untitled Pack'}
                       </p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {getSceneCount(img.pack!) || 0} scenes • Saved ✓
+                      <p className="text-caption text-muted-foreground truncate shrink-0">
+                        {getSceneCount(img.pack!) || 0} scenes
                       </p>
-                    </div>
-                    <Check className="h-3.5 w-3.5 text-success shrink-0" />
-                  </div>
-                ))}
-              </div>
-              <Button onClick={goToMainPage} className="w-full h-8 rounded-xl text-xs" size="sm">
-                <Home className="h-3.5 w-3.5 mr-1.5" />
-                View Packs
-              </Button>
-            </div>
-          )}
+                      <Badge variant="success">
+                        <Check strokeWidth={1.5} aria-hidden="true" />
+                        Saved
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
-          {/* Error List */}
-          {images.filter(i => i.status === 'error').length > 0 && (
-            <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 space-y-2">
-              <Label className="text-[11px] font-medium uppercase tracking-wide text-destructive">Failed</Label>
-              {images.filter(i => i.status === 'error').map(img => (
-                <div key={img.id} className="flex items-center gap-2 text-xs text-destructive/80">
-                  <img src={img.preview} className="w-6 h-6 object-cover rounded shrink-0" />
-                  <span className="truncate">{img.error}</span>
+            {/* Error list */}
+            {images.filter(i => i.status === 'error').length > 0 && (
+              <section aria-labelledby="failed-heading" className="bg-app rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <XCircle className="size-4 text-destructive" strokeWidth={1.5} aria-hidden="true" />
+                  <h2 id="failed-heading" className="text-overline text-muted-foreground">Failed</h2>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <ul className="flex flex-col gap-1">
+                  {images.filter(i => i.status === 'error').map(img => (
+                    <li key={img.id} className="flex items-center gap-3 min-h-control-md px-2 text-body-sm text-destructive">
+                      <img src={img.preview} alt="" className="size-6 object-cover rounded-xs shrink-0" />
+                      <span className="truncate">{img.error}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+        </section>
       </main>
     </AppLayout>
   );

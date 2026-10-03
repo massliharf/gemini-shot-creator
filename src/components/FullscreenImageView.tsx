@@ -17,6 +17,10 @@ interface FullscreenImageViewProps {
   hasNext?: boolean;
 }
 
+// Lightbox-only control style: white ghost buttons over the dark media overlay (§1 "Medya üstü overlay")
+const lightboxControlClass =
+  "text-white hover:bg-card/15 hover:text-white focus-visible:ring-white/60 focus-visible:ring-offset-0";
+
 export const FullscreenImageView = ({
   isOpen,
   onClose,
@@ -59,7 +63,7 @@ export const FullscreenImageView = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 bg-black/95 border-none rounded-2xl overflow-hidden [&>button]:hidden">
+      <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 bg-foreground/90 text-white border-none shadow-none rounded-lg overflow-hidden [&>button]:hidden">
         {/* a11y requirements for Radix Dialog */}
         <DialogTitle className="sr-only">Fullscreen image preview</DialogTitle>
         <DialogDescription className="sr-only">
@@ -71,21 +75,23 @@ export const FullscreenImageView = ({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-4 right-4 z-50 h-10 w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+            className={`absolute top-3 right-3 md:top-4 md:right-4 z-10 ${lightboxControlClass}`}
+            aria-label="Close preview"
             onClick={onClose}
           >
-            <X className="w-5 h-5" />
+            <X strokeWidth={1.5} aria-hidden="true" />
           </Button>
 
           {/* Navigation - Previous */}
           {hasPrevious && onPrevious && (
             <Button
               variant="ghost"
-              size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+              size="icon-lg"
+              className={`absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-10 ${lightboxControlClass}`}
+              aria-label="Previous image"
               onClick={onPrevious}
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft strokeWidth={1.5} aria-hidden="true" />
             </Button>
           )}
 
@@ -93,11 +99,12 @@ export const FullscreenImageView = ({
           {hasNext && onNext && (
             <Button
               variant="ghost"
-              size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-50 h-12 w-12 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+              size="icon-lg"
+              className={`absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-10 ${lightboxControlClass}`}
+              aria-label="Next image"
               onClick={onNext}
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight strokeWidth={1.5} aria-hidden="true" />
             </Button>
           )}
 
@@ -105,32 +112,32 @@ export const FullscreenImageView = ({
           <img src={imageUrl} alt={sceneName || `Scene ${sceneId}`} className="max-w-[90vw] max-h-[85vh] object-contain" />
 
           {/* Bottom info bar */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-            <div className="flex items-center justify-between">
-              <div>
-                {sceneId && <span className="text-white/80 text-sm font-medium">Scene #{sceneId}</span>}
-                {sceneName && <p className="text-white/60 text-xs">{sceneName}</p>}
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-foreground/60 safe-bottom">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0">
+                {sceneId && <span className="text-label-md text-white">Scene #{sceneId}</span>}
+                {sceneName && <p className="text-caption text-white/70 truncate">{sceneName}</p>}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {onRegenerate && (
                   <Button
                     variant="ghost"
-                    size="sm"
-                    className="h-9 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+                    size="md"
+                    className={lightboxControlClass}
                     onClick={onRegenerate}
                   >
-                    <RefreshCw className="w-4 h-4 mr-2" />
+                    <RefreshCw strokeWidth={1.5} aria-hidden="true" />
                     Regenerate
                   </Button>
                 )}
                 {onDownload && (
                   <Button
                     variant="ghost"
-                    size="sm"
-                    className="h-9 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white"
+                    size="md"
+                    className={lightboxControlClass}
                     onClick={onDownload}
                   >
-                    <Download className="w-4 h-4 mr-2" />
+                    <Download strokeWidth={1.5} aria-hidden="true" />
                     Download
                   </Button>
                 )}
@@ -142,3 +149,5 @@ export const FullscreenImageView = ({
     </Dialog>
   );
 };
+
+// TODO(magnific): a "current / total" image counter in the lightbox needs index/total props that this component does not receive; left for a logic pass.

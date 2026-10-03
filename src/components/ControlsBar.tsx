@@ -1,25 +1,25 @@
 import { useState } from "react";
-import { 
-  Play, 
-  Download, 
-  Settings2, 
-  Image as ImageIcon, 
-  Ratio, 
+import {
+  Download,
+  Settings2,
+  Image as ImageIcon,
+  Ratio,
   Cpu,
   ChevronUp,
   ChevronDown,
   Users,
   User,
   X,
-  Maximize
+  Maximize,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -39,7 +39,7 @@ interface ControlsBarProps {
   onModelChange: (value: string) => void;
   coupleMode: boolean;
   onCoupleModeChange: (value: boolean) => void;
-  
+
   // Reference images
   previewUrl: string | null;
   secondPreviewUrl: string | null;
@@ -47,7 +47,7 @@ interface ControlsBarProps {
   onImageClear: () => void;
   onSecondImageUpload: (file: File) => void;
   onSecondImageClear: () => void;
-  
+
   // Actions
   onGenerate: () => void;
   onDownload: () => void;
@@ -123,9 +123,9 @@ export const ControlsBar = ({
   };
 
   return (
-    <div className="bg-card rounded-2xl border border-border/50 shadow-lg">
+    <div className="bg-card text-card-foreground rounded-lg" role="toolbar" aria-label="Üretim araç çubuğu">
       {/* Main Controls Row */}
-      <div className="p-3 flex items-center gap-3 flex-wrap">
+      <div className="p-3 flex items-center gap-2 flex-wrap">
         {/* Reference Image(s) */}
         <div className="flex items-center gap-2">
           {/* Primary Reference */}
@@ -139,24 +139,27 @@ export const ControlsBar = ({
             />
             {previewUrl ? (
               <div className="relative">
-                <img 
-                  src={previewUrl} 
-                  alt="Reference" 
-                  className="w-10 h-10 rounded-lg object-cover ring-2 ring-primary"
+                <img
+                  src={previewUrl}
+                  alt="Referans"
+                  className="size-control-md rounded-md object-cover ring-1 ring-foreground/80"
                 />
                 <button
+                  type="button"
                   onClick={onImageClear}
-                  className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Referansı kaldır"
+                  className="absolute -top-1.5 -right-1.5 size-5 bg-card/90 text-foreground rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <X className="w-2.5 h-2.5 text-white" />
+                  <X className="size-3" strokeWidth={1.5} aria-hidden="true" />
                 </button>
               </div>
             ) : (
               <label
                 htmlFor="ref-image-1"
-                className="w-10 h-10 rounded-lg border-2 border-dashed border-primary/50 flex items-center justify-center cursor-pointer hover:bg-primary/5 transition-colors"
+                aria-label="Referans görsel yükle"
+                className="dropzone size-control-md flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground"
               >
-                <User className="w-4 h-4 text-primary" />
+                <User className="size-4" strokeWidth={1.5} aria-hidden="true" />
               </label>
             )}
           </div>
@@ -173,24 +176,27 @@ export const ControlsBar = ({
               />
               {secondPreviewUrl ? (
                 <div className="relative">
-                  <img 
-                    src={secondPreviewUrl} 
-                    alt="Reference 2" 
-                    className="w-10 h-10 rounded-lg object-cover ring-2 ring-secondary"
+                  <img
+                    src={secondPreviewUrl}
+                    alt="Referans 2"
+                    className="size-control-md rounded-md object-cover"
                   />
                   <button
+                    type="button"
                     onClick={onSecondImageClear}
-                    className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="İkinci referansı kaldır"
+                    className="absolute -top-1.5 -right-1.5 size-5 bg-card/90 text-foreground rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <X className="w-2.5 h-2.5 text-white" />
+                    <X className="size-3" strokeWidth={1.5} aria-hidden="true" />
                   </button>
                 </div>
               ) : (
                 <label
                   htmlFor="ref-image-2"
-                  className="w-10 h-10 rounded-lg border-2 border-dashed border-secondary/50 flex items-center justify-center cursor-pointer hover:bg-secondary/5 transition-colors"
+                  aria-label="İkinci referans görsel yükle"
+                  className="dropzone size-control-md flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground"
                 >
-                  <User className="w-4 h-4 text-muted-foreground" />
+                  <User className="size-4" strokeWidth={1.5} aria-hidden="true" />
                 </label>
               )}
             </div>
@@ -198,25 +204,28 @@ export const ControlsBar = ({
 
           {/* Couple Mode Toggle */}
           <Button
-            variant={coupleMode ? "default" : "outline"}
+            type="button"
+            variant={coupleMode ? "secondary" : "ghost"}
             size="icon"
-            className="h-10 w-10 rounded-lg"
             onClick={() => onCoupleModeChange(!coupleMode)}
-            title="Couple Mode"
+            title="Çift modu"
+            aria-label="Çift modu"
+            aria-pressed={coupleMode}
+            className={coupleMode ? "bg-active" : undefined}
           >
-            <Users className="w-4 h-4" />
+            <Users strokeWidth={1.5} aria-hidden="true" />
           </Button>
         </div>
 
         {/* Divider */}
-        <div className="h-8 w-px bg-border" />
+        <div className="hidden sm:block w-1" aria-hidden="true" />
 
         {/* Quick Settings */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Aspect Ratio */}
           <Select value={aspectRatio} onValueChange={onAspectRatioChange}>
-            <SelectTrigger className="w-[90px] h-9 text-xs rounded-lg">
-              <Ratio className="w-3 h-3 mr-1" />
+            <SelectTrigger className="w-auto min-w-[96px] gap-1.5" aria-label="En-boy oranı">
+              <Ratio className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -236,8 +245,8 @@ export const ControlsBar = ({
           {/* Resolution - Only for Gemini 3 Pro */}
           {isGemini3Pro && (
             <Select value={resolution} onValueChange={onResolutionChange}>
-              <SelectTrigger className="w-[80px] h-9 text-xs rounded-lg">
-                <Maximize className="w-3 h-3 mr-1" />
+              <SelectTrigger className="w-auto min-w-[88px] gap-1.5" aria-label="Çözünürlük">
+                <Maximize className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -250,8 +259,8 @@ export const ControlsBar = ({
 
           {/* Model */}
           <Select value={selectedModel} onValueChange={onModelChange}>
-            <SelectTrigger className="w-[140px] h-9 text-xs rounded-lg">
-              <Cpu className="w-3 h-3 mr-1" />
+            <SelectTrigger className="w-auto min-w-[150px] gap-1.5" aria-label="AI model">
+              <Cpu className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -261,42 +270,48 @@ export const ControlsBar = ({
           </Select>
 
           {/* Computed size */}
-          <div className="hidden md:flex items-center gap-1 text-xs text-muted-foreground pl-1">
-            <ImageIcon className="w-3 h-3" />
+          <div className="hidden md:flex items-center gap-1 text-caption text-muted-foreground pl-1">
+            <ImageIcon className="size-4" strokeWidth={1.5} aria-hidden="true" />
             <span>{formatSize(computedSize)}</span>
           </div>
         </div>
 
         {/* Divider */}
-        <div className="h-8 w-px bg-border" />
+        <div className="hidden sm:block w-1" aria-hidden="true" />
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
           <Button
+            type="button"
             variant="outline"
-            size="sm"
+            size="md"
             onClick={onDownload}
             disabled={!hasSelectedPack}
-            className="h-9 px-4 rounded-lg"
           >
-            <Download className="w-4 h-4 mr-1.5" />
+            <Download className="size-4" strokeWidth={1.5} aria-hidden="true" />
             İndir
           </Button>
 
           <Button
+            type="button"
+            variant="primary"
+            size="md"
             onClick={onGenerate}
             disabled={!canGenerate || isGenerating}
-            className="h-9 px-5 rounded-lg bg-primary hover:bg-primary/90"
+            aria-busy={isGenerating || undefined}
           >
             {isGenerating ? (
               <>
-                <span className="w-4 h-4 mr-1.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span
+                  className="size-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"
+                  aria-hidden="true"
+                />
                 Üretiliyor...
               </>
             ) : (
               <>
-                <Play className="w-4 h-4 mr-1.5" />
                 Oluştur
+                <Sparkles className="size-4" strokeWidth={1.5} aria-hidden="true" />
               </>
             )}
           </Button>
@@ -304,11 +319,17 @@ export const ControlsBar = ({
           {/* Expand/Collapse Settings */}
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={isExpanded ? "Gelişmiş ayarları gizle" : "Gelişmiş ayarları göster"}
+                aria-expanded={isExpanded}
+              >
                 {isExpanded ? (
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown strokeWidth={1.5} aria-hidden="true" />
                 ) : (
-                  <ChevronUp className="w-4 h-4" />
+                  <ChevronUp strokeWidth={1.5} aria-hidden="true" />
                 )}
               </Button>
             </CollapsibleTrigger>
@@ -319,12 +340,16 @@ export const ControlsBar = ({
       {/* Expanded Settings */}
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleContent>
-          <div className="px-3 pb-3 pt-0 border-t border-border/50">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-3">
+          <div className="mx-3 mb-3 px-3 pb-3 bg-app rounded-[12px]">
+            <div className="flex items-center gap-2 pt-3 pb-3">
+              <Settings2 className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+              <span className="text-heading-sm text-foreground">Gelişmiş ayarlar</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">En-Boy Oranı</Label>
+                <Label htmlFor="controls-aspect-ratio">En-boy oranı</Label>
                 <Select value={aspectRatio} onValueChange={onAspectRatioChange}>
-                  <SelectTrigger className="h-9 rounded-lg">
+                  <SelectTrigger id="controls-aspect-ratio">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -340,14 +365,14 @@ export const ControlsBar = ({
                     <SelectItem value="21:9">21:9 (Ultra geniş)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-muted-foreground">Boyut: {formatSize(computedSize)}</p>
+                <p className="text-caption text-muted-foreground">Boyut: {formatSize(computedSize)}</p>
               </div>
 
               {isGemini3Pro && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Çözünürlük</Label>
+                  <Label htmlFor="controls-resolution">Çözünürlük</Label>
                   <Select value={resolution} onValueChange={onResolutionChange}>
-                    <SelectTrigger className="h-9 rounded-lg">
+                    <SelectTrigger id="controls-resolution">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -360,9 +385,9 @@ export const ControlsBar = ({
               )}
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">AI Model</Label>
+                <Label htmlFor="controls-model">AI model</Label>
                 <Select value={selectedModel} onValueChange={onModelChange}>
-                  <SelectTrigger className="h-9 rounded-lg">
+                  <SelectTrigger id="controls-model">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -373,13 +398,14 @@ export const ControlsBar = ({
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Çift Modu</Label>
-                <div className="flex items-center gap-2 h-9">
+                <Label htmlFor="controls-couple-mode">Çift modu</Label>
+                <div className="flex items-center gap-2 h-control-lg md:h-control-md">
                   <Switch
+                    id="controls-couple-mode"
                     checked={coupleMode}
                     onCheckedChange={onCoupleModeChange}
                   />
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-label-md text-muted-foreground">
                     {coupleMode ? "Açık" : "Kapalı"}
                   </span>
                 </div>

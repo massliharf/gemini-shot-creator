@@ -29,29 +29,32 @@ export const ImageUploader = ({ onImageUpload, onImageClear, previewUrl }: Image
   return (
     <>
       {previewUrl ? (
-        <div className="relative group">
+        <div className="relative group size-[65px] rounded-md overflow-hidden bg-control">
           <img
             src={previewUrl}
             alt="Reference"
-            className="w-full h-20 object-cover border border-border"
+            className="size-full object-cover"
           />
           <Button
+            type="button"
             onClick={handleClear}
-            variant="outline"
-            size="icon"
-            className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity bg-background"
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Remove reference image"
+            className="absolute top-1 right-1 bg-card/90 backdrop-blur-sm hover:bg-card opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-fast ease-standard"
           >
-            <X className="w-3 h-3" />
+            <X strokeWidth={1.5} aria-hidden="true" />
           </Button>
         </div>
       ) : (
-        <label className="relative flex flex-col items-center justify-center w-full h-20 border border-dashed border-border cursor-pointer bg-muted/10 hover:bg-muted/30 hover:border-foreground/40 transition-colors">
-          <Upload className="w-4 h-4 mb-1 text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">
-            Upload face
-          </p>
+        <label className="dropzone relative flex flex-col items-center justify-center gap-1 size-[65px] text-muted-foreground cursor-pointer hover:text-foreground focus-within:border-ring">
+          <Upload className="size-4" strokeWidth={1.5} aria-hidden="true" />
+          <span className="text-label-md leading-none">
+            Face
+          </span>
           <input
             type="file"
+            aria-label="Upload face reference image"
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             accept="image/*"
             onChange={handleFileChange}

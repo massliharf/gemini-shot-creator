@@ -1,16 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Send, Loader2, ImageIcon, Trash2, Download, X, Plus, Upload,
-  RefreshCw, AlertCircle, Check
+  Loader2, ImageIcon, Trash2, Download, X, Plus, Upload,
+  RefreshCw, AlertCircle, XCircle, Sparkles,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { FullscreenImageView } from "@/components/FullscreenImageView";
 
 const MAX_REF_IMAGES = 5;
@@ -294,189 +297,250 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="w-[90vw] sm:w-[640px] lg:w-[800px] p-0 flex flex-col bg-background">
-          <SheetHeader className="px-4 py-3 border-b border-border">
-            <SheetTitle className="text-base flex items-center gap-2">
+        <SheetContent side="left" className="w-[90vw] sm:w-[640px] lg:w-[800px] p-0 flex flex-col">
+          <SheetHeader className="px-4 pt-4 pb-2">
+            <SheetTitle className="text-heading-md flex items-center gap-3">
               Text to Image
               {isGenerating && (
-                <span className="text-xs font-normal text-muted-foreground flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                <Badge aria-live="polite">
+                  <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
                   {activeGenerations} generating...
-                </span>
+                </Badge>
               )}
             </SheetTitle>
           </SheetHeader>
 
-          {/* Controls */}
-          <div className="px-4 py-2.5 border-b border-border flex items-center gap-2 flex-wrap">
-            <Select value={model} onValueChange={setModel}>
-              <SelectTrigger className="w-[110px] h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MODEL_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={aspectRatio} onValueChange={setAspectRatio}>
-              <SelectTrigger className="w-[75px] h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ASPECT_RATIO_OPTIONS.map((ar) => (
-                  <SelectItem key={ar} value={ar}>
-                    {ar}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {isProModel && (
-              <Select value={resolution} onValueChange={setResolution}>
-                <SelectTrigger className="w-[65px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RESOLUTION_OPTIONS.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            <div className="flex items-center gap-1.5 ml-auto">
-              <span className="text-xs text-muted-foreground">Count:</span>
-              <Select value={String(imageCount)} onValueChange={(v) => setImageCount(Number(v))}>
-                <SelectTrigger className="w-[60px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNT_OPTIONS.map((c) => (
-                    <SelectItem key={c} value={String(c)}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Gallery */}
           <ScrollArea className="flex-1 min-h-0" ref={galleryRef as any}>
-            <div className="p-3">
-              {loadingHistory && (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            <div className="px-4 pb-4 space-y-4">
+              {/* Tool panel */}
+              <section aria-label="Text to Image settings" className="bg-card rounded-lg space-y-4">
+                <div className="rounded-[12px] px-3 py-2 bg-cat-image/10 flex items-center gap-2">
+                  <ImageIcon className="size-4 text-cat-image" strokeWidth={1.5} aria-hidden="true" />
+                  <span className="text-heading-sm text-foreground">Text to Image</span>
                 </div>
-              )}
 
-              {!loadingHistory && items.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center mb-3">
-                    <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tic-model">Model</Label>
+                    <Select value={model} onValueChange={setModel}>
+                      <SelectTrigger id="tic-model" aria-label="Model">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MODEL_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <p className="text-sm text-muted-foreground">Type a prompt to generate images</p>
-                </div>
-              )}
 
-              {!loadingHistory && items.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {items.map((item) => (
-                    <GalleryCard
-                      key={item.id}
-                      item={item}
-                      onRegenerate={() => handleRegenerate(item)}
-                      onDelete={() => handleDelete(item.id)}
-                      onDownload={() => item.image_url && handleDownload(item.image_url, item.prompt)}
-                      onClick={() => openFullscreen(item)}
-                    />
-                  ))}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tic-aspect">Aspect ratio</Label>
+                    <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                      <SelectTrigger id="tic-aspect" aria-label="Aspect ratio">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ASPECT_RATIO_OPTIONS.map((ar) => (
+                          <SelectItem key={ar} value={ar}>
+                            {ar}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {isProModel && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="tic-resolution">Resolution</Label>
+                      <Select value={resolution} onValueChange={setResolution}>
+                        <SelectTrigger id="tic-resolution" aria-label="Resolution">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {RESOLUTION_OPTIONS.map((r) => (
+                            <SelectItem key={r} value={r}>
+                              {r}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tic-count">Count</Label>
+                    <Select value={String(imageCount)} onValueChange={(v) => setImageCount(Number(v))}>
+                      <SelectTrigger id="tic-count">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNT_OPTIONS.map((c) => (
+                          <SelectItem key={c} value={String(c)}>
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              )}
+
+                {/* References */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label>References</Label>
+                    <span className="text-caption text-muted-foreground tabular-nums">{refImages.length}/{MAX_REF_IMAGES}</span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap items-start">
+                    {refImages.length > 0 && (
+                      <div className="contents" aria-label="Reference images">
+                        {refImages.map((ref, i) => (
+                          <div key={i} className="relative group size-[65px] rounded-md overflow-hidden bg-control">
+                            <img src={ref.previewUrl} alt={`Ref ${i + 1}`} className="size-full object-cover" />
+                            <span className="absolute bottom-0 inset-x-0 px-1 py-0.5 text-micro text-white bg-foreground/25">Ref {i + 1}</span>
+                            <button
+                              type="button"
+                              aria-label={`Remove reference ${i + 1}`}
+                              onClick={() => {
+                                URL.revokeObjectURL(ref.previewUrl);
+                                setRefImages((prev) => prev.filter((_, idx) => idx !== i));
+                              }}
+                              className="absolute top-1 right-1 size-5 rounded-full bg-card/90 text-foreground flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              <X className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
+                            </button>
+                          </div>
+                        ))}
+                        {refImages.length < MAX_REF_IMAGES && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            className="basis-full order-last self-start text-muted-foreground"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Plus strokeWidth={1.5} aria-hidden="true" />
+                            Add reference
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-lg"
+                      className="dropzone size-[65px] flex-col gap-1 text-caption text-muted-foreground hover:text-foreground [&_svg]:size-4"
+                      aria-label="Upload reference image"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isGenerating || refImages.length >= MAX_REF_IMAGES}
+                    >
+                      <Upload strokeWidth={1.5} aria-hidden="true" />
+                      <span aria-hidden="true">Add</span>
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        const remaining = MAX_REF_IMAGES - refImages.length;
+                        const toAdd = files.slice(0, remaining).map((f) => ({
+                          file: f,
+                          previewUrl: URL.createObjectURL(f),
+                        }));
+                        setRefImages((prev) => [...prev, ...toAdd]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Prompt */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="tic-prompt">Prompt</Label>
+                  <Textarea
+                    id="tic-prompt"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Describe the image you want..."
+                    className="min-h-[96px] text-body-md resize-none"
+                    rows={3}
+                  />
+                </div>
+              </section>
+
+              {/* Generate — sticks to the sheet bottom while the panel is in view */}
+              <div className="sticky bottom-0 -mx-4 px-4 py-2 bg-card safe-bottom">
+                <Button
+                  size="lg"
+                  fullWidth
+                  onClick={handleGenerate}
+                  disabled={!prompt.trim()}
+                >
+                  Generate
+                  {isGenerating ? <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" /> : <Sparkles strokeWidth={1.5} aria-hidden="true" />}
+                </Button>
+              </div>
+
+              {/* Results feed */}
+              <div className="space-y-3" aria-label="Results">
+                {loadingHistory && (
+                  <div className="bg-app rounded-lg p-4 space-y-3" aria-busy="true" aria-label="Loading history">
+                    <Skeleton className="h-6 w-1/2" />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <Skeleton key={i} className="aspect-square rounded-md" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!loadingHistory && items.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                    <ImageIcon className="size-6 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
+                    <h3 className="text-heading-md text-foreground">No images yet</h3>
+                    <p className="text-body-sm text-muted-foreground mt-1 max-w-xs">
+                      Type a prompt above to generate images. They will appear here.
+                    </p>
+                  </div>
+                )}
+
+                {!loadingHistory && items.length > 0 && groupItems(items).map((group) => {
+                  const head = group.items[0];
+                  return (
+                    <section key={group.key} className="bg-app rounded-lg p-4 space-y-3" aria-label={head.prompt}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="truncate text-label-md text-foreground flex-1 min-w-0" title={head.prompt}>{head.prompt}</p>
+                        <div className="hidden sm:flex items-center gap-1 shrink-0">
+                          <Badge>{MODEL_OPTIONS.find((o) => o.value === head.model)?.label ?? head.model}</Badge>
+                          <Badge>{head.aspect_ratio}</Badge>
+                          <Badge>{head.resolution}</Badge>
+                        </div>
+                        <time dateTime={head.created_at} className="text-caption text-muted-foreground shrink-0">{relativeTime(head.created_at)}</time>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {group.items.map((item) => (
+                          <GalleryCard
+                            key={item.id}
+                            item={item}
+                            onRegenerate={() => handleRegenerate(item)}
+                            onDelete={() => handleDelete(item.id)}
+                            onDownload={() => item.image_url && handleDownload(item.image_url, item.prompt)}
+                            onClick={() => openFullscreen(item)}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
             </div>
           </ScrollArea>
-
-          {/* Input */}
-          <div className="px-4 py-3 border-t border-border space-y-2">
-            {/* Reference image thumbnails */}
-            {refImages.length > 0 && (
-              <div className="flex gap-2 flex-wrap">
-                {refImages.map((ref, i) => (
-                  <div key={i} className="relative w-11 h-11 rounded-lg overflow-hidden group">
-                    <img src={ref.previewUrl} alt={`Ref ${i + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => {
-                        URL.revokeObjectURL(ref.previewUrl);
-                        setRefImages((prev) => prev.filter((_, idx) => idx !== i));
-                      }}
-                      className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3 text-white" />
-                    </button>
-                  </div>
-                ))}
-                {refImages.length < MAX_REF_IMAGES && (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-11 h-11 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center transition-colors"
-                  >
-                    <Plus className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                )}
-              </div>
-            )}
-
-            <div className="flex items-end gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 rounded-xl flex-shrink-0"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isGenerating || refImages.length >= MAX_REF_IMAGES}
-              >
-                <Upload className="w-4 h-4" />
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  const remaining = MAX_REF_IMAGES - refImages.length;
-                  const toAdd = files.slice(0, remaining).map((f) => ({
-                    file: f,
-                    previewUrl: URL.createObjectURL(f),
-                  }));
-                  setRefImages((prev) => [...prev, ...toAdd]);
-                  e.target.value = "";
-                }}
-              />
-              <Textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Describe the image you want..."
-                className="min-h-[44px] max-h-[120px] resize-none text-sm rounded-xl"
-                rows={1}
-              />
-              <Button
-                size="icon"
-                className="h-10 w-10 rounded-xl flex-shrink-0"
-                onClick={handleGenerate}
-                disabled={!prompt.trim()}
-              >
-                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
-            </div>
-          </div>
         </SheetContent>
       </Sheet>
 
@@ -506,6 +570,45 @@ export const TextImageChat = ({ open, onOpenChange }: TextImageChatProps) => {
   );
 };
 
+// --- Presentation helpers (pure, render-time) ---
+const GROUP_WINDOW_MS = 10 * 60 * 1000;
+
+/** Groups consecutive items that share prompt + settings and were created within a 10 minute window. */
+const groupItems = (list: GalleryItem[]) => {
+  const groups: { key: string; items: GalleryItem[] }[] = [];
+  for (const it of list) {
+    const last = groups[groups.length - 1];
+    const head = last?.items[0];
+    if (
+      head &&
+      head.prompt === it.prompt &&
+      head.model === it.model &&
+      head.aspect_ratio === it.aspect_ratio &&
+      head.resolution === it.resolution &&
+      Math.abs(new Date(head.created_at).getTime() - new Date(it.created_at).getTime()) < GROUP_WINDOW_MS
+    ) {
+      last.items.push(it);
+    } else {
+      groups.push({ key: it.id, items: [it] });
+    }
+  }
+  return groups;
+};
+
+const relativeTime = (iso: string) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.round(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} h ago`;
+  const d = Math.round(h / 24);
+  if (d < 30) return `${d} d ago`;
+  const mo = Math.round(d / 30);
+  if (mo < 12) return `${mo} mo ago`;
+  return `${Math.round(mo / 12)} y ago`;
+};
+
 // --- Gallery Card Component ---
 interface GalleryCardProps {
   item: GalleryItem;
@@ -521,25 +624,31 @@ const GalleryCard = ({ item, onRegenerate, onDelete, onDownload, onClick }: Gall
   const isSuccess = item.status === "success" && !!item.image_url;
 
   return (
-    <div className="relative bg-accent/40 dark:bg-accent/60 overflow-hidden group cursor-pointer rounded-lg aspect-square flex flex-col">
-      {/* Status badge */}
-      <div className="absolute top-1.5 left-1.5 z-10">
+    <div className="relative bg-control overflow-hidden group rounded-md aspect-square flex flex-col focus-within:ring-2 focus-within:ring-ring">
+      {/* Status chip */}
+      <div className="absolute top-2 left-2 z-10">
         {isGenerating && (
-          <span className="text-[10px] font-medium bg-primary/90 text-primary-foreground backdrop-blur-sm px-1.5 py-0.5 rounded-md flex items-center gap-1">
-            <Loader2 className="w-2.5 h-2.5 animate-spin" />
+          <Badge>
+            <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
             Generating
-          </span>
+          </Badge>
         )}
         {isError && (
-          <span className="text-[10px] font-medium bg-destructive/90 text-destructive-foreground backdrop-blur-sm px-1.5 py-0.5 rounded-md flex items-center gap-1">
-            <AlertCircle className="w-2.5 h-2.5" />
+          <Badge variant="danger">
+            <AlertCircle strokeWidth={1.5} aria-hidden="true" />
             Failed
-          </span>
+          </Badge>
         )}
       </div>
 
       {/* Main content */}
-      <div className="flex-1 relative" onClick={() => isSuccess && onClick()}>
+      <div
+        className={cn("flex-1 relative", isSuccess && "cursor-pointer")}
+        onClick={() => isSuccess && onClick()}
+        role={isSuccess ? "button" : undefined}
+        tabIndex={isSuccess ? 0 : undefined}
+        aria-label={isSuccess ? `Open image: ${item.prompt}` : undefined}
+      >
         {isSuccess ? (
           <>
             <img
@@ -549,69 +658,75 @@ const GalleryCard = ({ item, onRegenerate, onDelete, onDownload, onClick }: Gall
               loading="lazy"
             />
 
-            {/* Hover overlay with actions */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
-              <button
-                className="h-7 w-7 rounded-lg bg-background/90 backdrop-blur-sm hover:bg-background flex items-center justify-center shadow-sm"
+            {/* Overlay with actions (always visible on mobile, hover on desktop) */}
+            <div className="absolute inset-0 bg-foreground/0 md:group-hover:bg-foreground/10 transition-colors duration-fast ease-standard" aria-hidden="true" />
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-fast ease-standard">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="bg-card/90 hover:bg-card"
+                aria-label="Regenerate"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRegenerate();
                 }}
               >
-                <RefreshCw className="w-3 h-3" />
-              </button>
-              <button
-                className="h-7 w-7 rounded-lg bg-background/90 backdrop-blur-sm hover:bg-background flex items-center justify-center shadow-sm"
+                <RefreshCw strokeWidth={1.5} aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="bg-card/90 hover:bg-card"
+                aria-label="Download"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDownload();
                 }}
               >
-                <Download className="w-3 h-3" />
-              </button>
-              <button
-                className="h-7 w-7 rounded-lg bg-background/90 backdrop-blur-sm hover:bg-background flex items-center justify-center shadow-sm"
+                <Download strokeWidth={1.5} aria-hidden="true" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="bg-card/90 hover:bg-card text-destructive hover:text-destructive"
+                aria-label="Delete"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete();
                 }}
               >
-                <Trash2 className="w-3 h-3" />
-              </button>
+                <Trash2 strokeWidth={1.5} aria-hidden="true" />
+              </Button>
             </div>
 
-            {/* Prompt tooltip on hover */}
-            <div className="absolute top-0 left-0 right-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <p className="text-[10px] text-white bg-black/60 backdrop-blur-sm rounded-md px-1.5 py-1 line-clamp-2">
+            {/* Prompt caption on hover (desktop) */}
+            <div className="absolute top-0 left-0 right-0 p-2 opacity-0 md:group-hover:opacity-100 transition-opacity duration-fast ease-standard pointer-events-none">
+              <p className="text-caption text-white bg-foreground/25 rounded-xs px-2 py-1 line-clamp-2">
                 {item.prompt}
               </p>
             </div>
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3 bg-control">
             {isGenerating ? (
               <div className="flex flex-col items-center gap-2">
-                <Loader2 className="w-6 h-6 text-muted-foreground/50 animate-spin" />
-                <p className="text-[10px] text-muted-foreground/60 text-center line-clamp-2">{item.prompt}</p>
+                <Loader2 className="size-5 text-muted-foreground animate-spin" strokeWidth={1.5} aria-hidden="true" />
+                <p className="text-caption text-muted-foreground text-center line-clamp-2">{item.prompt}</p>
               </div>
             ) : isError ? (
               <div className="flex flex-col items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-destructive/60" />
-                <p className="text-[10px] text-destructive/80 text-center line-clamp-2">{item.error || "Failed"}</p>
+                <XCircle className="size-5 text-destructive" strokeWidth={1.5} aria-hidden="true" />
+                <p className="text-caption text-destructive text-center line-clamp-2">{item.error || "Failed"}</p>
                 <div className="flex gap-1">
-                  <button
-                    onClick={onRegenerate}
-                    className="text-[10px] font-medium text-foreground/70 hover:text-foreground bg-accent rounded-md px-2 py-1 transition-colors"
-                  >
+                  <Button type="button" variant="outline" size="xs" onClick={onRegenerate}>
                     Retry
-                  </button>
-                  <button
-                    onClick={onDelete}
-                    className="text-[10px] font-medium text-destructive/70 hover:text-destructive bg-accent rounded-md px-2 py-1 transition-colors"
-                  >
+                  </Button>
+                  <Button type="button" variant="danger-outline" size="xs" onClick={onDelete}>
                     Remove
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : null}

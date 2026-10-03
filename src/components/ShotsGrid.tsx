@@ -1,7 +1,7 @@
 import { SceneWithStatus } from "@/types/pack";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, CheckCircle2, AlertCircle, Loader2, Clock, Download, Image as ImageIcon } from "lucide-react";
+import { Play, CheckCircle2, XCircle, Loader2, Clock, Download, Image as ImageIcon, RefreshCw } from "lucide-react";
 
 interface ShotsGridProps {
   shots: SceneWithStatus[];
@@ -20,35 +20,34 @@ const getSceneName = (scene: any): string => {
 export const ShotsGrid = ({ shots, onGenerateShot, onDownloadShot }: ShotsGridProps) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success': return <CheckCircle2 className="w-3 h-3" />;
-      case 'generating': return <Loader2 className="w-3 h-3 animate-spin" />;
-      case 'error': return <AlertCircle className="w-3 h-3" />;
-      default: return <Clock className="w-3 h-3" />;
+      case 'success': return <CheckCircle2 aria-hidden="true" />;
+      case 'generating': return <Loader2 className="animate-spin" aria-hidden="true" />;
+      case 'error': return <XCircle aria-hidden="true" />;
+      default: return <Clock aria-hidden="true" />;
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): "success" | "default" | "danger" => {
     switch (status) {
-      case 'success': return 'bg-success/10 text-success border-success/30';
-      case 'generating': return 'bg-primary/10 text-primary border-primary/30';
-      case 'error': return 'bg-destructive/10 text-destructive border-destructive/30';
-      default: return 'bg-muted text-muted-foreground border-border';
+      case 'success': return 'success';
+      case 'error': return 'danger';
+      default: return 'default';
     }
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5">
+    <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 list-none m-0 p-0">
       {shots.map((scene) => {
         const sceneId = getSceneId(scene);
         const sceneName = getSceneName(scene);
-        
+
         return (
-          <div
+          <li
             key={sceneId}
-            className="group bg-card rounded-xl border border-border/50 overflow-hidden hover:border-border transition-colors"
+            className="group bg-card text-card-foreground rounded-md overflow-hidden transition-colors duration-fast ease-standard"
           >
             {/* Image Area */}
-            <div className="aspect-[4/5] relative bg-accent/30">
+            <div className="aspect-[4/5] relative bg-control">
               {scene.imageUrl ? (
                 <img
                   src={scene.imageUrl}
@@ -56,101 +55,110 @@ export const ShotsGrid = ({ shots, onGenerateShot, onDownloadShot }: ShotsGridPr
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
+              ) : scene.status === 'generating' ? (
+                <div className="w-full h-full skeleton rounded-none" aria-hidden="true" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <ImageIcon className="w-6 h-6 text-muted-foreground/15" />
+                  <ImageIcon className="size-6 text-tertiary-foreground" strokeWidth={1.5} aria-hidden="true" />
                 </div>
               )}
-              
+
               {/* Status Badge */}
-              <div className="absolute top-1.5 left-1.5">
-                <Badge 
-                  variant="outline" 
-                  className={`text-[9px] px-1.5 py-0 h-4 backdrop-blur-sm ${getStatusColor(scene.status)}`}
-                >
-                  <span className="mr-0.5">{getStatusIcon(scene.status)}</span>
-                  {scene.status}
+              <div className="absolute top-2 left-2">
+                <Badge variant={getStatusVariant(scene.status)} className="bg-card/90 backdrop-blur-sm">
+                  {getStatusIcon(scene.status)}
+                  <span className="capitalize">{scene.status}</span>
                 </Badge>
               </div>
 
               {/* Scene Number */}
-              <div className="absolute top-1.5 right-1.5">
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-card/80 backdrop-blur-sm border-border/50">
+              <div className="absolute top-2 right-2">
+                <Badge variant="default" className="bg-card/90 backdrop-blur-sm">
                   #{sceneId}
                 </Badge>
               </div>
             </div>
 
             {/* Info & Controls */}
-            <div className="p-2 space-y-1.5">
+            <div className="p-3 space-y-2 bg-card">
               <div>
-                <h4 className="font-medium text-[11px] leading-tight line-clamp-1">
+                <h4 className="text-label-md text-foreground leading-tight line-clamp-1">
                   {sceneName}
                 </h4>
                 {scene.prompt && (
-                  <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                  <p className="text-caption text-muted-foreground line-clamp-1 mt-0.5">
                     {scene.prompt.substring(0, 50)}...
                   </p>
                 )}
               </div>
 
               {scene.error && (
-                <div className="p-1.5 bg-destructive/5 border border-destructive/10 rounded-lg">
-                  <p className="text-[9px] text-destructive/80 line-clamp-1">
+                <div className="p-2 bg-danger-bg rounded-md flex items-start gap-1.5" role="alert">
+                  <XCircle className="size-4 shrink-0 text-danger-text mt-px" strokeWidth={1.5} aria-hidden="true" />
+                  <p className="text-caption text-danger-text line-clamp-2">
                     {scene.error}
                   </p>
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-1">
+              <div className="flex gap-2">
                 {(scene.status === 'idle' || scene.status === 'error') && (
                   <Button
+                    type="button"
                     onClick={() => onGenerateShot(sceneId)}
                     size="sm"
-                    className="flex-1 h-6 text-[10px] px-1.5 rounded-lg"
+                    variant="secondary"
+                    className="flex-1"
                   >
-                    <Play className="w-3 h-3 mr-0.5" />
+                    <Play strokeWidth={1.5} aria-hidden="true" />
                     Gen
                   </Button>
                 )}
-                
+
                 {scene.status === 'success' && scene.imageUrl && (
                   <>
                     <Button
+                      type="button"
                       onClick={() => onGenerateShot(sceneId)}
                       size="sm"
-                      variant="outline"
-                      className="flex-1 h-6 text-[10px] px-1.5 rounded-lg"
+                      variant="secondary"
+                      className="flex-1"
                     >
-                      <Play className="w-3 h-3 mr-0.5" />
+                      <RefreshCw strokeWidth={1.5} aria-hidden="true" />
                       Regen
                     </Button>
                     <Button
+                      type="button"
                       onClick={() => onDownloadShot(sceneId)}
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 h-6 text-[10px] px-1.5 rounded-lg"
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label="Download"
+                      title="Download"
                     >
-                      <Download className="w-3 h-3" />
+                      <Download strokeWidth={1.5} aria-hidden="true" />
                     </Button>
                   </>
                 )}
 
                 {scene.status === 'generating' && (
                   <Button
+                    type="button"
                     size="sm"
+                    variant="secondary"
                     disabled
-                    className="flex-1 h-6 text-[10px] px-1.5 rounded-lg"
+                    className="flex-1"
+                    aria-busy="true"
                   >
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                    Generating
                   </Button>
                 )}
               </div>
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 };

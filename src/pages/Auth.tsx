@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -41,43 +41,44 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left panel - Brand */}
-      <div className="hidden lg:flex flex-1 bg-foreground dark:bg-accent text-background dark:text-foreground items-center justify-center p-12">
+    <div className="min-h-screen bg-app flex flex-col lg:flex-row p-shell gap-shell">
+      {/* Left panel - Brand (desktop only) */}
+      <section
+        aria-hidden="true"
+        className="hidden lg:flex flex-1 bg-card rounded-lg items-center justify-center p-12"
+      >
         <div className="max-w-md">
-          <div className="w-12 h-12 rounded-xl bg-white/10 dark:bg-foreground/10 flex items-center justify-center mb-8">
-            <span className="text-white dark:text-foreground font-bold text-xl">L</span>
+          <div className="size-12 rounded-md bg-primary text-primary-foreground flex items-center justify-center mb-8">
+            <span className="text-heading-sm" aria-hidden="true">L</span>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight mb-4">Lumra</h1>
-          <p className="text-lg text-white/50 dark:text-muted-foreground leading-relaxed">
+          <h1 className="text-display-lg text-foreground mb-3">Lumra</h1>
+          <p className="text-body-md text-muted-foreground">
             AI-powered image generation platform. Create stunning visuals with intelligent style packs.
           </p>
         </div>
-      </div>
+      </section>
 
       {/* Right panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex items-center justify-center px-4 py-8 md:px-8 bg-background rounded-lg">
+        <div className="w-full max-w-[400px] bg-card text-card-foreground rounded-lg p-4 md:p-7">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 rounded-xl bg-foreground flex items-center justify-center">
-              <span className="text-background font-bold text-lg">L</span>
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <div className="size-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center">
+              <span className="text-label-md" aria-hidden="true">L</span>
             </div>
-            <span className="text-xl font-bold">Lumra</span>
+            <span className="text-heading-sm">Lumra</span>
           </div>
 
-          <h2 className="text-2xl font-semibold tracking-tight mb-1">
-            {isLogin ? "Hoş Geldiniz" : "Hesap Oluştur"}
+          <h2 className="text-heading-md mb-1">
+            {isLogin ? "Hoş geldiniz" : "Hesap oluştur"}
           </h2>
-          <p className="text-sm text-muted-foreground mb-8">
+          <p className="text-body-sm text-muted-foreground mb-6">
             {isLogin ? "Devam etmek için giriş yapın" : "Başlamak için kayıt olun"}
           </p>
 
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                E-posta
-              </label>
+          <form onSubmit={handleAuth} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="email">E-posta</Label>
               <Input
                 id="email"
                 type="email"
@@ -85,13 +86,11 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-11 bg-secondary/50 border-0 rounded-xl text-sm"
+                autoComplete="email"
               />
             </div>
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Şifre
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="password">Şifre</Label>
               <Input
                 id="password"
                 type="password"
@@ -100,17 +99,19 @@ export default function Auth() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="h-11 bg-secondary/50 border-0 rounded-xl text-sm"
+                autoComplete={isLogin ? "current-password" : "new-password"}
               />
             </div>
             <Button
               type="submit"
-              className="w-full h-11 bg-foreground text-background hover:bg-foreground/90 font-medium rounded-xl text-sm"
+              variant="primary"
+              size="lg"
+              fullWidth
+              className="md:h-control-md md:text-label-md"
+              loading={loading}
               disabled={loading}
             >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : isLogin ? "Giriş Yap" : "Kayıt Ol"}
+              {isLogin ? "Giriş yap" : "Kayıt ol"}
             </Button>
           </form>
 
@@ -118,7 +119,7 @@ export default function Auth() {
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-body-sm text-muted-foreground hover:text-foreground transition-colors duration-fast ease-standard rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-touch px-2"
             >
               {isLogin ? "Hesabınız yok mu? Kayıt olun" : "Zaten hesabınız var mı? Giriş yapın"}
             </button>

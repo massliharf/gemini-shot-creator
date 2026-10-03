@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, AlertCircle, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Upload, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -151,8 +153,8 @@ const PackEditor = ({ onPacksLoad }: PackEditorProps) => {
   if (authChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
+        <div className="flex items-center gap-2 text-body-sm text-muted-foreground" role="status" aria-live="polite">
+          <Loader2 className="size-4 animate-spin" strokeWidth={1.5} aria-hidden="true" />
           Loading...
         </div>
       </div>
@@ -163,76 +165,108 @@ const PackEditor = ({ onPacksLoad }: PackEditorProps) => {
 
   return (
     <AppLayout userEmail={userEmail}>
-      <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/")}
-              className="rounded-xl"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-semibold">Pack Editor</h1>
-              <p className="text-sm text-muted-foreground">Paste JSON to create a new pack</p>
-            </div>
-          </div>
-
-          {/* JSON Input Area */}
-          <div className="bg-card rounded-2xl border border-border/50 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Upload className="w-5 h-5 text-primary" />
-              <h2 className="font-medium">Paste JSON Pack</h2>
-            </div>
-
-            <textarea
-              value={jsonText}
-              onChange={(e) => {
-                setJsonText(e.target.value);
-                setError(null);
-              }}
-              placeholder='{"meta": {...}, "global_style_anchor": "...", "scenes": [...]} '
-              className="w-full h-96 p-4 text-sm font-mono bg-secondary border-0 rounded-xl focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
-              disabled={isUploading}
-            />
-
-            {error && (
-              <div className="flex items-center gap-2 text-destructive text-sm mt-3">
-                <AlertCircle className="w-4 h-4" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 mt-4">
+      <main className="flex-1 min-h-0 overflow-y-auto flex flex-col bg-background">
+        <div className="flex-1 px-4 md:px-8 pt-6 pb-8">
+          <div className="max-w-container-md mx-auto space-y-6">
+            {/* Page header */}
+            <div className="flex items-center gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="icon"
                 onClick={() => navigate("/")}
-                disabled={isUploading}
-                className="rounded-xl"
+                aria-label="Back to home"
+                className="shrink-0 -ml-2"
               >
-                Cancel
+                <ArrowLeft strokeWidth={1.5} aria-hidden="true" />
               </Button>
-              <Button
-                onClick={handlePaste}
-                disabled={isUploading || !jsonText.trim()}
-                className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Pack
-                  </>
-                )}
-              </Button>
+              <div className="min-w-0">
+                <h1 className="text-heading-md text-foreground">Pack editor</h1>
+                <p className="text-body-sm text-muted-foreground">Paste JSON to create a new pack</p>
+              </div>
             </div>
+
+            {/* Content card: JSON input */}
+            <section
+              aria-labelledby="pack-json-heading"
+              className="bg-card text-card-foreground rounded-lg p-4 md:p-7 space-y-5"
+            >
+              <div className="min-w-0">
+                <h2 id="pack-json-heading" className="text-heading-sm text-foreground">
+                  Pack JSON
+                </h2>
+                <p className="text-body-sm text-muted-foreground">
+                  Paste a single pack, an array of packs, or an API response wrapper. Markdown fences are stripped
+                  automatically.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="pack-json">JSON content</Label>
+                  <span className="text-caption text-tertiary-foreground tabular-nums" aria-hidden="true">
+                    {jsonText.length.toLocaleString()} chars
+                  </span>
+                </div>
+                <Textarea
+                  id="pack-json"
+                  value={jsonText}
+                  onChange={(e) => {
+                    setJsonText(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder='{"meta": {...}, "global_style_anchor": "...", "scenes": [...]} '
+                  className="h-96 text-code resize-none"
+                  disabled={isUploading}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? "pack-json-error" : "pack-json-help"}
+                  spellCheck={false}
+                />
+                {error ? (
+                  <div
+                    id="pack-json-error"
+                    role="alert"
+                    className="flex items-start gap-1.5 text-caption text-destructive"
+                  >
+                    <XCircle className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                    <span>{error}</span>
+                  </div>
+                ) : (
+                  <p id="pack-json-help" className="text-caption text-tertiary-foreground">
+                    Required fields: pack_id, package_name and a non-empty scenes array.
+                  </p>
+                )}
+              </div>
+
+              {/* Action row */}
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/")}
+                  disabled={isUploading}
+                  className="h-control-lg md:h-control-md"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handlePaste}
+                  disabled={isUploading || !jsonText.trim()}
+                  className="h-control-lg md:h-control-md"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload strokeWidth={1.5} aria-hidden="true" />
+                      Upload pack
+                    </>
+                  )}
+                </Button>
+              </div>
+            </section>
           </div>
         </div>
       </main>
@@ -241,4 +275,3 @@ const PackEditor = ({ onPacksLoad }: PackEditorProps) => {
 };
 
 export default PackEditor;
-

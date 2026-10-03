@@ -1,5 +1,9 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Magnific Design System — Tailwind eşlemesi (Bölüm 18.3)
+ * Tüm renk/boşluk/radius/gölge değerleri index.css'teki token'lara bağlıdır.
+ */
 export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
@@ -7,24 +11,62 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
+      padding: { DEFAULT: "1rem", sm: "1.25rem", md: "2rem", xl: "2.5rem" },
+      screens: { sm: "640px", md: "768px", lg: "1024px", xl: "1280px", "2xl": "1536px" },
+    },
+    screens: {
+      xs: "360px",
+      sm: "480px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
     },
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        sans: ["var(--font-sans)"],
+        display: ["var(--font-display)"],
+        mono: ["var(--font-mono)"],
       },
       colors: {
+        /* ---- shadcn alias (HSL, opaklık destekler) ---- */
         border: "hsl(var(--border))",
+        "border-strong": "hsl(var(--border-strong))",
+        "border-subtle": "hsl(var(--border-subtle))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        canvas: "hsl(var(--background))",
+        app: "hsl(var(--app))",
+        workspace: "hsl(var(--background))",
+        track: "hsl(var(--track))",
+        control: { DEFAULT: "hsl(var(--control))", hover: "hsl(var(--control-hover))" },
+        active: "hsl(var(--active))",
+        brand: { DEFAULT: "hsl(var(--brand))", foreground: "hsl(var(--brand-foreground))", soft: "hsl(var(--brand-soft))" },
+        focus: "hsl(var(--focus))",
+        cat: {
+          spaces: "hsl(var(--cat-spaces))", image: "hsl(var(--cat-image))", video: "hsl(var(--cat-video))",
+          audio: "hsl(var(--cat-audio))", design: "hsl(var(--cat-design))", "3d": "hsl(var(--cat-3d))", stock: "hsl(var(--cat-stock))",
+        },
+        surface: {
+          DEFAULT: "hsl(var(--card))",
+          raised: "hsl(var(--popover))",
+          sunken: "hsl(var(--sunken))",
+        },
+        sunken: "hsl(var(--sunken))",
+        inverse: {
+          DEFAULT: "hsl(var(--inverse))",
+          foreground: "hsl(var(--inverse-foreground))",
+        },
+        link: "hsl(var(--link))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
+          active: "hsl(var(--primary-active))",
+          disabled: "hsl(var(--primary-disabled))",
+          "disabled-foreground": "hsl(var(--primary-disabled-foreground))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -34,9 +76,19 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        danger: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+          bg: "hsl(var(--danger-bg))",
+          text: "hsl(var(--danger-text))",
+          border: "hsl(var(--danger-border))",
+        },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
+        },
+        tertiary: {
+          foreground: "hsl(var(--tertiary-foreground))",
         },
         accent: {
           DEFAULT: "hsl(var(--accent))",
@@ -53,47 +105,124 @@ export default {
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          bg: "hsl(var(--success-bg))",
+          text: "hsl(var(--success-text))",
+          border: "hsl(var(--success-border))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          bg: "hsl(var(--warning-bg))",
+          text: "hsl(var(--warning-text))",
+          border: "hsl(var(--warning-border))",
         },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+          bg: "hsl(var(--info-bg))",
+          text: "hsl(var(--info-text))",
+          border: "hsl(var(--info-border))",
+        },
+        /* ---- Primitive palet (hex token'lar) ---- */
+        iris: {
+          50: "var(--iris-50)", 100: "var(--iris-100)", 200: "var(--iris-200)", 300: "var(--iris-300)",
+          400: "var(--iris-400)", 500: "var(--iris-500)", 600: "var(--iris-600)", 700: "var(--iris-700)",
+          800: "var(--iris-800)", 900: "var(--iris-900)", 950: "var(--iris-950)",
+        },
+        neutral: {
+          0: "var(--neutral-0)", 50: "var(--neutral-50)", 100: "var(--neutral-100)", 200: "var(--neutral-200)",
+          300: "var(--neutral-300)", 400: "var(--neutral-400)", 500: "var(--neutral-500)", 600: "var(--neutral-600)",
+          700: "var(--neutral-700)", 800: "var(--neutral-800)", 900: "var(--neutral-900)", 950: "var(--neutral-950)",
+        },
+        teal: { 500: "var(--teal-500)" },
+      },
+      spacing: {
+        "0.5": "var(--space-0-5)",
+        1: "var(--space-1)", 2: "var(--space-2)", 3: "var(--space-3)", 4: "var(--space-4)", 5: "var(--space-5)",
+        6: "var(--space-6)", 8: "var(--space-8)", 10: "var(--space-10)", 12: "var(--space-12)",
+        16: "var(--space-16)", 20: "var(--space-20)", 24: "var(--space-24)",
+        "control-xs": "var(--control-xs)", "control-sm": "var(--control-sm)", "control-md": "var(--control-md)",
+        "control-lg": "var(--control-lg)", "control-xl": "var(--control-xl)", touch: "var(--touch-target-min)",
+        sidebar: "var(--sidebar-width)", "sidebar-collapsed": "var(--sidebar-width-collapsed)", rail: "var(--rail-width)", "tool-panel": "var(--tool-panel-width)", shell: "var(--shell-gap)",
+        header: "var(--header-height)", "header-mobile": "var(--header-height-mobile)", "bottom-nav": "var(--bottom-nav-height)",
       },
       boxShadow: {
-        'sm': 'var(--shadow-sm)',
-        'md': 'var(--shadow-md)',
+        xs: "var(--shadow-xs)",
+        sm: "var(--shadow-sm)",
+        DEFAULT: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+        xl: "var(--shadow-xl)",
+        "2xl": "var(--shadow-2xl)",
+        overlay: "var(--shadow-overlay)",
+        none: "none",
       },
       borderRadius: {
-        lg: "12px",
-        md: "8px",
-        sm: "6px",
+        none: "var(--radius-none)",
+        xs: "var(--radius-xs)",
+        sm: "var(--radius-sm)",
+        DEFAULT: "var(--radius-md)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+        "2xl": "var(--radius-2xl)",
+        "3xl": "var(--radius-2xl)",
+        full: "var(--radius-full)",
+      },
+      borderWidth: {
+        hairline: "0.5px",
+        DEFAULT: "1px",
+        medium: "1.5px",
+        thick: "2px",
       },
       fontSize: {
-        'xs': ['0.75rem', { lineHeight: '1rem' }],
-        'sm': ['0.8125rem', { lineHeight: '1.25rem' }],
-        'base': ['0.875rem', { lineHeight: '1.5rem' }],
+        /* Magnific App ölçeği: UI 12 · gövde 14 · başlık 15/20 · display 28 */
+        "2xs": ["10px", { lineHeight: "15px" }],
+        xs: ["11px", { lineHeight: "16px" }],
+        sm: ["12px", { lineHeight: "18px" }],
+        base: ["14px", { lineHeight: "22px" }],
+        lg: ["15px", { lineHeight: "24px" }],
+        xl: ["20px", { lineHeight: "30px" }],
+        "2xl": ["24px", { lineHeight: "32px" }],
+        "3xl": ["28px", { lineHeight: "42px" }],
+        "4xl": ["32px", { lineHeight: "40px" }],
+        "5xl": ["40px", { lineHeight: "48px" }],
+      },
+      transitionDuration: {
+        instant: "var(--duration-instant)",
+        fast: "var(--duration-fast)",
+        normal: "var(--duration-normal)",
+        slow: "var(--duration-slow)",
+        slower: "var(--duration-slower)",
+      },
+      transitionTimingFunction: {
+        standard: "var(--ease-standard)",
+        enter: "var(--ease-enter)",
+        exit: "var(--ease-exit)",
+        spring: "var(--ease-spring)",
+      },
+      zIndex: {
+        sticky: "var(--z-sticky)", header: "var(--z-header)", dropdown: "var(--z-dropdown)",
+        overlay: "var(--z-overlay)", drawer: "var(--z-drawer)", modal: "var(--z-modal)",
+        popover: "var(--z-popover)", toast: "var(--z-toast)", tooltip: "var(--z-tooltip)",
+      },
+      opacity: { disabled: "0.4" },
+      maxWidth: {
+        "container-sm": "640px", "container-md": "768px", "container-lg": "1024px", "container-xl": "1280px", prose: "720px",
       },
       keyframes: {
-        "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
-        },
-        "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
-        },
+        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
+        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
+        "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "slide-up": { from: { opacity: "0", transform: "translateY(8px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        "pulse-dot": { "0%, 100%": { opacity: "1" }, "50%": { opacity: ".4" } },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
+        "accordion-down": "accordion-down var(--duration-normal) var(--ease-standard)",
+        "accordion-up": "accordion-up var(--duration-normal) var(--ease-standard)",
+        "fade-in": "fade-in var(--duration-normal) var(--ease-enter)",
+        "slide-up": "slide-up var(--duration-slow) var(--ease-enter)",
+        "pulse-dot": "pulse-dot 1.6s var(--ease-standard) infinite",
       },
     },
   },

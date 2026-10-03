@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { getPackGender } from "@/types/pack";
 
 // Components
@@ -134,10 +134,10 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background px-4" role="status" aria-live="polite">
+        <div className="flex items-center gap-3">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+          <p className="text-body-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -190,7 +190,7 @@ const Index = () => {
                 isGenerating={selectedPack.isGenerating}
               />
 
-              <div className="flex-1 min-h-0 overflow-hidden pb-24">
+              <div className="flex-1 min-h-0 overflow-hidden px-4 md:px-8 pb-24">
                 <ScenesGrid
                   scenes={selectedPack.scenes}
                   onGenerateScene={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
@@ -199,15 +199,13 @@ const Index = () => {
               </div>
             </>
           ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-accent flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-muted-foreground/30" />
-                </div>
-                <p className="text-sm font-medium text-foreground/60 mb-1">
+            <div className="h-full flex items-center justify-center px-4 md:px-8">
+              <div className="flex flex-col items-center text-center max-w-sm">
+                <Sparkles className="size-5 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
+                <h2 className="text-heading-md text-foreground mb-1">
                   {packs.size === 0 ? "Upload a pack to start" : "Select a pack"}
-                </p>
-                <p className="text-xs text-muted-foreground">AI-powered image generation</p>
+                </h2>
+                <p className="text-body-sm text-muted-foreground">AI-powered image generation</p>
               </div>
             </div>
           )}

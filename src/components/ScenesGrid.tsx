@@ -3,6 +3,7 @@ import { SceneWithStatus } from "@/types/pack";
 import { SceneCard } from "./SceneCard";
 import { FullscreenImageView } from "./FullscreenImageView";
 import { RegenerateConfirmDialog } from "./RegenerateConfirmDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ScenesGridProps {
   scenes: SceneWithStatus[];
@@ -189,7 +190,14 @@ export const ScenesGrid = ({ scenes, onGenerateScene, onDownloadScene }: ScenesG
         sceneId={regenerateConfirm.sceneId ?? undefined}
       />
 
-      <div ref={containerRef} className="h-full w-full overflow-hidden p-1">
+      <div ref={containerRef} className="relative h-full w-full overflow-hidden p-1 bg-background">
+        {layout.rows.length === 0 && scenes.length > 0 && (
+          <div className="absolute inset-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1" aria-hidden="true">
+            {scenes.slice(0, 8).map((scene, i) => (
+              <Skeleton key={String(getSceneId(scene)) + i} className="h-full min-h-[120px] w-full rounded-md" />
+            ))}
+          </div>
+        )}
         <div className="flex h-full w-full flex-col" style={{ gap: GAP_PX }}>
           {layout.rows.map((row, rowIndex) => {
             const rowH = layout.rowHeights[rowIndex] ?? 0;
@@ -201,7 +209,7 @@ export const ScenesGrid = ({ scenes, onGenerateScene, onDownloadScene }: ScenesG
                   const w = rowH * boundedAR;
 
                   return (
-                    <div key={id} className="relative flex-shrink-0" style={{ width: w, height: rowH }}>
+                    <div key={id} className="relative flex-shrink-0 rounded-md overflow-hidden" style={{ width: w, height: rowH }}>
                       <SceneCard
                         scene={scene}
                         index={index}

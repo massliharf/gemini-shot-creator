@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { ProjectSidebar } from "@/components/prompt-generator/ProjectSidebar";
 import { UploadZone } from "@/components/prompt-generator/UploadZone";
 import { PromptCard } from "@/components/prompt-generator/PromptCard";
 import { FullscreenImageView } from "@/components/FullscreenImageView";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User } from "@supabase/supabase-js";
 import { prepareImageForAi } from "@/lib/prepare-image-for-ai";
@@ -391,8 +393,8 @@ const PromptGenerator = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      <div className="min-h-screen flex items-center justify-center bg-background" aria-busy="true">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" strokeWidth={1.5} aria-label="Loading" />
       </div>
     );
   }
@@ -413,44 +415,55 @@ const PromptGenerator = () => {
     <>
       <AppLayout userEmail={user.email} sidebar={sidebar}>
         <main className="flex-1 overflow-hidden flex flex-col min-w-0 bg-background">
-          {/* Top controls */}
-          <div className="px-5 py-2.5 border-b border-border/50 flex items-center gap-2 flex-wrap">
-            <h1 className="text-sm font-semibold mr-3">Prompt Generator</h1>
+          {/* Top controls — section labels + borderless selects, no divider */}
+          <div className="px-4 md:px-8 pt-4 pb-3 flex items-end gap-3 flex-wrap">
+            <h1 className="sr-only">Prompt generator</h1>
 
-            <Select value={model} onValueChange={setModel}>
-              <SelectTrigger className="w-auto h-7 px-2.5 rounded-md border-0 bg-accent text-xs font-medium">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MODEL_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-end gap-3 flex-wrap">
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="pg-model">Model</Label>
+                <Select value={model} onValueChange={setModel}>
+                  <SelectTrigger id="pg-model" className="w-auto min-w-[6.5rem]" aria-label="Model">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MODEL_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Select value={aspectRatio} onValueChange={setAspectRatio}>
-              <SelectTrigger className="w-auto h-7 px-2.5 rounded-md border-0 bg-accent text-xs font-medium">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ASPECT_RATIO_OPTIONS.map((ar) => (
-                  <SelectItem key={ar} value={ar}>{ar}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="pg-aspect">Ratio</Label>
+                <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                  <SelectTrigger id="pg-aspect" className="w-auto min-w-[5rem]" aria-label="Aspect ratio">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASPECT_RATIO_OPTIONS.map((ar) => (
+                      <SelectItem key={ar} value={ar}>{ar}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {isProModel && (
-              <Select value={resolution} onValueChange={setResolution}>
-                <SelectTrigger className="w-auto h-7 px-2.5 rounded-md border-0 bg-accent text-xs font-medium">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RESOLUTION_OPTIONS.map((r) => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+              {isProModel && (
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="pg-resolution">Resolution</Label>
+                  <Select value={resolution} onValueChange={setResolution}>
+                    <SelectTrigger id="pg-resolution" className="w-auto min-w-[5rem]" aria-label="Resolution">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESOLUTION_OPTIONS.map((r) => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Content */}
@@ -458,49 +471,75 @@ const PromptGenerator = () => {
             <UploadZone onUpload={handleUpload} isAnalyzing={isAnalyzing} />
           ) : (
             <ScrollArea className="flex-1 min-h-0">
-              <div className="p-4 space-y-3 max-w-4xl">
+              <div className="px-4 md:px-8 pb-6 pt-2 space-y-4 max-w-4xl">
                 {/* Analysis */}
                 {selectedProject.analysis_text && (
-                  <div className="bg-accent/50 rounded-xl p-4 text-xs text-muted-foreground leading-relaxed">
-                    <p className="font-medium text-foreground text-sm mb-1">Style Analysis</p>
-                    {selectedProject.analysis_text}
-                  </div>
+                  <section className="bg-card rounded-lg p-4 md:p-7">
+                    <h2 className="text-overline text-muted-foreground mb-2">Style analysis</h2>
+                    <p className="text-body-md text-foreground">{selectedProject.analysis_text}</p>
+                  </section>
                 )}
 
                 {/* Reference images */}
                 {selectedProject.reference_image_urls?.length > 0 && (
-                  <div className="flex gap-1.5 flex-wrap">
-                    {selectedProject.reference_image_urls.map((url, i) => (
-                      <div
-                        key={i}
-                        className="w-14 h-14 rounded-lg overflow-hidden cursor-pointer"
-                        onClick={() => setFullscreenUrl(url)}
-                      >
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
+                  <section className="bg-card rounded-lg p-4">
+                    <h2 className="text-overline text-muted-foreground mb-2">Reference images</h2>
+                    <div className="flex gap-2 flex-wrap">
+                      {selectedProject.reference_image_urls.map((url, i) => (
+                        <div
+                          key={i}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`View reference image ${i + 1}`}
+                          className="size-[65px] rounded-md bg-control overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                          onClick={() => setFullscreenUrl(url)}
+                        >
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
                 )}
 
                 {loadingPrompts ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  <div className="space-y-3" aria-busy="true" aria-live="polite">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="rounded-lg bg-card p-4 flex gap-4">
+                        <Skeleton className="size-16 rounded-md shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-3 w-1/3" />
+                          <Skeleton className="h-3 w-1/4" />
+                          <Skeleton className="h-12 w-full rounded-md" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : prompts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-12">No prompts generated yet.</p>
+                  <div className="flex flex-col items-center text-center py-12 gap-3">
+                    <Sparkles className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+                    <div className="space-y-1">
+                      <p className="text-heading-md text-foreground">No prompts generated yet</p>
+                      <p className="text-body-sm text-muted-foreground">
+                        Prompts appear here once the style analysis finishes for this project.
+                      </p>
+                    </div>
+                  </div>
                 ) : (
-                  prompts.map((p) => (
-                    <PromptCard
-                      key={p.id}
-                      prompt={p}
-                      onEdit={handleEditPrompt}
-                      onDelete={handleDeletePrompt}
-                      onGenerate={handleGenerate}
-                      onImageClick={(url) => setFullscreenUrl(url)}
-                      onDeleteImage={handleDeleteImage}
-                      isGenerating={generatingPromptIds.has(p.id)}
-                    />
-                  ))
+                  <section className="space-y-3">
+                    <h2 className="text-overline text-muted-foreground">Prompts</h2>
+                    {prompts.map((p) => (
+                      <PromptCard
+                        key={p.id}
+                        prompt={p}
+                        onEdit={handleEditPrompt}
+                        onDelete={handleDeletePrompt}
+                        onGenerate={handleGenerate}
+                        onImageClick={(url) => setFullscreenUrl(url)}
+                        onDeleteImage={handleDeleteImage}
+                        isGenerating={generatingPromptIds.has(p.id)}
+                      />
+                    ))}
+                  </section>
                 )}
               </div>
             </ScrollArea>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,9 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
-  Upload, Wand2, Loader2, X, Check, Home, Camera, Box, 
+  Upload, Wand2, Loader2, X, Check, Home, Camera, Box,
   Sparkles, Palette, Sun, Layers, Eye, RefreshCw, Trash2,
-  ImageIcon, Play, Film, ShoppingBag
+  ImageIcon, Play, Film, ShoppingBag, CheckCircle2, XCircle, ChevronDown
 } from "lucide-react";
 import type { PackFile } from "@/types/pack";
 import { getPackId, getPackName, getSceneCount, hasScenes, buildFinalPrompt, getConfig, getScenes } from "@/types/pack";
@@ -55,19 +54,19 @@ type PackType = "photography" | "god-eye" | "artist" | "eye" | "3d" | "artisto" 
 type Gender = "male" | "female" | "unisex";
 
 const PACK_TYPE_OPTIONS: { value: PackType; label: string; icon: React.ReactNode; description: string }[] = [
-  { value: "glamour", label: "Glamour Portrait", icon: <Sparkles className="h-5 w-5" />, description: "Deep reference analysis + artistic fashion scenes" },
-  { value: "creative", label: "Creative Scene", icon: <Film className="h-5 w-5" />, description: "Full creative freedom - any composition" },
-  { value: "product", label: "Product Shot", icon: <ShoppingBag className="h-5 w-5" />, description: "Product/object photography" },
-  { value: "photography", label: "Visual Architect", icon: <Layers className="h-5 w-5" />, description: "7-layer portrait architecture" },
-  { value: "god-eye", label: "God-Eye Director", icon: <Camera className="h-5 w-5" />, description: "2-layer concise style system" },
-  { value: "artist", label: "Artist v1", icon: <Palette className="h-5 w-5" />, description: "Technical DNA + scene continuation" },
-  { value: "eye", label: "Eye Director", icon: <Eye className="h-5 w-5" />, description: "Complete photoshoot session" },
-  { value: "3d", label: "3D Character", icon: <Box className="h-5 w-5" />, description: "Render engine aesthetics" },
-  { value: "artisto", label: "Artisto", icon: <Sparkles className="h-5 w-5" />, description: "Art Director portrait system" },
-  { value: "reverse", label: "Reverse Engineer", icon: <RefreshCw className="h-5 w-5" />, description: "Clone style from reference" },
-  { value: "portrait-clone", label: "Portrait Clone", icon: <Camera className="h-5 w-5" />, description: "Close-up enforcement clone" },
-  { value: "dop-architect", label: "DoP Architect", icon: <Sun className="h-5 w-5" />, description: "Adaptive wardrobe strategy" },
-  { value: "all-seeing-eye", label: "All Seeing Eye", icon: <Eye className="h-5 w-5" />, description: "God Mode visual engineering" },
+  { value: "glamour", label: "Glamour Portrait", icon: <Sparkles className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Deep reference analysis + artistic fashion scenes" },
+  { value: "creative", label: "Creative Scene", icon: <Film className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Full creative freedom - any composition" },
+  { value: "product", label: "Product Shot", icon: <ShoppingBag className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Product/object photography" },
+  { value: "photography", label: "Visual Architect", icon: <Layers className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "7-layer portrait architecture" },
+  { value: "god-eye", label: "God-Eye Director", icon: <Camera className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "2-layer concise style system" },
+  { value: "artist", label: "Artist v1", icon: <Palette className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Technical DNA + scene continuation" },
+  { value: "eye", label: "Eye Director", icon: <Eye className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Complete photoshoot session" },
+  { value: "3d", label: "3D Character", icon: <Box className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Render engine aesthetics" },
+  { value: "artisto", label: "Artisto", icon: <Sparkles className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Art Director portrait system" },
+  { value: "reverse", label: "Reverse Engineer", icon: <RefreshCw className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Clone style from reference" },
+  { value: "portrait-clone", label: "Portrait Clone", icon: <Camera className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Close-up enforcement clone" },
+  { value: "dop-architect", label: "DoP Architect", icon: <Sun className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "Adaptive wardrobe strategy" },
+  { value: "all-seeing-eye", label: "All Seeing Eye", icon: <Eye className="size-5" strokeWidth={1.75} aria-hidden="true" />, description: "God Mode visual engineering" },
 ];
 
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
@@ -660,209 +659,217 @@ export default function PackCreator() {
 
   if (!isAuthenticated) return null;
 
+  const pendingOrErrorCount = images.filter(i => i.status === 'pending' || i.status === 'error').length;
+  const chipClass = (selected: boolean) =>
+    `cursor-pointer select-none hover:bg-control-hover focus-visible:ring-offset-card ${selected ? 'bg-active ring-1 ring-foreground/80' : ''}`;
+
   return (
     <AppLayout userEmail={userEmail}>
-      <main className="flex-1 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h1 className="text-sm font-semibold">
-                {packType === "god-eye" ? "God-Eye Photography Director" : 
-                 packType === "artist" ? "Artist v1" :
-                 packType === "eye" ? "Eye Portrait Director" :
-                 packType === "3d" ? "3D Visual Architect" : 
-                 packType === "artisto" ? "Artisto Portrait Director" :
-                 packType === "reverse" ? "Style Reverse Engineer" :
-                 packType === "portrait-clone" ? "Portrait Style Clone" :
-                 packType === "dop-architect" ? "DoP Visual Architect" :
-                 packType === "all-seeing-eye" ? "All Seeing Eye" :
-                 "Omniscient Visual Architect"}
-              </h1>
-              {autoRender && (
-                <Badge variant="secondary" className="text-[10px] h-5">
-                  <Play className="h-3 w-3 mr-1" />
-                  Auto-Render
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-              <span>
-                {packType === "god-eye" ? "2-layer style system" : 
-                 packType === "artist" ? "Technical DNA + scene continuation" :
-                 packType === "eye" ? "Photoshoot session logic" :
-                 packType === "3d" ? "Render engine aesthetics" : 
-                 packType === "artisto" ? "Art Director portrait system" :
-                 packType === "reverse" ? "Visual forensics & style cloning" :
-                 packType === "portrait-clone" ? "Close-up enforced style transfer" :
-                 packType === "dop-architect" ? "Adaptive intelligence & wardrobe strategy" :
-                 packType === "all-seeing-eye" ? "God Mode visual engineering" :
-                 "7-layer prompt architecture"}
-              </span>
-              {images.length > 0 && (
-                <>
-                  <span>•</span>
-                  <span>{images.length} images</span>
-                  {savedCount > 0 && <span className="text-green-500">• {savedCount} saved</span>}
-                  {errorCount > 0 && <span className="text-red-500">• {errorCount} failed</span>}
-                </>
-              )}
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" className="h-7 text-xs rounded-lg" onClick={() => navigate("/")}>
-            <Home className="h-3.5 w-3.5 mr-1" />
-            Home
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {/* Pack Type Selection */}
-          <div className="bg-accent/50 rounded-xl p-4 space-y-3">
-            <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-              <Layers className="h-3.5 w-3.5" />
-              Visual Style
-            </Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-              {PACK_TYPE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setPackType(option.value)}
-                  disabled={isGenerating}
-                  className={`flex items-center gap-2 p-3 rounded-xl border transition-all text-left ${
-                    packType === option.value
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-border/50 hover:border-border hover:bg-card'
-                  } ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  <div className={`${packType === option.value ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {option.icon}
-                  </div>
-                  <div>
-                    <p className={`text-xs font-medium ${packType === option.value ? 'text-primary' : 'text-foreground'}`}>
-                      {option.label}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground leading-tight">{option.description}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Input Mode Tabs */}
-          <div className="bg-accent/50 rounded-xl p-4">
-            <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "image" | "text")}>
-              <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="image" className="flex items-center gap-2">
-                  <Eye className="h-4 w-4" />
-                  Reference Images
-                </TabsTrigger>
-                <TabsTrigger value="text" className="flex items-center gap-2">
-                  <Wand2 className="h-4 w-4" />
-                  Creative Brief
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="image" className="mt-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Batch Upload (unlimited)</Label>
-                  {images.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={clearAllImages} className="text-xs h-6" disabled={isGenerating}>
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Clear All
-                    </Button>
+      <main className="flex-1 min-h-0 bg-background flex flex-col md:flex-row gap-3 p-3 overflow-y-auto md:overflow-hidden">
+        {/* ===== Left tool panel ===== */}
+        <aside
+          className="w-full md:w-tool-panel shrink-0 bg-card rounded-lg flex flex-col md:min-h-0 md:h-full md:overflow-hidden"
+          aria-label="Pack Creator settings"
+        >
+          <div className="md:flex-1 md:min-h-0 md:overflow-y-auto p-3 space-y-5">
+            {/* Tool title card */}
+            <div className="rounded-[12px] px-3 py-2 bg-cat-spaces/10 flex items-start gap-2">
+              <Sparkles className="size-5 text-cat-spaces shrink-0 mt-0.5" strokeWidth={1.5} aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-heading-sm text-foreground truncate">Pack Creator</h1>
+                  {autoRender && (
+                    <Badge variant="default">
+                      <Play aria-hidden="true" />
+                      Auto-render
+                    </Badge>
                   )}
                 </div>
+                <p className="text-caption text-muted-foreground truncate">
+                  {packType === "god-eye" ? "God-Eye Photography Director" :
+                   packType === "artist" ? "Artist v1" :
+                   packType === "eye" ? "Eye Portrait Director" :
+                   packType === "3d" ? "3D Visual Architect" :
+                   packType === "artisto" ? "Artisto Portrait Director" :
+                   packType === "reverse" ? "Style Reverse Engineer" :
+                   packType === "portrait-clone" ? "Portrait Style Clone" :
+                   packType === "dop-architect" ? "DoP Visual Architect" :
+                   packType === "all-seeing-eye" ? "All Seeing Eye" :
+                   "Omniscient Visual Architect"}
+                  {" · "}
+                  {packType === "god-eye" ? "2-layer style system" :
+                   packType === "artist" ? "Technical DNA + scene continuation" :
+                   packType === "eye" ? "Photoshoot session logic" :
+                   packType === "3d" ? "Render engine aesthetics" :
+                   packType === "artisto" ? "Art Director portrait system" :
+                   packType === "reverse" ? "Visual forensics & style cloning" :
+                   packType === "portrait-clone" ? "Close-up enforced style transfer" :
+                   packType === "dop-architect" ? "Adaptive intelligence & wardrobe strategy" :
+                   packType === "all-seeing-eye" ? "God Mode visual engineering" :
+                   "7-layer prompt architecture"}
+                </p>
+              </div>
+              <Button type="button" variant="ghost" size="icon-sm" className="shrink-0 -mr-1" onClick={() => navigate("/")} aria-label="Home" title="Home">
+                <Home strokeWidth={1.5} aria-hidden="true" />
+              </Button>
+            </div>
 
-                <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-border rounded-xl cursor-pointer hover:bg-card transition-colors">
-                  <Upload className="h-5 w-5 text-muted-foreground mb-1.5" />
-                  <span className="text-xs text-muted-foreground">Drop images or click to upload</span>
-                  <span className="text-[10px] text-muted-foreground/70 mt-0.5">Parallel processing</span>
-                  <input type="file" accept="image/*" multiple onChange={handleImagesUpload} className="hidden" disabled={isGenerating} />
-                </label>
+            {/* VISUAL STYLE */}
+            <section className="space-y-2" aria-labelledby="pack-style-heading">
+              <Label id="pack-style-heading" asChild>
+                <span>Visual style</span>
+              </Label>
+              <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-labelledby="pack-style-heading">
+                {PACK_TYPE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={packType === option.value}
+                    onClick={() => setPackType(option.value)}
+                    disabled={isGenerating}
+                    title={option.description}
+                    className={`flex items-center gap-2 h-control-lg md:h-control-md px-2 rounded-md text-left transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:text-tertiary-foreground disabled:cursor-not-allowed ${
+                      packType === option.value
+                        ? 'bg-active ring-1 ring-foreground/80 text-foreground'
+                        : 'bg-control hover:bg-control-hover text-muted-foreground'
+                    }`}
+                  >
+                    <span className="shrink-0 [&_svg]:size-4" aria-hidden="true">
+                      {option.icon}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-label-md text-foreground truncate">{option.label}</span>
+                      <span className="sr-only">{option.description}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
 
-                {images.length > 0 && (
-                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-                    {images.map(img => (
-                      <div key={img.id} className="relative group">
-                        <img
-                          src={img.preview}
-                          alt="Reference"
-                          className={`w-full aspect-square object-cover rounded-lg border-2 ${
-                            img.status === 'saved' ? 'border-green-500' :
-                            img.status === 'success' ? 'border-blue-500' :
-                            img.status === 'error' ? 'border-red-500' :
-                            img.status === 'generating' ? 'border-yellow-500 animate-pulse' :
-                            'border-border/50'
-                          }`}
-                        />
-                        {img.status === 'generating' && (
-                          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                            <Loader2 className="h-4 w-4 animate-spin text-white" />
-                          </div>
-                        )}
-                        {img.status === 'saved' && (
-                          <div className="absolute inset-0 bg-green-500/20 rounded-lg flex items-center justify-center">
-                            <Check className="h-4 w-4 text-green-500" />
-                          </div>
-                        )}
-                        {img.status === 'error' && (
-                          <div className="absolute inset-0 bg-red-500/20 rounded-lg flex items-center justify-center">
-                            <X className="h-4 w-4 text-red-500" />
-                          </div>
-                        )}
-                        <button
-                          onClick={() => removeImage(img.id)}
-                          disabled={isGenerating}
-                          className="absolute -top-1 -right-1 bg-background border border-border w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+            {/* INPUT */}
+            <section className="space-y-2" aria-labelledby="pack-input-heading">
+              <Label id="pack-input-heading" asChild>
+                <span>Input</span>
+              </Label>
+              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "image" | "text")}>
+                <TabsList className="grid grid-cols-2 w-full">
+                  <TabsTrigger value="image" className="flex items-center gap-1.5">
+                    <Eye className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                    References
+                  </TabsTrigger>
+                  <TabsTrigger value="text" className="flex items-center gap-1.5">
+                    <Wand2 className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                    Brief
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="image" className="mt-3 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="pack-batch-upload">References</Label>
+                    {images.length > 0 && (
+                      <Button type="button" variant="ghost" size="xs" onClick={clearAllImages} disabled={isGenerating}>
+                        <Trash2 strokeWidth={1.5} aria-hidden="true" />
+                        Clear all
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <label
+                      htmlFor="pack-batch-upload"
+                      className="dropzone size-[65px] shrink-0 flex flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground focus-within:ring-2 focus-within:ring-ring"
+                    >
+                      <Upload className="size-4" strokeWidth={1.5} aria-hidden="true" />
+                      <span className="text-caption">Add</span>
+                      <input id="pack-batch-upload" type="file" accept="image/*" multiple onChange={handleImagesUpload} className="sr-only" disabled={isGenerating} />
+                    </label>
+
+                    {images.length > 0 && (
+                      <ul className="contents list-none m-0 p-0">
+                        {images.map(img => (
+                          <li key={img.id} className="relative group size-[65px] shrink-0">
+                            <img
+                              src={img.preview}
+                              alt="Reference"
+                              className={`size-full object-cover rounded-md ${
+                                img.status === 'saved' ? 'ring-1 ring-success' :
+                                img.status === 'success' ? 'ring-1 ring-info' :
+                                img.status === 'error' ? 'ring-1 ring-destructive' :
+                                img.status === 'generating' ? 'ring-1 ring-warning animate-pulse' :
+                                ''
+                              }`}
+                            />
+                            {img.status === 'generating' && (
+                              <div className="absolute inset-0 bg-foreground/25 rounded-md flex items-center justify-center" aria-label="Generating" role="img">
+                                <Loader2 className="size-4 animate-spin text-white" strokeWidth={1.5} aria-hidden="true" />
+                              </div>
+                            )}
+                            {img.status === 'saved' && (
+                              <div className="absolute inset-0 bg-success/20 rounded-md flex items-center justify-center" aria-label="Saved" role="img">
+                                <CheckCircle2 className="size-4 text-success" strokeWidth={1.5} aria-hidden="true" />
+                              </div>
+                            )}
+                            {img.status === 'error' && (
+                              <div className="absolute inset-0 bg-destructive/20 rounded-md flex items-center justify-center" aria-label="Failed" role="img">
+                                <XCircle className="size-4 text-destructive" strokeWidth={1.5} aria-hidden="true" />
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeImage(img.id)}
+                              disabled={isGenerating}
+                              aria-label="Remove image"
+                              className="absolute -top-1.5 -right-1.5 bg-card/90 text-foreground size-5 rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:text-tertiary-foreground"
+                            >
+                              <X className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <p className="text-caption text-muted-foreground">Drop images or click to upload · parallel processing</p>
+
+                  {/* Phase 1: Pack generation progress */}
+                  {isGenerating && generationPhase === "creating-pack" && generatingCount > 0 && (
+                    <div className="space-y-1.5" aria-live="polite">
+                      <div className="flex items-center justify-between text-caption">
+                        <span className="flex items-center gap-1.5 text-foreground">
+                          <Loader2 className="size-3.5 animate-spin" strokeWidth={1.5} aria-hidden="true" />
+                          Creating packs… {completedCount} / {generatingCount}
+                        </span>
+                        <span className="text-muted-foreground tabular-nums">{Math.round(progress)}%</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Phase 1: Pack generation progress */}
-                {isGenerating && generationPhase === "creating-pack" && generatingCount > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="flex items-center gap-1.5">
-                        <Sparkles className="h-3 w-3 animate-pulse text-primary" />
-                        Phase 1: Creating packs... {completedCount} / {generatingCount}
-                      </span>
-                      <span>{Math.round(progress)}%</span>
+                      <Progress value={progress} className="h-1.5" />
                     </div>
-                    <Progress value={progress} className="h-1" />
-                  </div>
-                )}
-              </TabsContent>
+                  )}
+                </TabsContent>
 
-              <TabsContent value="text" className="mt-4 space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Creative Brief</Label>
+                <TabsContent value="text" className="mt-3 space-y-2">
+                  <Label htmlFor="pack-text-prompt">Creative brief</Label>
                   <Textarea
+                    id="pack-text-prompt"
                     value={textPrompt}
                     onChange={(e) => setTextPrompt(e.target.value)}
                     placeholder="Describe the visual universe you want to create. Be specific about mood, era, influences, lighting quality, color palette, and the emotional transformation users should experience..."
-                    className="min-h-32 resize-none"
+                    className="min-h-28"
                     disabled={isGenerating}
+                    aria-describedby="pack-text-prompt-help"
                   />
-                  <p className="text-[10px] text-muted-foreground">
+                  <p id="pack-text-prompt-help" className="text-caption text-muted-foreground">
                     Tip: Reference specific photographers, film stocks, art movements, or eras for more cohesive results
                   </p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+                </TabsContent>
+              </Tabs>
+            </section>
 
-          {/* Pack Settings */}
-          <div className="bg-accent/50 rounded-xl p-4 space-y-4">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs font-medium whitespace-nowrap">Scenes:</Label>
+            {/* SCENES / CATEGORY / GENDER */}
+            <section className="space-y-3" aria-label="Pack settings">
+              <div className="space-y-1.5">
+                <Label htmlFor="pack-scene-count">Scenes</Label>
                 <Select value={sceneCount.toString()} onValueChange={(v) => setSceneCount(parseInt(v))} disabled={isGenerating}>
-                  <SelectTrigger className="w-24 h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="pack-scene-count" className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {SCENE_COUNT_OPTIONS.map((count) => (
                       <SelectItem key={count} value={count.toString()}>{count} scenes</SelectItem>
@@ -870,16 +877,16 @@ export default function PackCreator() {
                   </SelectContent>
                 </Select>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <Label className="text-xs font-medium whitespace-nowrap">Category:</Label>
-                <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Portrait, Fashion..." disabled={isGenerating} className="w-32 h-9 text-sm" />
+
+              <div className="space-y-1.5">
+                <Label htmlFor="pack-category">Category</Label>
+                <Input id="pack-category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Portrait, Fashion..." disabled={isGenerating} />
               </div>
 
-              <div className="flex items-center gap-2">
-                <Label className="text-xs font-medium whitespace-nowrap">Gender:</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="pack-gender">Gender</Label>
                 <Select value={gender} onValueChange={(v) => setGender(v as Gender)} disabled={isGenerating}>
-                  <SelectTrigger className="w-24 h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="pack-gender" className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {GENDER_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
@@ -887,246 +894,361 @@ export default function PackCreator() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* Advanced Settings Toggle */}
-            <button
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <RefreshCw className={`h-3 w-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-              {showAdvanced ? 'Hide' : 'Show'} Advanced Options
-            </button>
+              {/* Advanced Settings Toggle */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                aria-expanded={showAdvanced}
+                aria-controls="pack-advanced-options"
+                className="-ml-3"
+              >
+                <ChevronDown className={`transition-transform duration-normal ease-standard ${showAdvanced ? 'rotate-180' : ''}`} strokeWidth={1.5} aria-hidden="true" />
+                {showAdvanced ? 'Hide' : 'Show'} advanced options
+              </Button>
 
-            {showAdvanced && (
-              <div className="space-y-3 pt-3 border-t border-border/30">
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium flex items-center gap-2"><Sparkles className="h-3 w-3" />Style Influences (max 3)</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {STYLE_INFLUENCES.map((influence) => (
-                      <Badge key={influence} variant={selectedInfluences.includes(influence) ? "default" : "outline"} className="cursor-pointer text-xs" onClick={() => toggleInfluence(influence)}>
-                        {influence}
-                      </Badge>
-                    ))}
+              {showAdvanced && (
+                <div id="pack-advanced-options" className="space-y-4">
+                  <div className="space-y-2" role="group" aria-labelledby="pack-influences-label">
+                    <div className="flex items-center justify-between gap-2">
+                      <Label id="pack-influences-label" asChild>
+                        <span>Style influences</span>
+                      </Label>
+                      <span className="text-caption text-muted-foreground tabular-nums">{selectedInfluences.length}/3</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {STYLE_INFLUENCES.map((influence) => (
+                        <Badge
+                          key={influence}
+                          variant="default"
+                          role="checkbox"
+                          aria-checked={selectedInfluences.includes(influence)}
+                          tabIndex={0}
+                          className={chipClass(selectedInfluences.includes(influence))}
+                          onClick={() => toggleInfluence(influence)}
+                        >
+                          {selectedInfluences.includes(influence) && <Check aria-hidden="true" />}
+                          {influence}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2" role="group" aria-labelledby="pack-lighting-label">
+                    <Label id="pack-lighting-label" asChild>
+                      <span>Lighting</span>
+                    </Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {LIGHTING_PRESETS.map((preset) => (
+                        <Badge
+                          key={preset}
+                          variant="default"
+                          role="radio"
+                          aria-checked={lightingPreference === preset}
+                          tabIndex={0}
+                          className={chipClass(lightingPreference === preset)}
+                          onClick={() => setLightingPreference(lightingPreference === preset ? "" : preset)}
+                        >
+                          {lightingPreference === preset && <Check aria-hidden="true" />}
+                          {preset}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2" role="group" aria-labelledby="pack-palette-label">
+                    <Label id="pack-palette-label" asChild>
+                      <span>Color palette</span>
+                    </Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {COLOR_PALETTES.map((palette) => (
+                        <Badge
+                          key={palette}
+                          variant="default"
+                          role="radio"
+                          aria-checked={colorPalette === palette}
+                          tabIndex={0}
+                          className={chipClass(colorPalette === palette)}
+                          onClick={() => setColorPalette(colorPalette === palette ? "" : palette)}
+                        >
+                          {colorPalette === palette && <Check aria-hidden="true" />}
+                          {palette}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
+              )}
+            </section>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium flex items-center gap-2"><Sun className="h-3 w-3" />Lighting Preference</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {LIGHTING_PRESETS.map((preset) => (
-                      <Badge key={preset} variant={lightingPreference === preset ? "default" : "outline"} className="cursor-pointer text-xs" onClick={() => setLightingPreference(lightingPreference === preset ? "" : preset)}>
-                        {preset}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium flex items-center gap-2"><Palette className="h-3 w-3" />Color Palette</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {COLOR_PALETTES.map((palette) => (
-                      <Badge key={palette} variant={colorPalette === palette ? "default" : "outline"} className="cursor-pointer text-xs" onClick={() => setColorPalette(colorPalette === palette ? "" : palette)}>
-                        {palette}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+            {/* PROMPT DIRECTION */}
+            <section className="space-y-1.5" aria-labelledby="pack-custom-prompt-heading">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="pack-custom-prompt" id="pack-custom-prompt-heading">Prompt direction</Label>
+                <span className="text-caption text-muted-foreground">Optional</span>
               </div>
-            )}
-          </div>
-
-          {/* Custom Prompt Direction */}
-          <div className="bg-accent/50 rounded-xl p-4 space-y-3">
-            <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-              <Wand2 className="h-3.5 w-3.5" />
-              Custom Prompt Direction (Optional)
-            </Label>
-            <Textarea
-              value={customPrompt}
-              onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder="Write your own prompt style/tone here. AI will generate scene prompts following this direction. Example: 'elegant boudoir style, soft fabrics, warm intimate lighting, artistic poses...'"
-              className="min-h-24 resize-none text-sm"
-              disabled={isGenerating}
-            />
-            <p className="text-[10px] text-muted-foreground">
-              Bu alanı doldurursanız AI tüm sahneleri bu yönlendirmeye göre üretir. Boş bırakırsanız seçili protokolün varsayılan stili kullanılır.
-            </p>
-          </div>
-          <div className="bg-accent/50 rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <Label className="text-xs font-medium">Auto-Render Images</Label>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    Automatically generate images for each scene after pack creation
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={autoRender}
-                onCheckedChange={setAutoRender}
+              <Textarea
+                id="pack-custom-prompt"
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder="Write your own prompt style/tone here. AI will generate scene prompts following this direction. Example: 'elegant boudoir style, soft fabrics, warm intimate lighting, artistic poses...'"
+                className="min-h-24"
                 disabled={isGenerating}
+                aria-describedby="pack-custom-prompt-help"
               />
-            </div>
+              <p id="pack-custom-prompt-help" className="text-caption text-muted-foreground">
+                Bu alanı doldurursanız AI tüm sahneleri bu yönlendirmeye göre üretir. Boş bırakırsanız seçili protokolün varsayılan stili kullanılır.
+              </p>
+            </section>
 
-            {autoRender && (
-              <div className="flex items-center gap-3 flex-wrap pt-3 border-t border-border/30">
-                <div className="flex items-center gap-2">
-                  <Label className="text-[11px] font-medium whitespace-nowrap text-muted-foreground">Model:</Label>
-                  <Select value={renderModel} onValueChange={setRenderModel} disabled={isGenerating}>
-                    <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {RENDER_MODELS.map((m) => (
-                        <SelectItem key={m.value} value={m.value}>
-                          <span className="font-medium">{m.label}</span>
-                          <span className="text-muted-foreground ml-1">— {m.description}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            {/* OPTIONS: Auto-render */}
+            <section className="space-y-3" aria-labelledby="pack-autorender-heading">
+              <Label asChild>
+                <span>Options</span>
+              </Label>
+              <div className="flex items-center justify-between gap-3 bg-control rounded-md px-3 min-h-control-md">
+                <div className="flex items-center gap-2 min-w-0">
+                  <ImageIcon className="size-4 text-muted-foreground shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                  <label htmlFor="pack-auto-render" id="pack-autorender-heading" className="text-label-md text-foreground truncate cursor-pointer">
+                    Auto-render images
+                  </label>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <Label className="text-[11px] font-medium whitespace-nowrap text-muted-foreground">Ratio:</Label>
-                  <Select value={renderAspectRatio} onValueChange={setRenderAspectRatio} disabled={isGenerating}>
-                    <SelectTrigger className="w-20 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ASPECT_RATIOS.map((ar) => (
-                        <SelectItem key={ar} value={ar}>{ar}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Label className="text-[11px] font-medium whitespace-nowrap text-muted-foreground">Res:</Label>
-                  <Select value={renderResolution} onValueChange={setRenderResolution} disabled={isGenerating}>
-                    <SelectTrigger className="w-20 h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1K">1K</SelectItem>
-                      <SelectItem value="2K">2K</SelectItem>
-                      <SelectItem value="4K">4K</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Switch
+                  id="pack-auto-render"
+                  checked={autoRender}
+                  onCheckedChange={setAutoRender}
+                  disabled={isGenerating}
+                />
               </div>
-            )}
+              <p className="text-caption text-muted-foreground">Automatically generate images for each scene after pack creation</p>
+
+              {autoRender && (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pack-render-model">Model</Label>
+                    <Select value={renderModel} onValueChange={setRenderModel} disabled={isGenerating}>
+                      <SelectTrigger id="pack-render-model" className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {RENDER_MODELS.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>
+                            <span className="font-medium">{m.label}</span>
+                            <span className="text-muted-foreground ml-1">— {m.description}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pack-render-ratio">Aspect ratio</Label>
+                      <Select value={renderAspectRatio} onValueChange={setRenderAspectRatio} disabled={isGenerating}>
+                        <SelectTrigger id="pack-render-ratio" className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ASPECT_RATIOS.map((ar) => (
+                            <SelectItem key={ar} value={ar}>{ar}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pack-render-resolution">Resolution</Label>
+                      <Select value={renderResolution} onValueChange={setRenderResolution} disabled={isGenerating}>
+                        <SelectTrigger id="pack-render-resolution" className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1K">1K</SelectItem>
+                          <SelectItem value="2K">2K</SelectItem>
+                          <SelectItem value="4K">4K</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
           </div>
 
-          {/* Generate Button */}
-          <Button
-            onClick={handleGenerate}
-            disabled={isGenerating || (inputMode === "image" ? images.filter(i => i.status === 'pending' || i.status === 'error').length === 0 : !textPrompt.trim())}
-            className="w-full h-10 text-sm font-medium rounded-xl"
-            size="lg"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                {generationPhase === "creating-pack" 
-                  ? `Creating Visual Universe${generatingCount > 1 ? `s (${completedCount}/${generatingCount})` : ''}...`
-                  : `Rendering Images (${totalRenderCompleted}/${totalRenderScenes})...`
-                }
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-5 w-5" />
-                {inputMode === "image" 
-                  ? `Generate ${images.filter(i => i.status === 'pending' || i.status === 'error').length} Pack(s) (${sceneCount} scenes each)`
-                  : `Generate Style Pack (${sceneCount} scenes)`
-                }
-                {autoRender && " + Render"}
-              </>
-            )}
-          </Button>
-
-          {/* Phase 2: Render Progress */}
-          {generationPhase === "rendering" && renderProgress.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5">
-                  <ImageIcon className="h-3 w-3 animate-pulse text-primary" />
-                  Phase 2: Rendering images... {totalRenderCompleted} / {totalRenderScenes}
-                </span>
-                <span>{Math.round(renderPercent)}%</span>
+          {/* Sticky Generate — single black primary */}
+          <div className="sticky bottom-0 bg-card/95 backdrop-blur p-3 safe-bottom space-y-2 rounded-b-lg">
+            {/* Phase 2: Render Progress */}
+            {generationPhase === "rendering" && renderProgress.length > 0 && (
+              <div className="space-y-1.5" aria-live="polite">
+                <div className="flex items-center justify-between text-caption">
+                  <span className="flex items-center gap-1.5 text-foreground">
+                    <Loader2 className="size-3.5 animate-spin" strokeWidth={1.5} aria-hidden="true" />
+                    Rendering images… {totalRenderCompleted} / {totalRenderScenes}
+                  </span>
+                  <span className="text-muted-foreground tabular-nums">{Math.round(renderPercent)}%</span>
+                </div>
+                <Progress value={renderPercent} className="h-1.5" />
               </div>
-              <Progress value={renderPercent} className="h-1" />
+            )}
+
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleGenerate}
+              disabled={isGenerating || (inputMode === "image" ? images.filter(i => i.status === 'pending' || i.status === 'error').length === 0 : !textPrompt.trim())}
+              fullWidth
+              size="lg"
+              aria-busy={isGenerating || undefined}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
+                  {generationPhase === "creating-pack"
+                    ? `Creating Visual Universe${generatingCount > 1 ? `s (${completedCount}/${generatingCount})` : ''}...`
+                    : `Rendering Images (${totalRenderCompleted}/${totalRenderScenes})...`
+                  }
+                </>
+              ) : (
+                <>
+                  {inputMode === "image"
+                    ? `Generate ${images.filter(i => i.status === 'pending' || i.status === 'error').length} Pack(s) (${sceneCount} scenes each)`
+                    : `Generate Style Pack (${sceneCount} scenes)`
+                  }
+                  {autoRender && " + Render"}
+                  <Sparkles strokeWidth={1.5} aria-hidden="true" />
+                </>
+              )}
+            </Button>
+          </div>
+        </aside>
+
+        {/* ===== Results feed ===== */}
+        <section className="flex-1 min-w-0 md:min-h-0 md:overflow-y-auto space-y-3" aria-label="Results">
+          {/* Feed header: counts */}
+          <div className="flex items-center justify-between gap-2 flex-wrap px-1">
+            <h2 className="text-heading-md text-foreground">Results</h2>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {images.length > 0 && (
+                <>
+                  <Badge variant="default">
+                    <ImageIcon aria-hidden="true" />
+                    {images.length} images
+                  </Badge>
+                  {savedCount > 0 && (
+                    <Badge variant="success">
+                      <CheckCircle2 aria-hidden="true" />
+                      {savedCount} saved
+                    </Badge>
+                  )}
+                  {errorCount > 0 && (
+                    <Badge variant="danger">
+                      <XCircle aria-hidden="true" />
+                      {errorCount} failed
+                    </Badge>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Empty state */}
+          {renderProgress.length === 0 && generatedPacks.length === 0 && (
+            <div className="bg-app rounded-lg p-4 min-h-[280px] flex flex-col items-center justify-center text-center gap-2">
+              <Layers className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+              <h3 className="text-heading-md text-foreground">No packs yet</h3>
+              <p className="text-body-sm text-muted-foreground">
+                {pendingOrErrorCount > 0
+                  ? `${pendingOrErrorCount} reference(s) ready — generate to start.`
+                  : "Add reference images or write a brief, then generate."}
+              </p>
             </div>
           )}
 
           {/* Render Results */}
           {renderProgress.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-3" aria-label="Render results">
               {renderProgress.map((rp) => (
-                <div key={rp.packId} className="bg-accent/50 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-medium">{rp.packName}</Label>
-                    <span className="text-[10px] text-muted-foreground">
-                      {rp.completedScenes - rp.failedScenes}/{rp.totalScenes} rendered
-                      {rp.failedScenes > 0 && <span className="text-destructive ml-1">({rp.failedScenes} failed)</span>}
-                    </span>
+                <article key={rp.packId} className="bg-app rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h3 className="text-label-md text-foreground truncate min-w-0 flex-1">{rp.packName}</h3>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="default">{rp.totalScenes} scenes</Badge>
+                      <Badge variant="default">{renderAspectRatio}</Badge>
+                      <Badge variant="default">{renderResolution}</Badge>
+                      <span className="text-caption text-muted-foreground tabular-nums">
+                        {rp.completedScenes - rp.failedScenes}/{rp.totalScenes} rendered
+                      </span>
+                      {rp.failedScenes > 0 && (
+                        <Badge variant="danger">
+                          <XCircle aria-hidden="true" />
+                          {rp.failedScenes} failed
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                  <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 list-none m-0 p-0">
                     {rp.sceneResults.map((sr) => (
-                      <div key={sr.sceneId} className="relative aspect-[4/5] rounded-lg overflow-hidden border border-border/50 bg-card">
+                      <li key={sr.sceneId} className="relative aspect-[4/5] rounded-md overflow-hidden bg-control">
                         {sr.status === 'success' && sr.imageUrl ? (
                           <img src={sr.imageUrl} alt={`Scene ${sr.sceneId}`} className="w-full h-full object-cover" />
                         ) : sr.status === 'rendering' ? (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          <div className="w-full h-full skeleton flex items-center justify-center" aria-label="Rendering" role="img">
+                            <Loader2 className="size-4 animate-spin text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
                           </div>
                         ) : sr.status === 'error' ? (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <X className="h-4 w-4 text-destructive" />
+                          <div className="w-full h-full flex items-center justify-center bg-danger-bg" aria-label="Render failed" role="img">
+                            <XCircle className="size-5 text-destructive" strokeWidth={1.5} aria-hidden="true" />
                           </div>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-[10px] text-muted-foreground">{sr.sceneId}</span>
+                            <span className="text-caption text-tertiary-foreground">{sr.sceneId}</span>
                           </div>
                         )}
-                      </div>
+                      </li>
                     ))}
-                  </div>
-                </div>
+                  </ul>
+                </article>
               ))}
             </div>
           )}
 
           {/* Generated Packs */}
           {generatedPacks.length > 0 && renderProgress.length === 0 && (
-            <div className="bg-accent/50 rounded-xl p-4 space-y-3">
-              <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Generated Packs ({generatedPacks.length})</Label>
-              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+            <article className="bg-app rounded-lg p-4 space-y-3" aria-labelledby="pack-generated-heading">
+              <div className="flex items-center justify-between gap-2">
+                <h3 id="pack-generated-heading" className="text-label-md text-foreground truncate">Generated packs</h3>
+                <span className="text-caption text-muted-foreground tabular-nums">{generatedPacks.length}</span>
+              </div>
+              <ul className="space-y-0.5 list-none m-0 p-0">
                 {generatedPacks.map((gen) => (
-                  <div
+                  <li
                     key={gen.id}
-                    className="flex items-center justify-between p-2.5 rounded-lg bg-card border border-border/50"
+                    className="flex items-center justify-between gap-3 min-h-control-md px-2 py-1 rounded-md bg-card hover:bg-control-hover transition-colors duration-fast ease-standard"
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
                       {gen.saved ? (
-                        <Check className="h-3.5 w-3.5 text-green-500" />
+                        <CheckCircle2 className="size-4 text-success shrink-0" strokeWidth={1.5} aria-label="Saved" role="img" />
                       ) : (
-                        <X className="h-3.5 w-3.5 text-destructive" />
+                        <XCircle className="size-4 text-destructive shrink-0" strokeWidth={1.5} aria-label="Not saved" role="img" />
                       )}
-                      <div>
-                        <p className="text-xs font-medium">{getPackName(gen.pack)}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {getSceneCount(gen.pack)} scenes • {gen.pack.meta.category}
+                      <div className="min-w-0">
+                        <p className="text-label-md text-foreground truncate">{getPackName(gen.pack)}</p>
+                        <p className="text-caption text-muted-foreground truncate">
+                          {getSceneCount(gen.pack)} scenes · {gen.pack.meta.category}
                         </p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-6 text-xs rounded-lg" onClick={() => navigate("/")}>
+                    <Button type="button" variant="ghost" size="sm" className="shrink-0" onClick={() => navigate("/")}>
                       View
                     </Button>
-                  </div>
+                  </li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </article>
           )}
-        </div>
+        </section>
       </main>
     </AppLayout>
   );
 }
+
+// TODO(magnific): Style influence / lighting / palette chips are clickable <Badge>s (div) with role + tabIndex added;
+// they need onKeyDown (Enter/Space) handlers to be fully keyboard operable, which is a logic change.
+// TODO(magnific): The Generate button label mixes Title Case ("Generate Style Pack", "Creating Visual Universe");
+// left as-is because the text is built from template strings tied to state.

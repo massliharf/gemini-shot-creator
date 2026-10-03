@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { SceneWithStatus } from "@/types/pack";
 import { Button } from "@/components/ui/button";
-import { Download, RefreshCw, Play, Image as ImageIcon, Expand, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Download, RefreshCw, Play, Image as ImageIcon, Expand, XCircle } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { FullscreenImageView } from "./FullscreenImageView";
 import { SmartImage } from "@/components/SmartImage";
@@ -66,6 +67,10 @@ export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridPr
     setRegenerateConfirm({ open: false, sceneId: null });
   };
 
+  // Hover actions sit on a translucent white chip over the photo (conventions §4/§5).
+  const overlayIconButtonClass =
+    "bg-card/90 hover:bg-card text-foreground backdrop-blur-sm";
+
   return (
     <>
       <RegenerateConfirmDialog
@@ -76,7 +81,7 @@ export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridPr
       />
 
       <div className="w-full h-full overflow-auto p-4">
-        <div className="flex flex-wrap gap-3">
+        <ul className="flex flex-wrap gap-4 list-none m-0 p-0">
           {shots.map((scene) => {
             const sceneId = getSceneId(scene);
             const sceneName = getSceneName(scene);
@@ -86,9 +91,9 @@ export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridPr
             const isError = scene.status === "error";
 
             return (
-              <div
+              <li
                 key={sceneId}
-                className="group relative bg-secondary rounded-2xl overflow-hidden flex-shrink-0 cursor-pointer"
+                className="group relative bg-card text-card-foreground rounded-md overflow-hidden flex-shrink-0 cursor-pointer transition-colors duration-fast ease-standard focus-within:ring-2 focus-within:ring-ring"
                 style={{ minWidth: "280px", maxWidth: "420px", flex: "1 1 300px" }}
                 onClick={() => hasImage && handleOpenFullscreen(scene)}
               >
@@ -102,109 +107,117 @@ export const ImageGrid = ({ shots, onGenerateShot, onDownloadShot }: ImageGridPr
                       maxRetries={3}
                     />
 
-                    {/* Hover overlay with actions */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    {/* Overlay with actions: always visible on touch, hover/focus on desktop */}
+                    <div className="absolute inset-0 bg-foreground/25 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-within:opacity-100 transition-opacity duration-fast ease-standard">
                       {/* Scene info */}
                       <div className="absolute top-2 left-2">
-                        <span className="text-white/80 text-xs font-medium">#{sceneId}</span>
-                        {sceneName && (
-                          <p className="text-white/60 text-[10px] truncate max-w-[120px]">{sceneName}</p>
-                        )}
+                        <Badge variant="default" className="bg-card/90 backdrop-blur-sm max-w-[180px]">
+                          <span className="shrink-0">#{sceneId}</span>
+                          {sceneName && (
+                            <span className="truncate text-muted-foreground">{sceneName}</span>
+                          )}
+                        </Badge>
                       </div>
 
                       {/* Expand icon */}
                       <div className="absolute top-2 right-2">
                         <Button
-                          size="icon"
+                          type="button"
+                          size="icon-sm"
                           variant="ghost"
-                          className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white rounded-lg backdrop-blur-sm"
+                          className={overlayIconButtonClass}
+                          aria-label="Tam ekran görüntüle"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenFullscreen(scene);
                           }}
                         >
-                          <Expand className="w-3.5 h-3.5" />
+                          <Expand strokeWidth={1.5} aria-hidden="true" />
                         </Button>
                       </div>
 
                       {/* Bottom actions */}
                       <div className="absolute bottom-2 right-2 flex items-center gap-1">
                         <Button
-                          size="icon"
+                          type="button"
+                          size="icon-sm"
                           variant="ghost"
-                          className="h-7 w-7 bg-amber-600/80 hover:bg-amber-600 text-white rounded-lg backdrop-blur-sm"
+                          className={overlayIconButtonClass}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleRegenerateClick(sceneId, true);
                           }}
                           title="Regenerate (will replace current image)"
+                          aria-label="Regenerate (will replace current image)"
                         >
-                          <RefreshCw className="w-3.5 h-3.5" />
+                          <RefreshCw strokeWidth={1.5} aria-hidden="true" />
                         </Button>
                         <Button
-                          size="icon"
+                          type="button"
+                          size="icon-sm"
                           variant="ghost"
-                          className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white rounded-lg backdrop-blur-sm"
+                          className={overlayIconButtonClass}
+                          aria-label="Download"
                           onClick={(e) => {
                             e.stopPropagation();
                             onDownloadShot(sceneId);
                           }}
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          <Download strokeWidth={1.5} aria-hidden="true" />
                         </Button>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div className="w-full aspect-square flex flex-col items-center justify-center gap-2 p-3">
+                  <div className="relative w-full aspect-square bg-control flex flex-col items-center justify-center gap-3 p-4">
                     {isGenerating ? (
                       <>
-                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                        <p className="text-xs text-muted-foreground">Generating...</p>
+                        <div className="skeleton absolute inset-0" aria-hidden="true" />
+                        <Badge variant="default" className="relative">
+                          <Loader2 className="animate-spin" aria-hidden="true" />
+                          Generating...
+                        </Badge>
                       </>
                     ) : (
                       <>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isError ? 'bg-destructive/10' : 'bg-muted/50'}`}>
-                          {isError ? (
-                            <AlertTriangle className="w-5 h-5 text-destructive" />
-                          ) : (
-                            <ImageIcon className="w-5 h-5 text-muted-foreground/40" />
-                          )}
-                        </div>
+                        {isError ? (
+                          <XCircle className="size-6 text-destructive" strokeWidth={1.5} aria-hidden="true" />
+                        ) : (
+                          <ImageIcon className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+                        )}
                         <div className="text-center">
-                          <p className="text-xs text-muted-foreground">#{sceneId}</p>
+                          <p className="text-heading-xs text-foreground">#{sceneId}</p>
                           {sceneName && (
-                            <p className="text-[10px] text-muted-foreground/60 truncate max-w-[100px]">{sceneName}</p>
+                            <p className="text-body-sm text-muted-foreground truncate max-w-[200px]">{sceneName}</p>
                           )}
                         </div>
                         {(isIdle || isError) && (
                           <Button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               onGenerateShot(sceneId);
                             }}
                             size="sm"
-                            className={`gap-1.5 h-7 text-xs border-0 ${
-                              isError 
-                                ? 'bg-destructive/10 text-destructive hover:bg-destructive/20' 
-                                : 'bg-primary/10 text-primary hover:bg-primary/20'
-                            }`}
+                            variant={isError ? "danger-outline" : "secondary"}
                           >
-                            <Play className="w-3 h-3" />
-                            {isError ? 'Retry' : 'Generate'}
+                            <Play strokeWidth={1.5} aria-hidden="true" />
+                            {isError ? "Retry" : "Generate"}
                           </Button>
                         )}
                         {isError && (
-                          <p className="text-[10px] text-destructive px-2 text-center line-clamp-2">{scene.error}</p>
+                          <p className="text-caption text-danger-text px-2 text-center line-clamp-2" role="alert">
+                            {scene.error}
+                          </p>
                         )}
                       </>
                     )}
                   </div>
                 )}
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </div>
 
       {/* Fullscreen viewer */}

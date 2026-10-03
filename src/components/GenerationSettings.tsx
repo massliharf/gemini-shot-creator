@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { ImageUploader } from "./ImageUploader";
 import { ModelSelector } from "./ModelSelector";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface GenerationSettingsProps {
   aspectRatio: string;
@@ -36,30 +37,30 @@ export const GenerationSettings = ({
   selectedModel,
   onModelChange,
 }: GenerationSettingsProps) => {
-  
+
   return (
-    <Card className="bg-card border-border p-1.5 space-y-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-[9px] font-medium text-muted-foreground uppercase">Ref</span>
-        <div className="flex items-center gap-1">
-          <span className="text-[8px] text-muted-foreground">Couple</span>
+    <Card className="p-4 md:p-7 space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <Label>Reference</Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="couple-mode-switch">Couple</Label>
           <Switch
+            id="couple-mode-switch"
             checked={coupleMode}
             onCheckedChange={onCoupleModeChange}
-            className="scale-[0.6]"
           />
         </div>
       </div>
-      
+
       {coupleMode ? (
-        <div className="grid grid-cols-2 gap-1">
+        <div className="flex items-center gap-2">
           <ImageUploader onImageUpload={onImageUpload} onImageClear={onImageClear} previewUrl={previewUrl} />
           <ImageUploader onImageUpload={onSecondImageUpload} onImageClear={onSecondImageClear} previewUrl={secondPreviewUrl} />
         </div>
       ) : (
         <ImageUploader onImageUpload={onImageUpload} onImageClear={onImageClear} previewUrl={previewUrl} />
       )}
-      
+
       <ModelSelector
         selectedModel={selectedModel}
         onModelChange={onModelChange}

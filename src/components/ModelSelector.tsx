@@ -83,24 +83,18 @@ export const ModelSelector = ({
   const isGemini3Pro = selectedModel === "gemini-3-pro-image-preview" || selectedModel === "gemini-3.1-flash-image-preview";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Model Select */}
-      <div>
-        <Label className="text-[10px] text-muted-foreground mb-1 block">Model</Label>
+      <div className="space-y-2">
+        <Label htmlFor="model-select">Model</Label>
         <Select value={selectedModel} onValueChange={onModelChange}>
-          <SelectTrigger className="h-8 text-[11px]">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
-              <SelectValue />
-            </div>
+          <SelectTrigger id="model-select">
+            <SelectValue />
           </SelectTrigger>
-          <SelectContent className="z-[100] bg-popover border-border">
+          <SelectContent>
             {MODELS.map((model) => (
-              <SelectItem key={model.value} value={model.value} className="text-[11px]">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-green-500" />
-                  <span>{model.label}</span>
-                </div>
+              <SelectItem key={model.value} value={model.value}>
+                {model.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -108,23 +102,23 @@ export const ModelSelector = ({
       </div>
 
       {/* Aspect Ratio Select */}
-      <div>
-        <Label className="text-[10px] text-muted-foreground mb-1 block">Aspect Ratio</Label>
+      <div className="space-y-2">
+        <Label htmlFor="aspect-ratio-select">Aspect ratio</Label>
         <Select value={aspectRatio} onValueChange={onAspectRatioChange}>
-          <SelectTrigger className="h-8 text-[11px]">
+          <SelectTrigger id="aspect-ratio-select">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="z-[100] bg-popover border-border">
+          <SelectContent>
             {ASPECT_RATIOS.map((ratio) => {
               const size = isGemini3Pro
                 ? (PRO_SIZES[ratio.value]?.[resolution] ?? PRO_SIZES["1:1"]["1K"])
                 : (FLASH_SIZES[ratio.value] ?? FLASH_SIZES["1:1"]);
 
               return (
-                <SelectItem key={ratio.value} value={ratio.value} className="text-[11px]">
+                <SelectItem key={ratio.value} value={ratio.value}>
                   <div className="flex items-center justify-between gap-3">
                     <span>{ratio.label}</span>
-                    <span className="text-muted-foreground">{formatSize(size)}</span>
+                    <span className="text-caption text-tertiary-foreground tabular-nums">{formatSize(size)}</span>
                   </div>
                 </SelectItem>
               );
@@ -135,15 +129,15 @@ export const ModelSelector = ({
 
       {/* Resolution Select - only for Gemini 3 Pro */}
       {isGemini3Pro && (
-        <div>
-          <Label className="text-[10px] text-muted-foreground mb-1 block">Resolution</Label>
+        <div className="space-y-2">
+          <Label htmlFor="resolution-select">Resolution</Label>
           <Select value={resolution} onValueChange={onResolutionChange}>
-            <SelectTrigger className="h-8 text-[11px]">
+            <SelectTrigger id="resolution-select">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[100] bg-popover border-border">
+            <SelectContent>
               {RESOLUTIONS.map((res) => (
-                <SelectItem key={res.value} value={res.value} className="text-[11px]">
+                <SelectItem key={res.value} value={res.value}>
                   {res.label}
                 </SelectItem>
               ))}

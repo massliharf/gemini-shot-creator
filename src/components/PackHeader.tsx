@@ -1,7 +1,8 @@
 import { PackFile, getPackName, getPackCategory, getPackGender, getSceneCount } from "@/types/pack";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { RefreshCw, Trash2, Download } from "lucide-react";
+import { RefreshCw, Trash2, Download, CheckCircle2, Tag, User } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,63 +46,74 @@ export const PackHeader = ({
   const sceneCount = getSceneCount(pack);
 
   return (
-    <div className="flex items-center gap-4 px-5 py-3 border-b border-border/40">
-      <div className="flex-1 min-w-0">
-        <h1 className="text-sm font-semibold truncate">{packName}</h1>
-        <p className="text-xs text-muted-foreground">
-          {category.charAt(0).toUpperCase() + category.slice(1)} · {genderLabels[gender] || gender} · {completedCount}/{sceneCount}
-        </p>
+    <header className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4 px-4 md:px-8 pt-4 pb-3 bg-background">
+      <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h1 className="text-heading-md truncate">{packName}</h1>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge>
+            <Tag strokeWidth={1.5} aria-hidden="true" />
+            {category.charAt(0).toUpperCase() + category.slice(1)}
+          </Badge>
+          <Badge>
+            <User strokeWidth={1.5} aria-hidden="true" />
+            {genderLabels[gender] || gender}
+          </Badge>
+          <Badge variant={completedCount > 0 && completedCount === sceneCount ? "success" : "default"}>
+            <CheckCircle2 strokeWidth={1.5} aria-hidden="true" />
+            {completedCount}/{sceneCount} done
+          </Badge>
+        </div>
       </div>
 
-      <div className="flex items-center gap-0.5">
-        {onRegenerate && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-lg"
-                onClick={onRegenerate}
-                disabled={isGenerating}
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Regenerate all</TooltipContent>
-          </Tooltip>
+      <div className="flex items-center gap-2 flex-wrap md:flex-nowrap md:justify-end">
+        {onDownload && completedCount > 0 && (
+          <Button variant="outline" size="lg" className="md:h-control-md md:text-label-md flex-1 md:flex-none" onClick={onDownload}>
+            <Download strokeWidth={1.5} aria-hidden="true" />
+            Download ZIP
+          </Button>
         )}
 
-        {onDownload && completedCount > 0 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onDownload}>
-                <Download className="w-3.5 h-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Download as ZIP</TooltipContent>
-          </Tooltip>
+        {onRegenerate && (
+          <Button
+            variant="outline"
+            size="lg"
+            className="md:h-control-md md:text-label-md flex-1 md:flex-none"
+            onClick={onRegenerate}
+            disabled={isGenerating}
+            aria-busy={isGenerating || undefined}
+          >
+            <RefreshCw className={isGenerating ? "animate-spin" : ""} strokeWidth={1.5} aria-hidden="true" />
+            Regenerate all
+          </Button>
         )}
 
         {onDelete && (
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive">
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-2xl">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-control-lg w-control-lg md:h-control-md md:w-control-md text-muted-foreground hover:text-destructive hover:bg-danger-bg"
+                    aria-label="Delete pack"
+                  >
+                    <Trash2 strokeWidth={1.5} aria-hidden="true" />
+                  </Button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Delete pack</TooltipContent>
+            </Tooltip>
+            <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-base">Delete Pack?</AlertDialogTitle>
-                <AlertDialogDescription className="text-sm">
+                <AlertDialogTitle>Delete pack?</AlertDialogTitle>
+                <AlertDialogDescription>
                   "{packName}" and all its images will be permanently deleted.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="rounded-lg">Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={onDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg"
-                >
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete} className={buttonVariants({ variant: "danger" })}>
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -109,6 +121,9 @@ export const PackHeader = ({
           </AlertDialog>
         )}
       </div>
-    </div>
+    </header>
   );
 };
+
+// TODO(magnific): "Regenerate all" and "Download ZIP" are both `outline` because the floating BottomBar "Generate" is the screen's single black primary (§4 "one primary per screen").
+// TODO(magnific): Regenerate-all should ideally reuse RegenerateConfirmDialog when images exist; that needs new state, so it is left as-is.

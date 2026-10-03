@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getSceneCount, hasScenes } from "@/types/pack";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SmartImage } from "@/components/SmartImage";
-import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, CheckCircle2, Circle, XCircle, Image as ImageIcon, AlertCircle, Plus } from "lucide-react";
+import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, CheckCircle2, Circle, XCircle, Image as ImageIcon, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
@@ -82,37 +83,51 @@ const PackItem = ({
       onSelect();
     }
   };
-  return <div onClick={handleClick} className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all ${isSelected && !isSelectionMode ? "bg-secondary" : isChecked && isSelectionMode ? "bg-secondary" : "hover:bg-secondary/50"}`}>
+  const isActive = (isSelected && !isSelectionMode) || (isChecked && isSelectionMode);
+  return <li>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-pressed={isActive || undefined}
+        data-active={isActive || undefined}
+        onClick={handleClick}
+        className="nav-item min-h-touch md:min-h-control-md px-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+      >
+      {/* Selection checkbox (selection mode only) */}
+      {isSelectionMode && (
+        <Checkbox
+          checked={isChecked}
+          onClick={e => e.stopPropagation()}
+          onCheckedChange={onToggleCheck}
+          aria-label={`Select ${packName}`}
+          className="shrink-0"
+        />
+      )}
+
       {/* Thumbnail */}
-      <div className="w-11 h-11 rounded-lg bg-muted overflow-hidden flex-shrink-0 relative">
+      <div className="size-6 rounded-xs bg-control overflow-hidden flex-shrink-0 relative">
         {pack.thumbnailUrl ? (
           <SmartImage
             src={pack.thumbnailUrl}
-            alt={packName}
+            alt=""
             fit="cover"
             loading="lazy"
             className="w-full h-full"
           />
         ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
-            <ImageIcon className="w-5 h-5 text-muted-foreground/40" />
+          <div className="w-full h-full flex items-center justify-center" aria-hidden="true">
+            <ImageIcon className="size-3.5 text-tertiary-foreground" strokeWidth={1.5} />
           </div>
         )}
-        
-        {/* Selection checkbox overlay */}
-        {isSelectionMode && <div className="absolute inset-0 bg-foreground/30 flex items-center justify-center">
-            <Checkbox checked={isChecked} onClick={e => e.stopPropagation()} onCheckedChange={onToggleCheck} className="border-background data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
-          </div>}
       </div>
 
       {/* Pack Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{packName}</p>
-        <p className="text-xs text-muted-foreground">
-          {genderLabels[gender] || gender} · {pack.totalShots} Scenes
-        </p>
+      <span className="flex-1 min-w-0 truncate">{packName}</span>
+      <span className="text-caption text-tertiary-foreground shrink-0 tabular-nums whitespace-nowrap">
+        {genderLabels[gender] || gender} · {pack.totalShots}
+      </span>
       </div>
-    </div>;
+    </li>;
 };
 export const PackList = ({
   packs,
@@ -129,7 +144,7 @@ export const PackList = ({
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  
+
   // JSON Upload state
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [jsonText, setJsonText] = useState("");
@@ -264,7 +279,7 @@ export const PackList = ({
     });
     return groups;
   }, [filteredPacks]);
-  
+
   // Dynamic category order - includes all categories from packs
   const categoryOrder = useMemo(() => {
     const allCategories = Object.keys(groupedPacks);
@@ -273,95 +288,155 @@ export const PackList = ({
     const custom = allCategories.filter(c => !knownOrder.includes(c)).sort();
     return [...sorted, ...custom];
   }, [groupedPacks]);
-    return <div className="h-full min-h-0 flex flex-col bg-background overflow-hidden">
+
+  const toolbarIconButtonClass = "h-control-lg w-control-lg md:h-control-md md:w-control-md text-muted-foreground hover:text-foreground";
+    return <div className="h-full min-h-0 flex flex-col bg-card text-card-foreground overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-4 flex items-center justify-between">
-        <h2 className="font-semibold">Packs ({packs.length})</h2>
+      <div className="px-3 pt-3 pb-2 flex items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2 min-w-0">
+          <h2 className="text-heading-sm truncate">Packs</h2>
+          <span className="text-caption text-muted-foreground tabular-nums" aria-label={`${packs.length} packs`}>{packs.length}</span>
+        </div>
         {onOpenTextGen && (
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={onOpenTextGen} title="Text to Image">
-            <Plus className="w-4 h-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className={toolbarIconButtonClass} onClick={onOpenTextGen} aria-label="Text to image">
+                <Plus strokeWidth={1.5} aria-hidden="true" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Text to image</TooltipContent>
+          </Tooltip>
         )}
       </div>
 
       {/* Gender Filter Tabs */}
-      <div className="px-4 pb-2">
-        <div className="flex bg-accent p-0.5 rounded-lg">
-          {GENDER_FILTERS.map(filter => <button key={filter.value} onClick={() => setGenderFilter(filter.value)} className={`flex-1 text-xs py-1.5 px-2 rounded-md transition-colors font-medium ${genderFilter === filter.value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+      <div className="px-3 pb-2">
+        <div className="pill-tabs w-full" role="group" aria-label="Filter packs by gender">
+          {GENDER_FILTERS.map(filter => <button
+              key={filter.value}
+              type="button"
+              aria-pressed={genderFilter === filter.value}
+              onClick={() => setGenderFilter(filter.value)}
+              className="pill-tab flex-1 justify-center px-2 min-h-touch md:min-h-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
               {filter.label}
             </button>)}
         </div>
       </div>
 
       {/* Action Bar */}
-      <div className="px-4 pb-3 flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={() => setIsSelectionMode(!isSelectionMode)} title={isSelectionMode ? "Exit Selection" : "Select Multiple"}>
-          {isSelectionMode ? <SquareCheck className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
-        </Button>
+      <div className="px-3 pb-2 flex items-center gap-0.5 flex-wrap" role="toolbar" aria-label="Pack actions">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`${toolbarIconButtonClass} aria-pressed:bg-active aria-pressed:text-foreground`}
+              onClick={() => setIsSelectionMode(!isSelectionMode)}
+              aria-label={isSelectionMode ? "Exit selection" : "Select multiple"}
+              aria-pressed={isSelectionMode}
+            >
+              {isSelectionMode ? <SquareCheck strokeWidth={1.5} aria-hidden="true" /> : <Square strokeWidth={1.5} aria-hidden="true" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{isSelectionMode ? "Exit selection" : "Select multiple"}</TooltipContent>
+        </Tooltip>
 
         {isSelectionMode ? <>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={handleBatchDownload} disabled={selectedIds.size === 0} title="Download Selected">
-              <Download className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={handleBatchDelete} disabled={selectedIds.size === 0} title="Delete Selected">
-              <Trash2 className="w-4 h-4 text-destructive" />
-            </Button>
-          </> : <>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" onClick={onGenerateAllPacks} disabled={isGeneratingAll || packs.length === 0} title="Generate All">
-              {isGeneratingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Delete All" disabled={packs.length === 0}>
-                  <Trash2 className="w-4 h-4" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className={toolbarIconButtonClass} onClick={handleBatchDownload} disabled={selectedIds.size === 0} aria-label="Download selected">
+                  <Download strokeWidth={1.5} aria-hidden="true" />
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-2xl">
+              </TooltipTrigger>
+              <TooltipContent>Download selected</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className={`${toolbarIconButtonClass} hover:text-destructive hover:bg-danger-bg`} onClick={handleBatchDelete} disabled={selectedIds.size === 0} aria-label="Delete selected">
+                  <Trash2 strokeWidth={1.5} aria-hidden="true" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete selected</TooltipContent>
+            </Tooltip>
+            {selectedIds.size > 0 && (
+              <span className="ml-1 text-caption text-muted-foreground" aria-live="polite">{selectedIds.size} selected</span>
+            )}
+          </> : <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className={toolbarIconButtonClass} onClick={onGenerateAllPacks} disabled={isGeneratingAll || packs.length === 0} aria-label="Generate all" aria-busy={isGeneratingAll || undefined}>
+                  {isGeneratingAll ? <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" /> : <Play strokeWidth={1.5} aria-hidden="true" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Generate all</TooltipContent>
+            </Tooltip>
+            <AlertDialog>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className={toolbarIconButtonClass} aria-label="Delete all" disabled={packs.length === 0}>
+                      <Trash2 strokeWidth={1.5} aria-hidden="true" />
+                    </Button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Delete all</TooltipContent>
+              </Tooltip>
+              <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-base">Delete All Packs?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-sm">
+                  <AlertDialogTitle>Delete all packs?</AlertDialogTitle>
+                  <AlertDialogDescription>
                     All {packs.length} packs and their generated images will be permanently deleted.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="rounded-lg">Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={() => onDeleteMultiplePacks?.(packs.map(p => p.packId))}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg"
+                    className={buttonVariants({ variant: "danger" })}
                   >
-                    Delete All
+                    Delete all
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
             <AlertDialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg" title="Upload JSON" disabled={!onPacksLoad}>
-                  <Upload className="w-4 h-4" />
-                </Button>
-              </AlertDialogTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className={toolbarIconButtonClass} aria-label="Upload JSON" disabled={!onPacksLoad}>
+                      <Upload strokeWidth={1.5} aria-hidden="true" />
+                    </Button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Upload JSON</TooltipContent>
+              </Tooltip>
               <AlertDialogContent className="max-w-lg">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Paste JSON Pack</AlertDialogTitle>
-                  <AlertDialogDescription className="text-sm">
+                  <AlertDialogTitle>Paste JSON pack</AlertDialogTitle>
+                  <AlertDialogDescription>
                     Paste your JSON pack content below.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                
+
                 <div className="space-y-3">
+                  <label htmlFor="pack-json-input" className="sr-only">JSON pack content</label>
                   <textarea
+                    id="pack-json-input"
                     value={jsonText}
                     onChange={(e) => {
                       setJsonText(e.target.value);
                       setUploadError(null);
                     }}
                     placeholder='{"package_meta": {...}, "global_render_settings": {...}, "shots": [...]}'
-                    className="w-full h-48 p-3 text-sm font-mono bg-secondary border-0 rounded-lg focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
+                    className="w-full h-48 p-3 text-code font-mono bg-card text-foreground placeholder:text-tertiary-foreground rounded-md border border-border transition-colors duration-fast ease-standard hover:border-border-strong focus-visible:outline-none focus-visible:border-ring aria-[invalid=true]:border-destructive disabled:cursor-not-allowed disabled:text-tertiary-foreground resize-none"
                     disabled={isUploading}
+                    aria-invalid={uploadError ? true : undefined}
+                    aria-describedby={uploadError ? "pack-json-error" : undefined}
                   />
                   {uploadError && (
-                    <div className="flex items-center gap-2 text-destructive text-sm">
-                      <AlertCircle className="w-4 h-4" />
+                    <div id="pack-json-error" role="alert" className="flex items-center gap-2 text-destructive text-body-sm">
+                      <XCircle className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
                       <span>{uploadError}</span>
                     </div>
                   )}
@@ -370,18 +445,12 @@ export const PackList = ({
                 <AlertDialogFooter>
                   <AlertDialogCancel disabled={isUploading}>Cancel</AlertDialogCancel>
                   <Button
+                    variant="primary"
                     onClick={handleJsonUpload}
                     disabled={isUploading || !jsonText.trim()}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    loading={isUploading}
                   >
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      "Upload"
-                    )}
+                    {isUploading ? "Uploading..." : "Upload"}
                   </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -391,20 +460,23 @@ export const PackList = ({
 
       {/* Pack List */}
       <ScrollArea className="flex-1 min-h-0 overscroll-contain">
-        <div className="px-3 pb-3 space-y-4">
+        <div className="px-2 pb-3 space-y-4">
           {categoryOrder.map(category => {
           const categoryPacks = groupedPacks[category];
           if (!categoryPacks || categoryPacks.length === 0) return null;
-          return <div key={category}>
-                <h3 className="text-xs font-medium text-muted-foreground mb-2 px-1">
+          return <section key={category} aria-labelledby={`pack-category-${category}`}>
+                <h3 id={`pack-category-${category}`} className="text-overline text-muted-foreground mb-1 px-2">
                   {category.charAt(0).toUpperCase() + category.slice(1)}
                 </h3>
-                <div className="space-y-1">
+                <ul className="space-y-px" role="list">
                   {categoryPacks.map(pack => <PackItem key={pack.packId} pack={pack} isSelected={selectedPackId === pack.packId} onSelect={() => onSelectPack(pack.packId)} isSelectionMode={isSelectionMode} isChecked={selectedIds.has(pack.packId)} onToggleCheck={() => toggleSelection(pack.packId)} />)}
-                </div>
-              </div>;
+                </ul>
+              </section>;
         })}
         </div>
       </ScrollArea>
     </div>;
 };
+
+// TODO(magnific): PackItem row is a clickable div (role="button" tabIndex=0) — adding keyboard Enter/Space activation requires a new handler, left for a logic pass.
+// TODO(magnific): "Generate all" is an icon button in a toolbar; the Magnific pattern would prefer one visible primary button, but promoting it changes toolbar structure semantics beyond presentation.

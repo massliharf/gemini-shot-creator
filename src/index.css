@@ -1,102 +1,304 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================================
+   Magnific App — Token Layer (magnific.com/app referansından ölçülen değerler)
+   Karakter: nötr/gri, içerik öncelikli; siyah birincil aksiyon; pembe marka (oluştur/upgrade);
+   mavi odak; yüzen 16px köşeli kartlar; 12px/500 UI metni; kenarlıksız kontroller.
+   shadcn/Tailwind alias katmanı (--background, --primary …) Magnific semantic
+   token'larına HSL olarak bağlanmıştır; böylece mevcut utility sınıfları
+   (bg-background, text-muted-foreground …) sistemin renklerini alır.
+   ========================================================================= */
+
 @layer base {
   :root {
-    --background: 0 0% 99%;
-    --foreground: 0 0% 9%;
+    /* ---------- Primitive — Iris (marka) ---------- */
+    --iris-50: #F3F1FF; --iris-100: #E9E5FF; --iris-200: #D5CEFF; --iris-300: #B6A8FF;
+    --iris-400: #9277FF; --iris-500: #7549FA; --iris-600: #6528F0; --iris-700: #5718D4;
+    --iris-800: #4816AD; --iris-900: #3C158D; --iris-950: #230A5F;
+    /* ---------- Primitive — Neutral ---------- */
+    --neutral-0: #FFFFFF; --neutral-50: #FAFAFB; --neutral-100: #F4F4F6; --neutral-200: #E8E8EC;
+    --neutral-300: #D4D4DB; --neutral-400: #A8A8B3; --neutral-500: #7B7B88; --neutral-600: #5C5C69;
+    --neutral-700: #474753; --neutral-800: #2F2F39; --neutral-900: #1C1C24; --neutral-950: #111116;
+    /* ---------- Primitive — Status ---------- */
+    --green-50: #EFFCF4; --green-200: #B4EDCB; --green-300: #7FDDA8; --green-500: #22A862; --green-600: #16874E; --green-700: #146B41; --green-800: #145536; --green-950: #052718;
+    --amber-50: #FFFAEB; --amber-200: #FEDF89; --amber-300: #FEC84B; --amber-400: #FDB022; --amber-500: #F79009; --amber-800: #93370D; --amber-950: #4E1D09;
+    --red-50: #FEF3F2; --red-200: #FECDCA; --red-300: #FDA29B; --red-500: #F04438; --red-600: #D92D20; --red-700: #B42318; --red-800: #912018; --red-950: #55160C;
+    --blue-50: #EFF8FF; --blue-200: #B2DDFF; --blue-300: #84CAFF; --blue-500: #2E90FA; --blue-600: #1570EF; --blue-700: #175CD3; --blue-800: #1849A9; --blue-950: #102A56;
+    --teal-500: #14B8A6;
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    /* ---------- Semantic — Light ---------- */
+    --color-bg-canvas: var(--neutral-50);
+    --color-bg-surface: var(--neutral-0);
+    --color-bg-surface-raised: var(--neutral-0);
+    --color-bg-surface-sunken: var(--neutral-100);
+    --color-bg-subtle: var(--neutral-100);
+    --color-bg-muted: var(--neutral-200);
+    --color-bg-inverse: var(--neutral-900);
+    --color-bg-overlay: rgba(17,17,22,.48);
+    --color-text-primary: var(--neutral-900);
+    --color-text-secondary: var(--neutral-600);
+    --color-text-tertiary: var(--neutral-500);
+    --color-text-disabled: var(--neutral-400);
+    --color-text-inverse: var(--neutral-0);
+    --color-text-link: var(--iris-600);
+    --color-text-on-action: #FFFFFF;
+    --color-border-default: var(--neutral-200);
+    --color-border-strong: var(--neutral-300);
+    --color-border-subtle: var(--neutral-100);
+    --color-border-focus: var(--iris-500);
+    --color-action-primary-bg: var(--iris-600);
+    --color-action-primary-bg-hover: var(--iris-700);
+    --color-action-primary-bg-active: var(--iris-800);
+    --color-action-secondary-bg: var(--iris-50);
+    --color-action-secondary-text: var(--iris-700);
+    --color-success-bg: var(--green-50); --color-success-text: var(--green-700); --color-success-border: var(--green-200); --color-success-solid: var(--green-600);
+    --color-warning-bg: var(--amber-50); --color-warning-text: var(--amber-800); --color-warning-border: var(--amber-200); --color-warning-solid: var(--amber-500);
+    --color-danger-bg: var(--red-50); --color-danger-text: var(--red-700); --color-danger-border: var(--red-200); --color-danger-solid: var(--red-600);
+    --color-info-bg: var(--blue-50); --color-info-text: var(--blue-700); --color-info-border: var(--blue-200); --color-info-solid: var(--blue-600);
 
+    /* ---------- Alias katmanı (shadcn / Tailwind HSL) — Light ---------- */
+    /* Yüzeyler (Magnific App: zemin #F5F5F5 → çalışma alanı #FAFAFA → kart #FFF) */
+    --app: 0 0% 96.1%;                      /* #F5F5F5 kartların arkası */
+    --background: 0 0% 98%;                 /* #FAFAFA ana çalışma alanı */
+    --foreground: 0 0% 10.2%;               /* #1A1A1A birincil metin */
+    --card: 0 0% 100%;                      /* #FFFFFF rail, kart, menü */
+    --card-foreground: 0 0% 10.2%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 9%;
-
-    --muted: 0 0% 94.5%;
-    --muted-foreground: 0 0% 44%;
-
-    --accent: 0 0% 95%;
-    --accent-foreground: 0 0% 9%;
-
-    --destructive: 0 72% 51%;
+    --popover-foreground: 0 0% 10.2%;
+    --track: 0 0% 92.9%;                    /* #EDEDED segmented rayı */
+    --control: 0 0% 95.3%;                  /* ≈ rgba(115,115,115,.05) kontrol dolgusu */
+    --control-hover: 0 0% 93%;
+    --active: 0 0% 91.8%;                   /* ≈ rgba(115,115,115,.15) etkin öğe */
+    --sunken: 0 0% 95.3%;
+    --inverse: 0 0% 10.2%;
+    --inverse-foreground: 0 0% 100%;
+    /* Aksiyonlar */
+    --primary: 0 0% 10.2%;                  /* #1A1A1A siyah birincil buton */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 0 0% 18%;
+    --primary-active: 0 0% 5%;
+    --primary-disabled: 0 0% 89%;           /* #E3E3E3 pasif Generate */
+    --primary-disabled-foreground: 0 0% 38%;/* #616161 */
+    --brand: 329 100% 67.1%;                /* #FF57AE pembe: oluştur, upgrade, rozet */
+    --brand-foreground: 0 0% 5.9%;          /* #0F0F0F pembe üstü ikon koyu */
+    --brand-soft: 329 100% 95%;             /* ≈ rgba(255,88,174,.15) */
+    --secondary: 0 0% 95.3%;                /* tonal zemin = kontrol dolgusu */
+    --secondary-foreground: 0 0% 10.2%;
+    --muted: 0 0% 95.3%;
+    --muted-foreground: 0 0% 38%;           /* #616161 ikincil metin */
+    --tertiary-foreground: 0 0% 45.1%;      /* #737373 */
+    --accent: 0 0% 93%;                     /* hover zemini */
+    --accent-foreground: 0 0% 10.2%;
+    --link: 329 100% 67.1%;                 /* pembe metin link (Upgrade) */
+    --focus: 222 81% 56%;                   /* #3B6FE8 odak / switch */
+    --info: 232 85% 63.1%;                  /* #506BF2 bilgi CTA */
+    --info-foreground: 0 0% 98%;
+    --info-bg: 232 85% 96%;
+    --info-text: 232 70% 45%;
+    --info-border: 232 85% 88%;
+    --destructive: 4 74.3% 48.8%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 92%;
-    --input: 0 0% 94%;
-    --ring: 0 0% 9%;
-
-    --radius: 10px;
-
-    --success: 142 70% 45%;
+    --danger-bg: 5 85.7% 97.3%;
+    --danger-text: 4 76.5% 40%;
+    --danger-border: 3 96.3% 89.4%;
+    --success: 158 79% 44.5%;               /* #17CB8D */
     --success-foreground: 0 0% 100%;
+    --success-bg: 158 70% 95%;
+    --success-text: 158 80% 24%;
+    --success-border: 158 60% 84%;
+    --warning: 34 93.7% 50.2%;
+    --warning-foreground: 0 0% 5.9%;
+    --warning-bg: 45 100% 96.1%;
+    --warning-text: 19 83.7% 31.4%;
+    --warning-border: 44 98.3% 76.7%;
+    /* Çizgiler — rgba(16,16,16,.1) düz karşılığı */
+    --border: 0 0% 90.6%;                   /* #E7E7E7 */
+    --border-strong: 0 0% 81%;              /* ≈ .2 alfa */
+    --border-subtle: 0 0% 95%;              /* ≈ .05 alfa */
+    --input: 0 0% 90.6%;
+    --ring: 222 81% 56%;                    /* odak mavi */
+    /* Kategori renkleri (araç türleri) */
+    --cat-spaces: 258 63% 63%;   /* #8566DC */
+    --cat-image: 230 86% 63%;    /* #4F69F2 */
+    --cat-video: 157 80% 44%;    /* #17CB8D */
+    --cat-audio: 178 100% 40%;   /* #00CDC6 */
+    --cat-design: 359 43% 68%;   /* #CC7E80 */
+    --cat-3d: 24 24% 61%;        /* #B39581 */
+    --cat-stock: 0 0% 6%;        /* #101010 */
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 5%;
+    /* ---------- Typography ---------- */
+    --font-sans: "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-display: "Klarheit", "Degular", "Geist", "Inter", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
 
-    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.04);
-    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.06);
-    --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.08);
+    /* ---------- Spacing (4pt) ---------- */
+    --space-0: 0; --space-0-5: 2px; --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+    --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+    --space-16: 64px; --space-20: 80px; --space-24: 96px;
+
+    /* ---------- Radius ---------- */
+    --radius-none: 0; --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 16px;
+    --radius-xl: 16px; --radius-2xl: 24px; --radius-full: 9999px;
+    --radius: var(--radius-md);
+
+    /* ---------- Shadow ---------- */
+    /* Kartlarda gölge yok; ayrımı ton yapar. Gölge yalnızca overlay'lerde. */
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow-md: 0 0 2px rgba(18,18,18,.08), 0 2px 4px rgba(18,18,18,.06);
+    --shadow-overlay: 0 0 2px rgba(18,18,18,.08), 0 25px 10px rgba(18,18,18,.02), 0 14px 9px rgba(18,18,18,.02), 0 6px 6px rgba(18,18,18,.04), 0 2px 4px rgba(18,18,18,.08);
+    --shadow-lg: var(--shadow-overlay);
+    --shadow-xl: var(--shadow-overlay);
+    --shadow-2xl: 0 0 2px rgba(18,18,18,.08), 0 32px 24px rgba(18,18,18,.06), 0 8px 8px rgba(18,18,18,.06);
+
+    /* ---------- Motion ---------- */
+    --duration-instant: 50ms; --duration-fast: 120ms; --duration-normal: 200ms;
+    --duration-slow: 300ms; --duration-slower: 450ms;
+    --ease-standard: cubic-bezier(.2,0,0,1);
+    --ease-enter: cubic-bezier(0,0,0,1);
+    --ease-exit: cubic-bezier(.3,0,1,1);
+    --ease-spring: cubic-bezier(.34,1.56,.64,1);
+
+    /* ---------- Z-index ---------- */
+    --z-sticky: 100; --z-header: 200; --z-dropdown: 1000; --z-overlay: 1100; --z-drawer: 1200;
+    --z-modal: 1300; --z-popover: 1400; --z-toast: 1500; --z-tooltip: 1600;
+
+    /* ---------- Control heights ---------- */
+    --control-xs: 24px; --control-sm: 28px; --control-md: 32px; --control-lg: 40px; --control-xl: 48px;
+    --touch-target-min: 44px;
+
+    /* ---------- Opacity ---------- */
+    --opacity-disabled: .4; --opacity-hover-overlay: .08; --opacity-pressed-overlay: .12; --opacity-scrim: .48;
+
+    /* ---------- App shell ölçüleri ---------- */
+    --sidebar-width: 236px; --sidebar-width-collapsed: 72px; --rail-width: 72px; --tool-panel-width: 300px;
+    --shell-gap: 8px;
+    --header-height: 56px; --header-height-mobile: 52px; --bottom-nav-height: 60px;
   }
 
   .dark {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 95%;
+    /* ---------- Semantic — Dark ---------- */
+    --color-bg-canvas: var(--neutral-950);
+    --color-bg-surface: var(--neutral-900);
+    --color-bg-surface-raised: var(--neutral-800);
+    --color-bg-surface-sunken: #0B0B0F;
+    --color-bg-subtle: var(--neutral-800);
+    --color-bg-muted: var(--neutral-700);
+    --color-bg-inverse: var(--neutral-50);
+    --color-bg-overlay: rgba(0,0,0,.64);
+    --color-text-primary: var(--neutral-50);
+    --color-text-secondary: var(--neutral-400);
+    --color-text-tertiary: var(--neutral-500);
+    --color-text-disabled: var(--neutral-600);
+    --color-text-inverse: var(--neutral-900);
+    --color-text-link: var(--iris-300);
+    --color-border-default: var(--neutral-700);
+    --color-border-strong: var(--neutral-600);
+    --color-border-subtle: var(--neutral-800);
+    --color-border-focus: var(--iris-400);
+    --color-action-primary-bg: var(--iris-500);
+    --color-action-primary-bg-hover: var(--iris-400);
+    --color-action-primary-bg-active: var(--iris-600);
+    --color-action-secondary-bg: var(--iris-950);
+    --color-action-secondary-text: var(--iris-200);
+    --color-success-bg: var(--green-950); --color-success-text: var(--green-300); --color-success-border: var(--green-800); --color-success-solid: var(--green-500);
+    --color-warning-bg: var(--amber-950); --color-warning-text: var(--amber-300); --color-warning-border: var(--amber-800); --color-warning-solid: var(--amber-400);
+    --color-danger-bg: var(--red-950); --color-danger-text: var(--red-300); --color-danger-border: var(--red-800); --color-danger-solid: var(--red-500);
+    --color-info-bg: var(--blue-950); --color-info-text: var(--blue-300); --color-info-border: var(--blue-800); --color-info-solid: var(--blue-500);
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 0 0% 95%;
-    --primary-foreground: 0 0% 9%;
-
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 95%;
-
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 55%;
-
-    --accent: 0 0% 16%;
-    --accent-foreground: 0 0% 95%;
-
-    --destructive: 0 62% 50%;
+    /* ---------- Alias katmanı — Dark (surface-0 #0F0F0F, surface-1 #1C1C1C) ---------- */
+    --app: 0 0% 5.9%;                       /* #0F0F0F */
+    --background: 0 0% 8%;
+    --foreground: 0 0% 96.9%;               /* #F7F7F7 */
+    --card: 0 0% 11%;                       /* #1C1C1C */
+    --card-foreground: 0 0% 96.9%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 96.9%;
+    --track: 0 0% 15%;
+    --control: 0 0% 14.5%;
+    --control-hover: 0 0% 17%;
+    --active: 0 0% 20%;
+    --sunken: 0 0% 7%;
+    --inverse: 0 0% 96.9%;
+    --inverse-foreground: 0 0% 5.9%;
+    --primary: 0 0% 96.9%;                  /* dark'ta birincil buton beyaz */
+    --primary-foreground: 0 0% 5.9%;
+    --primary-hover: 0 0% 88%;
+    --primary-active: 0 0% 80%;
+    --primary-disabled: 0 0% 18%;
+    --primary-disabled-foreground: 0 0% 50%;
+    --brand: 329 100% 67.1%;
+    --brand-foreground: 0 0% 5.9%;
+    --brand-soft: 329 60% 18%;
+    --secondary: 0 0% 14.5%;
+    --secondary-foreground: 0 0% 96.9%;
+    --muted: 0 0% 14.5%;
+    --muted-foreground: 0 0% 70%;
+    --tertiary-foreground: 0 0% 55%;
+    --accent: 0 0% 17%;
+    --accent-foreground: 0 0% 96.9%;
+    --link: 329 100% 72%;
+    --focus: 222 81% 62%;
+    --info: 232 85% 66%;
+    --info-foreground: 0 0% 98%;
+    --info-bg: 232 40% 16%;
+    --info-text: 232 90% 80%;
+    --info-border: 232 40% 28%;
+    --destructive: 4 86% 58%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 18%;
+    --danger-bg: 8 60% 14%;
+    --danger-text: 4 96.1% 80%;
+    --danger-border: 4 50% 28%;
+    --success: 158 79% 48%;
+    --success-foreground: 0 0% 5.9%;
+    --success-bg: 158 50% 11%;
+    --success-text: 158 70% 70%;
+    --success-border: 158 40% 22%;
+    --warning: 39 98.2% 56.3%;
+    --warning-foreground: 0 0% 5.9%;
+    --warning-bg: 30 60% 12%;
+    --warning-text: 42 98.9% 70%;
+    --warning-border: 30 50% 26%;
+    --border: 0 0% 18%;                     /* ≈ rgba(255,255,255,.1) */
+    --border-strong: 0 0% 26%;
+    --border-subtle: 0 0% 13%;
     --input: 0 0% 18%;
-    --ring: 0 0% 80%;
+    --ring: 222 81% 62%;
 
-    --success: 142 70% 45%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 5%;
-
-    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.2);
-    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.4);
+    /* Dark mode: kartlar yine gölgesiz; overlay gölgesi koyulaşır */
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow-md: 0 0 2px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.3);
+    --shadow-overlay: 0 0 2px rgba(0,0,0,.5), 0 25px 10px rgba(0,0,0,.2), 0 14px 9px rgba(0,0,0,.2), 0 6px 6px rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.4);
+    --shadow-2xl: var(--shadow-overlay);
   }
 }
 
+/* =========================================================================
+   Base / Reset
+   ========================================================================= */
 @layer base {
   * {
     @apply border-border;
   }
 
+  html {
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+  html.dark { color-scheme: dark; }
+
   body {
     @apply bg-background text-foreground antialiased h-full overflow-hidden;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    font-feature-settings: 'cv11', 'ss01';
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.625;
+    font-feature-settings: 'ss01', 'cv01';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -106,45 +308,145 @@
     @apply h-full;
   }
 
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+  h1, h2, h3, h4, h5, h6 { @apply text-foreground; text-wrap: balance; }
+
+  code, kbd, samp, pre { font-family: var(--font-mono); }
+
+  /* 2.13 Focus ring — asla kaldırılmaz, yalnızca :focus-visible */
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: inherit;
   }
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  /* Seçim rengi */
+  ::selection { background: hsl(var(--brand-soft)); color: hsl(var(--foreground)); }
 
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
-    border-radius: 999px;
-  }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: var(--radius-full); border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); background-clip: padding-box; border: 2px solid transparent; }
+  * { scrollbar-width: thin; scrollbar-color: hsl(var(--border-strong)) transparent; }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground));
-  }
+  /* Sayısal veride tabular rakamlar */
+  .tabular-nums, table, [data-numeric] { font-variant-numeric: tabular-nums; }
 
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted)) transparent;
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* =========================================================================
+   Tipografi sınıfları (Bölüm 2.3) — responsive mobil/desktop
+   ========================================================================= */
+@layer components {
+  /* Ölçek (magnific.com/app ölçümleri): display 28/42 · heading 20/30 · title 15/24 · body 14/22.75 · UI 12/18 · overline 10/15 */
+  .text-display-lg { font-family: var(--font-display); font-size: 28px; line-height: 42px; font-weight: 500; letter-spacing: 0; }
+  .text-heading-xl { font-family: var(--font-display); font-size: 28px; line-height: 42px; font-weight: 500; letter-spacing: 0; }
+  .text-heading-lg { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.2px; }
+  .text-heading-md { font-size: 20px; line-height: 30px; font-weight: 500; letter-spacing: -0.2px; }
+  .text-heading-sm { font-size: 15px; line-height: 24px; font-weight: 500; }
+  .text-heading-xs { font-size: 14px; line-height: 22px; font-weight: 500; }
+  .text-body-lg { font-size: 15px; line-height: 24px; font-weight: 400; }
+  .text-body-md { font-size: 14px; line-height: 22.75px; font-weight: 400; }
+  .text-body-sm { font-size: 12px; line-height: 18px; font-weight: 400; }
+  .text-label-lg { font-size: 14px; line-height: 22px; font-weight: 500; }
+  .text-label-md { font-size: 12px; line-height: 18px; font-weight: 500; }
+  .text-label-sm { font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: .01em; }
+  .text-caption { font-size: 12px; line-height: 18px; font-weight: 400; }
+  .text-micro { font-size: 10px; line-height: 10px; font-weight: 500; letter-spacing: .2px; }
+  .text-overline { font-size: 10px; line-height: 15px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+  .text-code { font-family: var(--font-mono); font-size: 12px; line-height: 18px; }
+
+  /* ---------- Yüzeyler ---------- */
+  /* Kart: beyaz, r16, gölgesiz, kenarlıksız — ayrımı zemin tonu yapar */
+  .surface-card { @apply bg-card text-card-foreground rounded-lg; }
+  /* Overlay: menü/popover — r16, 1px border, çok katmanlı gölge */
+  .surface-raised { @apply bg-popover text-popover-foreground border border-border rounded-lg shadow-lg; }
+  .surface-sunken { @apply bg-control rounded-md; }
+  /* Kontrol dolgusu (select, chip, referans kutusu) */
+  .control-fill { @apply bg-control hover:bg-control-hover rounded-md border-0 transition-colors duration-fast; }
+  /* Meta chip: h24, r4, 1px border, 12/400 */
+  .meta-chip { @apply inline-flex items-center gap-1 h-6 px-2 rounded-xs border border-border bg-control text-caption text-foreground whitespace-nowrap; }
+  /* Kesikli referans / yükleme kutusu */
+  .dropzone { @apply border border-dashed border-border bg-control rounded-md transition-colors duration-fast hover:border-border-strong; }
+  /* Pill tab rayı */
+  .pill-tabs { @apply inline-flex items-center gap-1 p-1 rounded-full bg-app; }
+  .pill-tab { @apply inline-flex items-center gap-1.5 h-[30px] px-4 rounded-full text-label-md text-muted-foreground transition-colors duration-fast hover:text-foreground; }
+  .pill-tab[aria-selected="true"], .pill-tab[data-state="active"], .pill-tab[aria-pressed="true"] { @apply bg-card text-foreground; }
+  /* Segmented filtre */
+  .segmented { @apply inline-flex items-center p-1 rounded-md bg-track h-control-md; }
+  .segmented-item { @apply inline-flex items-center justify-center h-6 px-4 rounded-md text-[12px] font-semibold text-muted-foreground transition-colors duration-fast hover:text-foreground; }
+  .segmented-item[aria-pressed="true"], .segmented-item[data-state="active"], .segmented-item[aria-checked="true"] { @apply bg-card text-foreground; }
+
+  /* ---------- Nav item (Sidebar / Rail / BottomNav ortak) ---------- */
+  /* Liste öğesi (sidebar): h32, r8, 12/500, #616161; etkin: gri zemin + koyu metin */
+  .nav-item {
+    @apply relative flex items-center gap-2 rounded-md text-label-md text-muted-foreground transition-colors duration-fast ease-standard select-none;
+    min-height: var(--control-md);
+  }
+  .nav-item:hover { @apply bg-control text-foreground; }
+  .nav-item[aria-current="page"], .nav-item[data-active="true"] {
+    @apply bg-active text-foreground;
+  }
+  /* Rail ikonu: 32×32, r8; etkin gri zemin */
+  .rail-item {
+    @apply relative inline-flex items-center justify-center h-8 w-8 rounded-md text-foreground transition-colors duration-fast hover:bg-control;
+  }
+  .rail-item[aria-current="page"], .rail-item[data-active="true"] { @apply bg-active; }
+
+  /* ---------- Skeleton shimmer ---------- */
+  .skeleton {
+    @apply bg-control rounded-md relative overflow-hidden;
+  }
+  .skeleton::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+    animation: shimmer 1.4s var(--ease-standard) infinite;
+  }
+  .dark .skeleton::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent); }
+  @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+  /* ---------- Safe area ---------- */
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+
+  /* ---------- Visually hidden ---------- */
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  /* ---------- Skip link ---------- */
+  .skip-link { @apply visually-hidden; }
+  .skip-link:focus-visible {
+    position: fixed; left: var(--space-4); top: var(--space-4); z-index: var(--z-tooltip);
+    width: auto; height: auto; margin: 0; clip: auto; overflow: visible;
+    @apply bg-primary text-primary-foreground px-4 py-2 rounded-md text-label-md;
   }
 }
 
 @layer utilities {
-  .panel-card {
-    @apply bg-card rounded-2xl p-4;
-  }
-  
-  .image-grid {
-    @apply grid gap-3;
+  /* Geriye dönük uyumluluk alias'ları (eski ürün sınıfları) */
+  .panel-card { @apply surface-card p-4 md:p-7; }
+  .image-grid { @apply grid gap-3; }
+  .hover-overlay { @apply opacity-0 group-hover:opacity-100 transition-opacity duration-normal; }
+  .glass-panel { @apply bg-card/90 backdrop-blur-xl border border-border; }
+
+  /* Dokunma hedefi genişletme */
+  .touch-target::after { content: ""; position: absolute; inset: 50% auto auto 50%; width: var(--touch-target-min); height: var(--touch-target-min); transform: translate(-50%, -50%); }
+
+  /* Hover yalnızca pointer cihazlarda */
+  @media (hover: none) {
+    .hover-only { display: none !important; }
   }
 
-  .hover-overlay {
-    @apply opacity-0 group-hover:opacity-100 transition-opacity duration-200;
-  }
-
-  .glass-panel {
-    @apply bg-card/80 dark:bg-card/90 backdrop-blur-xl border border-border/50;
-  }
+  .pressable { @apply active:scale-[0.98] transition-transform duration-instant; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
 }

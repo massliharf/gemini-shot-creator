@@ -1,9 +1,10 @@
 import { useState } from "react";
 import {
-  Pencil, Check, X, Trash2, ImageIcon, Loader2, Download, RefreshCw, Copy, ChevronDown, ChevronUp,
+  Pencil, Check, X, Trash2, ImageIcon, Loader2, Download, Copy, ChevronDown, ChevronUp, XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 interface PromptImage {
@@ -70,79 +71,115 @@ export const PromptCard = ({
   };
 
   return (
-    <div className="border border-border/50 rounded-xl bg-card overflow-hidden">
-      <div className="flex gap-3 p-3">
+    <article className="bg-card rounded-lg p-4 text-card-foreground">
+      <div className="flex gap-4">
         {/* Thumbnail */}
         <div
-          className="w-16 h-16 rounded-lg bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center cursor-pointer"
+          role={thumbnail ? "button" : undefined}
+          tabIndex={thumbnail ? 0 : undefined}
+          aria-label={thumbnail ? "View generated image" : undefined}
+          className={`size-16 rounded-md bg-control shrink-0 overflow-hidden flex items-center justify-center ${thumbnail ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" : ""}`}
           onClick={() => thumbnail && onImageClick(thumbnail)}
         >
           {thumbnail ? (
             <img src={thumbnail} alt="" className="w-full h-full object-cover" />
           ) : (
-            <ImageIcon className="w-5 h-5 text-muted-foreground/30" />
+            <ImageIcon className="size-5 text-tertiary-foreground" strokeWidth={1.5} aria-hidden="true" />
           )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] font-medium text-muted-foreground bg-accent px-1.5 py-0.5 rounded">
-              {prompt.prompt_label}
-            </span>
-            <div className="flex-1" />
-            <button onClick={handleCopy} className="p-1 rounded hover:bg-accent transition-colors" title="Copy">
-              <Copy className="w-3 h-3 text-muted-foreground" />
-            </button>
-            <button
-              onClick={() => { setEditText(prompt.prompt_text); setEditing(!editing); }}
-              className="p-1 rounded hover:bg-accent transition-colors"
-              title="Edit"
-            >
-              <Pencil className="w-3 h-3 text-muted-foreground" />
-            </button>
-            <button
-              onClick={() => onDelete(prompt.id)}
-              className="p-1 rounded hover:bg-destructive/10 transition-colors"
-              title="Delete"
-            >
-              <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-            </button>
+          {/* Header: title + meta + toolbar */}
+          <div className="flex items-start gap-2 mb-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-label-md text-foreground truncate">{prompt.prompt_label}</h3>
+              <p className="text-caption text-muted-foreground">
+                {hasImages ? `${images.length} image${images.length !== 1 ? "s" : ""} generated` : "Not generated yet"}
+              </p>
+            </div>
+            <div className="flex items-center gap-0.5 shrink-0" role="group" aria-label="Prompt actions">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" onClick={handleCopy} aria-label="Copy prompt">
+                    <Copy strokeWidth={1.5} aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copy prompt</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={editing ? "Close editor" : "Edit prompt"}
+                    aria-pressed={editing}
+                    onClick={() => { setEditText(prompt.prompt_text); setEditing(!editing); }}
+                  >
+                    <Pencil strokeWidth={1.5} aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Edit prompt</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="hover:bg-danger-bg hover:text-danger-text"
+                    aria-label="Delete prompt"
+                    onClick={() => onDelete(prompt.id)}
+                  >
+                    <Trash2 strokeWidth={1.5} aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete prompt</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
+          {/* Body */}
           {editing ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <label htmlFor={`prompt-edit-${prompt.id}`} className="sr-only">Prompt text</label>
               <Textarea
+                id={`prompt-edit-${prompt.id}`}
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
-                className="text-xs min-h-[60px] resize-none"
+                className="text-body-md min-h-[96px] resize-none"
                 rows={3}
               />
-              <div className="flex gap-1">
-                <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={handleSave}>
-                  <Check className="w-3 h-3 mr-1" /> Save
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={handleSave}>
+                  <Check strokeWidth={1.5} aria-hidden="true" /> Save
                 </Button>
-                <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setEditing(false)}>
-                  <X className="w-3 h-3 mr-1" /> Cancel
+                <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                  <X strokeWidth={1.5} aria-hidden="true" /> Cancel
                 </Button>
               </div>
             </div>
           ) : (
-            <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{prompt.prompt_text}</p>
+            <p className="bg-app rounded-md p-3 text-body-sm text-foreground line-clamp-2">
+              {prompt.prompt_text}
+            </p>
           )}
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="px-3 pb-2 flex items-center gap-1.5">
+      {/* Footer actions */}
+      <div className="pt-3 flex items-center gap-2">
         <Button
           size="sm"
-          variant="outline"
-          className="h-7 text-[10px]"
+          variant="secondary"
           onClick={() => onGenerate(prompt)}
           disabled={isGenerating}
+          aria-busy={isGenerating || undefined}
         >
-          {isGenerating ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <ImageIcon className="w-3 h-3 mr-1" />}
+          {isGenerating ? (
+            <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
+          ) : (
+            <ImageIcon strokeWidth={1.5} aria-hidden="true" />
+          )}
           Generate
         </Button>
 
@@ -150,21 +187,26 @@ export const PromptCard = ({
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 text-[10px] ml-auto"
+            className="ml-auto"
             onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
           >
             {images.length} image{images.length !== 1 ? "s" : ""}
-            {expanded ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+            {expanded ? (
+              <ChevronUp strokeWidth={1.5} aria-hidden="true" />
+            ) : (
+              <ChevronDown strokeWidth={1.5} aria-hidden="true" />
+            )}
           </Button>
         )}
       </div>
 
       {/* Image gallery */}
       {expanded && hasImages && (
-        <div className="border-t border-border/30 p-2">
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
+        <div className="mt-3 bg-app rounded-md p-3">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
             {images.map((img) => (
-              <div key={img.id} className="aspect-square rounded-md overflow-hidden relative group bg-muted">
+              <div key={img.id} className="aspect-square rounded-md overflow-hidden relative group bg-control">
                 {img.image_url ? (
                   <>
                     <img
@@ -174,28 +216,32 @@ export const PromptCard = ({
                       loading="lazy"
                       onClick={() => onImageClick(img.image_url!)}
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                    <div className="absolute inset-x-0 bottom-0 p-1 flex items-center justify-end gap-1 bg-foreground/25 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-fast ease-standard">
                       <button
-                        className="h-6 w-6 rounded bg-background/90 flex items-center justify-center"
+                        type="button"
+                        aria-label="Download image"
+                        className="size-7 rounded-sm bg-card/90 text-foreground flex items-center justify-center hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={(e) => { e.stopPropagation(); handleDownload(img.image_url!); }}
                       >
-                        <Download className="w-2.5 h-2.5" />
+                        <Download className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
                       </button>
                       <button
-                        className="h-6 w-6 rounded bg-background/90 flex items-center justify-center"
+                        type="button"
+                        aria-label="Delete image"
+                        className="size-7 rounded-sm bg-card/90 text-foreground flex items-center justify-center hover:bg-danger-bg hover:text-danger-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={(e) => { e.stopPropagation(); onDeleteImage(img.id); }}
                       >
-                        <Trash2 className="w-2.5 h-2.5" />
+                        <Trash2 className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
                       </button>
                     </div>
                   </>
                 ) : img.status === "generating" ? (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/50" />
+                  <div className="w-full h-full flex items-center justify-center" aria-busy="true" aria-label="Generating image">
+                    <Loader2 className="size-5 animate-spin text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
                   </div>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <X className="w-4 h-4 text-destructive/50" />
+                  <div className="w-full h-full flex items-center justify-center" role="img" aria-label="Generation failed">
+                    <XCircle className="size-5 text-destructive" strokeWidth={1.5} aria-hidden="true" />
                   </div>
                 )}
               </div>
@@ -203,6 +249,8 @@ export const PromptCard = ({
           </div>
         </div>
       )}
-    </div>
+    </article>
   );
 };
+
+// TODO(magnific): Error-state thumbnails have no visible text (error_message is available) — surfacing it needs a layout decision on tiny tiles.

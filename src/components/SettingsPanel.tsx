@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ChevronDown, ChevronUp, Upload, X, Copy } from "lucide-react";
+import { ChevronDown, ChevronUp, Upload, X, Copy, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -75,25 +75,29 @@ export const SettingsPanel = ({
     onClear: () => void;
     label: string;
   }) => (
-    <div className="relative">
-      <Label className="text-xs text-muted-foreground mb-1.5 block">{label}</Label>
+    <div className="relative space-y-2">
+      <Label className="block">{label}</Label>
       {preview ? (
-        <div className="relative w-16 h-16 rounded-lg overflow-hidden group">
-          <img src={preview} alt="Reference" className="w-full h-full object-cover" />
+        <div className="relative size-[65px] rounded-md overflow-hidden group">
+          <img src={preview} alt={`${label} reference`} className="w-full h-full object-cover" />
           <button
+            type="button"
             onClick={onClear}
-            className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-label={`Remove ${label} reference`}
+            className="absolute inset-0 bg-foreground/25 text-white flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <X className="w-5 h-5 text-white" />
+            <X className="size-4" strokeWidth={1.5} aria-hidden="true" />
           </button>
         </div>
       ) : (
-        <label className="w-16 h-16 rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center cursor-pointer transition-colors bg-secondary/30">
-          <Upload className="w-5 h-5 text-muted-foreground" />
+        <label className="dropzone size-[65px] flex flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:text-foreground focus-within:ring-2 focus-within:ring-ring">
+          <Upload className="size-4" strokeWidth={1.5} aria-hidden="true" />
+          <span className="text-caption" aria-hidden="true">Add</span>
+          <span className="sr-only">Upload {label} reference</span>
           <input
             type="file"
             accept="image/*"
-            className="hidden"
+            className="sr-only"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) onUpload(file);
@@ -105,40 +109,41 @@ export const SettingsPanel = ({
   );
 
   return (
-    <div className="panel-card">
+    <section className="bg-card rounded-lg p-3" aria-label="Settings">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <Button
+            type="button"
             variant="ghost"
-            className="w-full flex items-center justify-between p-0 h-auto hover:bg-transparent"
+            className="w-full flex items-center justify-between px-0 hover:bg-transparent"
+            aria-expanded={isOpen}
           >
-            <span className="text-sm font-medium text-primary">Settings</span>
+            <span className="text-heading-sm text-foreground">Settings</span>
             {isOpen ? (
-              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              <ChevronUp className="text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              <ChevronDown className="text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
             )}
           </Button>
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="pt-4 space-y-4">
+        <CollapsibleContent className="pt-3 space-y-5">
           {/* Reference Images */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-xs text-muted-foreground">Reference</Label>
+          <div className="space-y-3 min-w-0" role="group" aria-labelledby="settings-reference-heading">
+            <div className="flex items-center justify-between gap-2">
+              <span id="settings-reference-heading" className="text-overline text-muted-foreground">Reference</span>
               <div className="flex items-center gap-2">
-                <Label htmlFor="couple-mode" className="text-xs text-muted-foreground">
+                <Label htmlFor="couple-mode">
                   Couple
                 </Label>
                 <Switch
                   id="couple-mode"
                   checked={coupleMode}
                   onCheckedChange={onCoupleModeChange}
-                  className="scale-90"
                 />
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <ImageUploadBox
                 preview={previewUrl}
                 onUpload={onImageUpload}
@@ -157,26 +162,27 @@ export const SettingsPanel = ({
           </div>
 
           {/* Model & Aspect Ratio */}
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Model</Label>
+          <div className="space-y-3 min-w-0" role="group" aria-labelledby="settings-output-heading">
+            <span id="settings-output-heading" className="block text-overline text-muted-foreground">Output</span>
+            <div className="space-y-1.5">
+              <Label htmlFor="settings-model">Model</Label>
               <Select value={selectedModel} onValueChange={onModelChange}>
-                <SelectTrigger className="h-9 bg-secondary border-0">
+                <SelectTrigger id="settings-model">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="size-2 rounded-full bg-success" aria-hidden="true" />
                     <SelectValue />
                   </div>
                 </SelectTrigger>
-                <SelectContent className="z-[100] bg-popover border-border">
+                <SelectContent className="z-[100]">
                   <SelectItem value="gemini-2.5-flash-image">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="size-2 rounded-full bg-success" aria-hidden="true" />
                       Gemini 2.5 Flash Image
                     </div>
                   </SelectItem>
                   <SelectItem value="gemini-3-pro-image-preview">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="size-2 rounded-full bg-success" aria-hidden="true" />
                       Gemini 3 Pro Image
                     </div>
                   </SelectItem>
@@ -186,28 +192,29 @@ export const SettingsPanel = ({
 
             {/* Image Size - only for Gemini 3 */}
             {selectedModel === "gemini-3-pro-image-preview" && (
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Quality</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="settings-quality">Quality</Label>
                 <Select value={imageSize} onValueChange={onImageSizeChange}>
-                  <SelectTrigger className="h-9 bg-secondary border-0">
+                  <SelectTrigger id="settings-quality">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="z-[100] bg-popover border-border">
+                  <SelectContent className="z-[100]">
                     <SelectItem value="1K">1K</SelectItem>
                     <SelectItem value="2K">2K</SelectItem>
                     <SelectItem value="4K">4K</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-caption text-muted-foreground">Higher quality takes longer to generate.</p>
               </div>
             )}
 
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Aspect ratio</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="settings-aspect-ratio">Aspect ratio</Label>
               <Select value={aspectRatio} onValueChange={onAspectRatioChange}>
-                <SelectTrigger className="h-9 bg-secondary border-0">
+                <SelectTrigger id="settings-aspect-ratio">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="z-[100] bg-popover border-border">
+                <SelectContent className="z-[100]">
                   {ASPECT_RATIOS.map((ratio) => (
                     <SelectItem key={ratio.value} value={ratio.value}>
                       {ratio.label}
@@ -219,12 +226,12 @@ export const SettingsPanel = ({
           </div>
 
           {/* Powered by */}
-          <p className="text-xs text-muted-foreground/60 flex items-center gap-1">
-            <span className="inline-block w-3 h-3 rounded-full bg-primary/20" />
+          <p className="text-caption text-tertiary-foreground flex items-center gap-1.5">
+            <Sparkles className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
             Powered by Gemini
           </p>
         </CollapsibleContent>
       </Collapsible>
-    </div>
+    </section>
   );
 };

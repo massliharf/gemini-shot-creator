@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { Send, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Quote } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { QuoteGallery } from "@/components/QuoteGallery";
 import { toast } from "sonner";
 import {
@@ -70,8 +71,8 @@ const QuoteGenerator = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      <div className="min-h-screen flex items-center justify-center bg-background" aria-busy="true">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" strokeWidth={1.5} aria-label="Loading" />
       </div>
     );
   }
@@ -79,19 +80,26 @@ const QuoteGenerator = () => {
 
   return (
     <AppLayout userEmail={user.email}>
-      <main className="flex-1 overflow-hidden flex min-w-0 bg-background">
-        {/* Left Panel */}
-        <div className="w-72 flex-shrink-0 border-r border-border/50 p-4 flex flex-col gap-4">
-          <div>
-            <h2 className="text-sm font-semibold mb-0.5">Quote Generator</h2>
-            <p className="text-xs text-muted-foreground">Create stylized quote images</p>
+      <main className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row gap-2 min-w-0 bg-background p-2">
+        {/* Left panel — tool controls */}
+        <section
+          aria-labelledby="quote-generator-heading"
+          className="w-full md:w-tool-panel shrink-0 bg-card rounded-lg p-3 flex flex-col gap-4 md:overflow-y-auto"
+        >
+          {/* Tool title card */}
+          <div className="rounded-[12px] px-3 py-2 bg-cat-audio/10 flex items-center gap-2">
+            <Quote className="size-4 text-cat-audio shrink-0" strokeWidth={1.5} aria-hidden="true" />
+            <div className="min-w-0">
+              <h1 id="quote-generator-heading" className="text-heading-sm text-foreground truncate">Quote generator</h1>
+              <p className="text-caption text-muted-foreground truncate">Create stylized quote images</p>
+            </div>
           </div>
 
-          <div className="flex-1 flex flex-col gap-3">
-            <div>
-              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Style</label>
+          <div className="flex-1 flex flex-col gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="quote-style">Style</Label>
               <Select value={mode} onValueChange={(v) => setMode(v as QuoteMode)}>
-                <SelectTrigger className="w-full h-9 rounded-lg border-border/50 text-sm">
+                <SelectTrigger id="quote-style">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -101,9 +109,13 @@ const QuoteGenerator = () => {
               </Select>
             </div>
 
-            <div>
-              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Model</label>
-              <div className="flex gap-1.5">
+            <div className="space-y-1.5">
+              <Label id="quote-model-label">Model</Label>
+              <div
+                role="radiogroup"
+                aria-labelledby="quote-model-label"
+                className="segmented w-full"
+              >
                 {[
                   { id: "flash", label: "Flash" },
                   { id: "flash-3.1", label: "3.1" },
@@ -111,12 +123,11 @@ const QuoteGenerator = () => {
                 ].map((m) => (
                   <button
                     key={m.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedModel === m.id}
                     onClick={() => setSelectedModel(m.id)}
-                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-all ${
-                      selectedModel === m.id
-                        ? "bg-foreground text-background"
-                        : "bg-accent text-muted-foreground hover:text-foreground"
-                    }`}
+                    className="segmented-item flex-1 px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {m.label}
                   </button>
@@ -125,41 +136,51 @@ const QuoteGenerator = () => {
             </div>
 
             {mode === "chalk" && (
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] font-medium text-muted-foreground mb-1 block">Fill</label>
-                  <Input value={fillColor} onChange={(e) => setFillColor(e.target.value)} placeholder="yellow" className="h-8 text-xs rounded-lg border-border/50" />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="quote-fill">Fill</Label>
+                  <Input id="quote-fill" value={fillColor} onChange={(e) => setFillColor(e.target.value)} placeholder="yellow" />
                 </div>
-                <div>
-                  <label className="text-[10px] font-medium text-muted-foreground mb-1 block">BG</label>
-                  <Input value={bgColor} onChange={(e) => setBgColor(e.target.value)} placeholder="dark navy" className="h-8 text-xs rounded-lg border-border/50" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="quote-bg">Background</Label>
+                  <Input id="quote-bg" value={bgColor} onChange={(e) => setBgColor(e.target.value)} placeholder="dark navy" />
                 </div>
               </div>
             )}
 
-            <Textarea
-              placeholder="Enter your quote text..."
-              value={quoteText}
-              onChange={(e) => setQuoteText(e.target.value)}
-              className="flex-1 min-h-[120px] resize-none text-sm rounded-xl border-border/50"
-            />
+            <div className="flex-1 flex flex-col space-y-1.5">
+              <Label htmlFor="quote-text">Quote</Label>
+              <Textarea
+                id="quote-text"
+                placeholder="Enter your quote text..."
+                value={quoteText}
+                onChange={(e) => setQuoteText(e.target.value)}
+                className="flex-1 min-h-[120px] resize-none text-body-md"
+              />
+            </div>
 
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating || !quoteText.trim()}
-              className="w-full h-9 rounded-lg bg-foreground text-background hover:bg-foreground/90 text-xs font-semibold gap-2"
-            >
-              {isGenerating ? (
-                <><Loader2 className="w-3.5 h-3.5 animate-spin" />Generating...</>
-              ) : (
-                <><Send className="w-3.5 h-3.5" />Generate</>
-              )}
-            </Button>
+            {/* Generate — full-width black, sticky on mobile */}
+            <div className="sticky bottom-0 md:static bg-card pt-1 -mx-3 px-3 pb-1 md:mx-0 md:px-0 md:pb-0">
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                onClick={handleGenerate}
+                disabled={isGenerating || !quoteText.trim()}
+                aria-busy={isGenerating || undefined}
+              >
+                {isGenerating ? (
+                  <><Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />Generating...</>
+                ) : (
+                  <>Generate<Sparkles strokeWidth={1.5} aria-hidden="true" /></>
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Right Panel */}
-        <div className="flex-1 overflow-hidden">
+        {/* Right — results feed */}
+        <div className="flex-1 min-h-[50vh] md:min-h-0 min-w-0 overflow-hidden">
           <QuoteGallery quotes={generatedQuotes} />
         </div>
       </main>

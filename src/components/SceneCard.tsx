@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { SceneWithStatus, SceneVersion } from "@/types/pack";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { SmartImage } from "@/components/SmartImage";
-import { Download, RefreshCw, Trash2, Loader2, History } from "lucide-react";
+import { Download, RefreshCw, Trash2, Loader2, History, XCircle, ImageOff } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface SceneCardProps {
@@ -32,8 +33,8 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
     setShowVersions(false);
   }, [scene.imageUrl, scene.status]);
 
-  const currentImageUrl = activeVersionIndex === 0 
-    ? scene.imageUrl 
+  const currentImageUrl = activeVersionIndex === 0
+    ? scene.imageUrl
     : versions[activeVersionIndex]?.imageUrl;
 
   const hasImage = scene.status === "success" && !!currentImageUrl && !imageBroken;
@@ -45,22 +46,33 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
     setImageBroken(false);
   };
 
+  const overlayActionClass = "bg-card/90 backdrop-blur-sm hover:bg-card text-foreground";
+
   return (
-    <div className="relative bg-accent/40 dark:bg-accent/60 overflow-hidden group cursor-pointer h-full w-full flex flex-col rounded-lg" onClick={() => hasImage && onClick?.()}>
+    <div
+      className={`relative bg-control overflow-hidden group h-full w-full flex flex-col rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${hasImage ? "cursor-pointer" : ""}`}
+      role={hasImage ? "button" : undefined}
+      tabIndex={hasImage ? 0 : undefined}
+      aria-label={hasImage ? `Open scene ${sceneId} fullscreen` : undefined}
+      onClick={() => hasImage && onClick?.()}
+    >
       {/* Scene Label */}
       <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
-        <span className="text-[10px] font-medium text-foreground/80 bg-background/70 backdrop-blur-sm px-1.5 py-0.5 rounded-md">
+        <Badge className="bg-card/90 backdrop-blur-sm border-transparent">
           {sceneId}
-        </span>
+        </Badge>
         {hasVersions && (
           <button
-            className="h-5 px-1.5 text-[10px] bg-background/70 backdrop-blur-sm hover:bg-background/90 rounded-md flex items-center gap-0.5 transition-colors"
+            type="button"
+            aria-label={`${versions.length} versions, ${showVersions ? "hide" : "show"} history`}
+            aria-expanded={showVersions}
+            className="inline-flex items-center gap-1 h-6 px-2 rounded-xs text-caption bg-card/90 backdrop-blur-sm text-foreground hover:bg-card transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={(e) => {
               e.stopPropagation();
               setShowVersions(!showVersions);
             }}
           >
-            <History className="w-2.5 h-2.5" />
+            <History className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
             {versions.length}
           </button>
         )}
@@ -69,9 +81,10 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
       {/* Old version badge */}
       {activeVersionIndex > 0 && (
         <div className="absolute top-2 right-2 z-10">
-          <span className="text-[10px] bg-warning text-warning-foreground px-1.5 py-0.5 rounded-md">
+          <Badge variant="warning">
+            <History strokeWidth={1.5} aria-hidden="true" />
             Old
-          </span>
+          </Badge>
         </div>
       )}
 
@@ -89,63 +102,71 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
               onFinalError={() => setImageBroken(true)}
             />
 
-            {/* Hover Actions */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
+            {/* Hover Actions (always visible on mobile, hover/focus on desktop) */}
+            <div className="absolute inset-0 bg-foreground/0 md:group-hover:bg-foreground/10 transition-colors duration-fast ease-standard pointer-events-none" aria-hidden="true" />
+            <div
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-fast ease-standard"
+              role="group"
+              aria-label={`Scene ${sceneId} actions`}
+            >
               <Button
-                size="icon"
-                variant="secondary"
-                className="h-8 w-8 rounded-lg bg-background/90 backdrop-blur-sm hover:bg-background shadow-sm"
+                size="icon-sm"
+                variant="ghost"
+                className={overlayActionClass}
+                aria-label="Regenerate scene"
                 onClick={(e) => { e.stopPropagation(); onGenerate(); }}
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw strokeWidth={1.5} aria-hidden="true" />
               </Button>
               <Button
-                size="icon"
-                variant="secondary"
-                className="h-8 w-8 rounded-lg bg-background/90 backdrop-blur-sm hover:bg-background shadow-sm"
+                size="icon-sm"
+                variant="ghost"
+                className={overlayActionClass}
+                aria-label="Download scene"
                 onClick={(e) => { e.stopPropagation(); onDownload(); }}
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download strokeWidth={1.5} aria-hidden="true" />
               </Button>
               {onDelete && (
                 <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-8 w-8 rounded-lg bg-background/90 backdrop-blur-sm hover:bg-background shadow-sm"
+                  size="icon-sm"
+                  variant="ghost"
+                  className={`${overlayActionClass} hover:text-destructive`}
+                  aria-label="Delete scene"
                   onClick={(e) => { e.stopPropagation(); onDelete(); }}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 strokeWidth={1.5} aria-hidden="true" />
                 </Button>
               )}
             </div>
           </>
         ) : (
-          <div className="w-full h-full min-h-[120px] flex flex-col items-center justify-center gap-1.5">
+          <div className="w-full h-full min-h-[120px] flex flex-col items-center justify-center gap-2 p-3">
             {isGenerating ? (
-              <div className="flex flex-col items-center gap-1.5">
-                <Loader2 className="w-4 h-4 text-muted-foreground/50 animate-spin" />
-                <span className="text-[10px] text-muted-foreground/40">Generating...</span>
+              <div className="flex flex-col items-center gap-1.5" role="status" aria-live="polite">
+                <Loader2 className="size-5 text-muted-foreground animate-spin" strokeWidth={1.5} aria-hidden="true" />
+                <span className="text-caption text-muted-foreground">Generating...</span>
               </div>
             ) : (
               <Button
-                variant="ghost"
+                variant={isError ? "danger-outline" : "outline"}
                 size="sm"
                 onClick={(e) => { e.stopPropagation(); onGenerate(); }}
-                className={`rounded-lg text-xs font-medium h-7 px-3 ${isError ? "text-destructive hover:text-destructive" : "text-muted-foreground hover:text-foreground"}`}
               >
+                {isError ? <XCircle strokeWidth={1.5} aria-hidden="true" /> : <RefreshCw strokeWidth={1.5} aria-hidden="true" />}
                 {isError ? "Retry" : "Generate"}
               </Button>
             )}
 
             {imageBroken && (
-              <p className="text-[10px] text-muted-foreground px-3 text-center line-clamp-2">
+              <p className="text-caption text-muted-foreground text-center line-clamp-2 inline-flex items-center gap-1">
+                <ImageOff className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden="true" />
                 Image not found. Regenerate.
               </p>
             )}
 
             {isError && scene.error && !imageBroken && (
-              <p className="text-[10px] text-destructive px-3 text-center line-clamp-2">{scene.error}</p>
+              <p className="text-caption text-destructive text-center line-clamp-2">{scene.error}</p>
             )}
           </div>
         )}
@@ -153,12 +174,12 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
 
       {/* Version history strip */}
       {showVersions && hasVersions && (
-        <div 
-          className="bg-background/95 backdrop-blur-sm border-t border-border/50 p-1.5"
+        <div
+          className="bg-card/95 backdrop-blur-sm p-2"
           onClick={(e) => e.stopPropagation()}
         >
           <ScrollArea className="w-full">
-            <div className="flex gap-1.5 pb-0.5">
+            <div className="flex gap-2 pb-1" role="listbox" aria-label="Scene versions">
               {versions.map((version, idx) => {
                 const isActive = idx === activeVersionIndex;
                 const date = new Date(version.generatedAt);
@@ -167,9 +188,13 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
                 return (
                   <button
                     key={version.queueId || idx}
+                    type="button"
+                    role="option"
+                    aria-selected={isActive}
+                    aria-label={idx === 0 ? "Latest version" : `Version from ${timeStr}`}
                     onClick={(e) => handleVersionClick(idx, e)}
-                    className={`relative flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border transition-all ${
-                      isActive ? "border-foreground ring-1 ring-foreground/20" : "border-transparent hover:border-border"
+                    className={`relative flex-shrink-0 size-12 rounded-md overflow-hidden bg-control transition-[box-shadow,background-color] duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      isActive ? "ring-1 ring-foreground/80" : "hover:bg-control-hover"
                     }`}
                   >
                     <SmartImage
@@ -179,8 +204,8 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
                       className="w-full h-full"
                       loading="lazy"
                     />
-                    <div className="absolute inset-x-0 bottom-0 bg-black/60 px-0.5 py-px">
-                      <p className="text-[7px] text-white text-center truncate">
+                    <div className="absolute inset-x-0 bottom-0 bg-foreground/60 px-0.5 py-px">
+                      <p className="text-caption leading-tight text-white text-center truncate">
                         {idx === 0 ? "Latest" : timeStr}
                       </p>
                     </div>
@@ -195,3 +220,5 @@ export const SceneCard = ({ scene, index, onGenerate, onDownload, onDelete, onCl
     </div>
   );
 };
+
+// TODO(magnific): the card root is a clickable div (role="button" when it has an image); keyboard Enter/Space activation needs a new handler and is left for a logic pass.

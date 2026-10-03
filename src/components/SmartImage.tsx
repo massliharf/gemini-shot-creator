@@ -47,8 +47,8 @@ export function SmartImage({
   // If no src, show placeholder immediately
   if (!src) {
     return (
-      <div className={cn("relative grid place-items-center bg-muted/20", className)}>
-        <ImageOff className="h-6 w-6 text-muted-foreground/40" />
+      <div className={cn("relative grid place-items-center bg-control", className)} role="img" aria-label={alt || "Image unavailable"}>
+        <ImageOff className="size-5 text-tertiary-foreground" strokeWidth={1.5} aria-hidden="true" />
       </div>
     );
   }
@@ -56,13 +56,11 @@ export function SmartImage({
   return (
     <div className={cn("relative", className)}>
       {!loaded && !failed && (
-        <div className="absolute inset-0 grid place-items-center bg-muted/30">
-          <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground/70 animate-spin" />
-        </div>
+        <div className="absolute inset-0 skeleton rounded-none" aria-hidden="true" />
       )}
       {failed && (
-        <div className="absolute inset-0 grid place-items-center bg-muted/20">
-          <ImageOff className="h-6 w-6 text-muted-foreground/40" />
+        <div className="absolute inset-0 grid place-items-center bg-control" role="img" aria-label="Image failed to load">
+          <ImageOff className="size-5 text-tertiary-foreground" strokeWidth={1.5} aria-hidden="true" />
         </div>
       )}
       <img
@@ -70,7 +68,7 @@ export function SmartImage({
         alt={alt}
         loading={loading}
         className={cn(
-          "w-full h-full transition-opacity duration-150",
+          "w-full h-full transition-opacity duration-fast ease-standard",
           fit === "cover" ? "object-cover" : "object-contain",
           loaded && !failed ? "opacity-100" : "opacity-0"
         )}

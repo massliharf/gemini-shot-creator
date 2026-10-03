@@ -7,8 +7,10 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -60,30 +62,32 @@ interface PackSidebarProps {
   isGeneratingAll?: boolean;
 }
 
+const categoryIconClass = "size-4 text-muted-foreground";
+
 const categoryIcons: Record<string, React.ReactNode> = {
-  photography: <Film className="w-4 h-4" />,
-  "3d": <Wand2 className="w-4 h-4" />,
-  art: <Palette className="w-4 h-4" />,
-  illustration: <Palette className="w-4 h-4" />,
-  painting: <Palette className="w-4 h-4" />,
-  professional: <Briefcase className="w-4 h-4" />,
-  artistic: <Palette className="w-4 h-4" />,
-  fantasy: <Wand2 className="w-4 h-4" />,
-  cinematic: <Film className="w-4 h-4" />,
-  historical: <Clock className="w-4 h-4" />,
-  fashion: <Shirt className="w-4 h-4" />,
-  travel: <Plane className="w-4 h-4" />,
-  seasonal: <Sun className="w-4 h-4" />,
-  cultural: <Globe2 className="w-4 h-4" />,
-  career: <GraduationCap className="w-4 h-4" />,
-  other: <Sparkles className="w-4 h-4" />,
+  photography: <Film className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  "3d": <Wand2 className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  art: <Palette className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  illustration: <Palette className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  painting: <Palette className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  professional: <Briefcase className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  artistic: <Palette className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  fantasy: <Wand2 className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  cinematic: <Film className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  historical: <Clock className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  fashion: <Shirt className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  travel: <Plane className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  seasonal: <Sun className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  cultural: <Globe2 className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  career: <GraduationCap className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
+  other: <Sparkles className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />,
 };
 
 const genderIcons: Record<string, React.ReactNode> = {
-  male: <User className="w-3 h-3" />,
-  female: <User className="w-3 h-3" />,
-  any: <Users className="w-3 h-3" />,
-  unisex: <Users className="w-3 h-3" />,
+  male: <User className="size-3" strokeWidth={1.5} aria-hidden="true" />,
+  female: <User className="size-3" strokeWidth={1.5} aria-hidden="true" />,
+  any: <Users className="size-3" strokeWidth={1.5} aria-hidden="true" />,
+  unisex: <Users className="size-3" strokeWidth={1.5} aria-hidden="true" />,
 };
 
 const genderLabels: Record<string, string> = {
@@ -217,53 +221,55 @@ const JsonUploader = ({ onPacksLoad }: { onPacksLoad: (packs: PackFile[]) => Pro
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <button className="w-full border border-dashed border-border rounded-xl p-2.5 text-center hover:border-primary/30 hover:bg-accent/50 transition-colors cursor-pointer">
-          <Upload className="w-3.5 h-3.5 mx-auto mb-0.5 text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">Upload JSON</p>
+        <button
+          type="button"
+          className="dropzone w-full h-control-lg md:h-control-md px-3 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+        >
+          <Upload className="size-4" strokeWidth={1.5} aria-hidden="true" />
+          <span className="text-label-md">Upload JSON</span>
         </button>
       </AlertDialogTrigger>
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle>Paste JSON Pack</AlertDialogTitle>
-          <AlertDialogDescription className="text-sm">
+          <AlertDialogTitle>Paste JSON pack</AlertDialogTitle>
+          <AlertDialogDescription>
             Paste your JSON pack content below.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        
-        <div className="space-y-3">
-          <textarea
+
+        <div className="space-y-2">
+          <Label htmlFor="json-pack-input">Pack JSON</Label>
+          <Textarea
+            id="json-pack-input"
             value={jsonText}
             onChange={(e) => {
               setJsonText(e.target.value);
               setError(null);
             }}
             placeholder='{"package_meta": {...}, "global_render_settings": {...}, "shots": [...]}'
-            className="w-full h-48 p-3 text-xs font-mono bg-accent border-0 rounded-xl focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none"
+            className="h-48 text-code resize-none"
             disabled={isUploading}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "json-pack-error" : undefined}
           />
           {error && (
-            <div className="flex items-center gap-2 text-destructive text-sm">
-              <AlertCircle className="w-4 h-4" />
+            <div id="json-pack-error" className="flex items-center gap-2 text-danger-text text-body-sm" role="alert">
+              <XCircle className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isUploading}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isUploading} className={buttonVariants({ variant: "outline" })}>Cancel</AlertDialogCancel>
           <Button
+            type="button"
+            variant="primary"
             onClick={handlePaste}
             disabled={isUploading || !jsonText.trim()}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            loading={isUploading}
           >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              "Upload"
-            )}
+            {isUploading ? "Uploading..." : "Upload"}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -299,10 +305,10 @@ const PackCard = ({
     : 0;
 
   const getStatusIcon = () => {
-    if (pack.generatingShots > 0) return <Loader2 className="w-2.5 h-2.5 animate-spin text-primary" />;
-    if (pack.completedShots === pack.totalShots && pack.totalShots > 0) return <CheckCircle2 className="w-2.5 h-2.5 text-green-500" />;
-    if (pack.failedShots > 0) return <XCircle className="w-2.5 h-2.5 text-destructive" />;
-    return <Circle className="w-2.5 h-2.5 text-muted-foreground" />;
+    if (pack.generatingShots > 0) return <Loader2 className="size-4 animate-spin text-foreground" strokeWidth={1.5} aria-label="Generating" role="img" />;
+    if (pack.completedShots === pack.totalShots && pack.totalShots > 0) return <CheckCircle2 className="size-4 text-success" strokeWidth={1.5} aria-label="Completed" role="img" />;
+    if (pack.failedShots > 0) return <XCircle className="size-4 text-destructive" strokeWidth={1.5} aria-label="Has failures" role="img" />;
+    return <Circle className="size-4 text-tertiary-foreground" strokeWidth={1.5} aria-label="Not started" role="img" />;
   };
 
   const handleClick = () => {
@@ -316,91 +322,107 @@ const PackCard = ({
   return (
     <div
       onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelectionMode ? isChecked : isSelected}
       className={`
-        group relative p-2.5 rounded-xl cursor-pointer transition-all duration-200
+        group relative min-h-control-lg md:min-h-control-md px-2 py-1 rounded-md cursor-pointer overflow-hidden text-label-md
+        transition-colors duration-fast ease-standard
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card
         ${isSelected && !isSelectionMode
-          ? 'bg-primary/5 ring-1 ring-primary/50 shadow-sm' 
+          ? 'bg-active text-foreground'
           : isChecked && isSelectionMode
-            ? 'bg-primary/10 ring-1 ring-primary/30'
-            : 'bg-accent/50 hover:bg-accent'
+            ? 'bg-active text-foreground'
+            : 'text-muted-foreground hover:bg-control hover:text-foreground'
         }
       `}
     >
       {/* Progress bar */}
       {progress > 0 && progress < 100 && (
-        <div 
-          className="absolute bottom-0 left-0 h-0.5 bg-primary/40 rounded-b-xl transition-all"
+        <div
+          className="absolute bottom-0 left-0 h-0.5 bg-foreground rounded-full transition-[width] duration-normal ease-standard"
           style={{ width: `${progress}%` }}
+          role="progressbar"
+          aria-valuenow={progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Generation progress"
         />
       )}
 
-      <div className="flex items-start gap-2">
+      <div className="flex items-center gap-2">
         {isSelectionMode ? (
-          <Checkbox 
-            checked={isChecked} 
-            className="mt-0.5"
-            onClick={(e) => e.stopPropagation()}
-            onCheckedChange={onToggleCheck}
-          />
+          <span className="size-6 shrink-0 flex items-center justify-center">
+            <Checkbox
+              checked={isChecked}
+              onClick={(e) => e.stopPropagation()}
+              onCheckedChange={onToggleCheck}
+              aria-label={`Select ${packName || "Unnamed"}`}
+            />
+          </span>
         ) : (
-          <div className="mt-0.5">{getStatusIcon()}</div>
+          <span className="size-6 shrink-0 rounded-xs bg-control flex items-center justify-center">{getStatusIcon()}</span>
         )}
-        
+
         <div className="flex-1 min-w-0">
-          <h4 className="text-xs font-medium truncate">
+          <h4 className="text-label-md text-foreground truncate">
             {packName || "Unnamed"}
           </h4>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
+          <div className="flex items-center gap-2 text-caption text-muted-foreground">
+            <span className="flex items-center gap-1">
               {genderIcons[gender] || genderIcons.any}
               {genderLabels[gender] || genderLabels.any}
             </span>
-            <span className="text-[9px] text-muted-foreground">
+            <span className="tabular-nums">
               {pack.completedShots}/{pack.totalShots}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 -mr-1">
           {/* Download Optimized Button */}
           {pack.completedShots > 0 && onDownloadOptimized && (
             <Button
+              type="button"
               variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              size="icon-sm"
+              className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-fast ease-standard"
               onClick={(e) => {
                 e.stopPropagation();
                 onDownloadOptimized();
               }}
               title="Download WebP + Original"
+              aria-label="Download WebP + Original"
             >
-              <Download className="w-3 h-3 text-primary" />
+              <Download strokeWidth={1.5} aria-hidden="true" />
             </Button>
           )}
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
+                type="button"
                 variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                size="icon-sm"
+                className="opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-fast ease-standard"
                 onClick={(e) => e.stopPropagation()}
+                aria-label={`Delete ${packName || "Unnamed"}`}
               >
-                <Trash2 className="w-3 h-3 text-muted-foreground" />
+                <Trash2 className="text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete Pack?</AlertDialogTitle>
+                <AlertDialogTitle>Delete pack?</AlertDialogTitle>
                 <AlertDialogDescription>
                   "{packName}" and all its images will be deleted.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel className={buttonVariants({ variant: "outline" })}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={onDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className={buttonVariants({ variant: "danger" })}
                 >
                   Delete
                 </AlertDialogAction>
@@ -412,14 +434,11 @@ const PackCard = ({
 
       {/* Tags */}
       {tags && tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-1.5">
+        <div className="flex flex-wrap gap-1 mt-1 pl-8">
           {tags.slice(0, 2).map((tag, idx) => (
-            <span 
-              key={idx}
-              className="text-[8px] px-1.5 py-0.5 rounded-full bg-accent text-muted-foreground"
-            >
+            <Badge key={idx} variant="default">
               {tag}
-            </span>
+            </Badge>
           ))}
         </div>
       )}
@@ -538,53 +557,56 @@ export const PackSidebar = ({
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-card text-card-foreground">
       {/* Header with Actions */}
-      <div className="p-3 border-b border-border/50 flex-shrink-0">
+      <div className="p-3 flex-shrink-0 space-y-3">
         {/* Selection Mode Bar */}
         {isSelectionMode ? (
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2" role="toolbar" aria-label="Selection actions">
+            <div className="flex items-center gap-1 min-w-0">
               <Button
+                type="button"
                 variant="ghost"
-                size="icon"
-                className="h-6 w-6"
+                size="icon-sm"
                 onClick={exitSelectionMode}
+                aria-label="Exit selection mode"
               >
-                <X className="w-4 h-4" />
+                <X strokeWidth={1.5} aria-hidden="true" />
               </Button>
-              <span className="text-sm font-medium">{selectedIds.size} selected</span>
+              <span className="text-label-md text-foreground truncate" aria-live="polite">{selectedIds.size} selected</span>
             </div>
-            <div className="flex gap-1">
+            <div className="flex items-center gap-0.5">
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs"
                 onClick={selectAllFiltered}
               >
-                <SquareCheck className="w-3 h-3 mr-1" />
+                <SquareCheck strokeWidth={1.5} aria-hidden="true" />
                 All
               </Button>
               <Button
+                type="button"
                 variant="ghost"
-                size="icon"
-                className="h-7 w-7"
+                size="icon-sm"
                 onClick={handleBatchDownload}
                 disabled={selectedIds.size === 0}
                 title="Download selected"
+                aria-label="Download selected"
               >
-                <Download className="w-3.5 h-3.5 text-primary" />
+                <Download strokeWidth={1.5} aria-hidden="true" />
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
+                    type="button"
                     variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
+                    size="icon-sm"
                     disabled={selectedIds.size === 0}
                     title="Delete selected"
+                    aria-label="Delete selected"
                   >
-                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    <Trash2 className="text-destructive" strokeWidth={1.5} aria-hidden="true" />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -595,10 +617,10 @@ export const PackSidebar = ({
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel className={buttonVariants({ variant: "outline" })}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={handleBatchDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className={buttonVariants({ variant: "danger" })}
                     >
                       Delete
                     </AlertDialogAction>
@@ -608,85 +630,90 @@ export const PackSidebar = ({
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-semibold">Packs</h2>
-              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-heading-sm text-foreground truncate">Packs</h2>
+              <span className="text-caption text-muted-foreground tabular-nums" aria-label={`${filteredPacks.length} packs`}>
                 {filteredPacks.length}
-              </Badge>
+              </span>
             </div>
-            
-            <div className="flex gap-0.5">
+
+            <div className="flex items-center gap-0.5" role="toolbar" aria-label="Pack actions">
               {packs.length > 0 && (
                 <>
                   <Button
+                    type="button"
                     variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
+                    size="icon-sm"
                     onClick={() => setIsSelectionMode(true)}
                     title="Select packs"
+                    aria-label="Select packs"
                   >
-                    <Square className="w-3 h-3" />
+                    <Square strokeWidth={1.5} aria-hidden="true" />
                   </Button>
                   <Button
+                    type="button"
                     variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
+                    size="icon-sm"
                     onClick={onGenerateAllPacks}
                     disabled={isGeneratingAll}
                     title="Generate all"
+                    aria-label="Generate all"
+                    aria-busy={isGeneratingAll || undefined}
                   >
                     {isGeneratingAll ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
                     ) : (
-                      <Play className="w-3 h-3" />
+                      <Play strokeWidth={1.5} aria-hidden="true" />
                     )}
                   </Button>
                   <Button
+                    type="button"
                     variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
+                    size="icon-sm"
                     onClick={onDownloadAllPacks}
                     title="Download all"
+                    aria-label="Download all"
                   >
-                    <Download className="w-3 h-3" />
+                    <Download strokeWidth={1.5} aria-hidden="true" />
                   </Button>
                 </>
               )}
               <Button
+                type="button"
                 variant="ghost"
-                size="icon"
-                className="h-6 w-6"
+                size="icon-sm"
                 onClick={onDownloadAllCloudData}
                 title="Export cloud data"
+                aria-label="Export cloud data"
               >
-                <HardDrive className="w-3 h-3" />
+                <HardDrive strokeWidth={1.5} aria-hidden="true" />
               </Button>
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
+                    type="button"
                     variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
+                    size="icon-sm"
                     title="Delete cloud data"
+                    aria-label="Delete cloud data"
                   >
-                    <Bomb className="w-3 h-3 text-destructive" />
+                    <Bomb className="text-destructive" strokeWidth={1.5} aria-hidden="true" />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Cloud Data?</AlertDialogTitle>
+                    <AlertDialogTitle>Delete cloud data?</AlertDialogTitle>
                     <AlertDialogDescription>
                       All packs and images will be permanently deleted.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel className={buttonVariants({ variant: "outline" })}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={onDeleteAllCloudData}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className={buttonVariants({ variant: "danger" })}
                     >
                       Delete
                     </AlertDialogAction>
@@ -697,73 +724,94 @@ export const PackSidebar = ({
           </div>
         )}
 
-        {/* Gender Filter */}
-        <div className="flex gap-0.5 mb-2">
-          {GENDER_FILTERS.map((filter) => (
-            <div key={filter.value} className="flex-1 flex">
+        {/* Gender Filter — segmented control */}
+        <div className="space-y-1.5">
+          <span className="block text-overline text-muted-foreground" id="pack-gender-filter-label">Gender</span>
+          <div
+            className="pill-tabs w-full"
+            role="group"
+            aria-labelledby="pack-gender-filter-label"
+          >
+            {GENDER_FILTERS.map((filter) => (
+              <div key={filter.value} className={`flex-1 flex min-w-0 rounded-full ${genderFilter === filter.value ? 'bg-card' : ''}`}>
+                <button
+                  type="button"
+                  onClick={() => setGenderFilter(filter.value)}
+                  aria-pressed={genderFilter === filter.value}
+                  className={`pill-tab flex-1 min-w-0 justify-center px-2 truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    filter.value !== "all" && onDownloadPacksByGender ? 'rounded-r-none pr-1' : ''
+                  }`}
+                >
+                  {filter.label}
+                </button>
+                {filter.value !== "all" && onDownloadPacksByGender && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDownloadPacksByGender(filter.value);
+                    }}
+                    className={`h-[30px] px-1.5 rounded-r-full transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      genderFilter === filter.value
+                        ? 'text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    title={`Download ${filter.label} packs`}
+                    aria-label={`Download ${filter.label} packs`}
+                  >
+                    <Download className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Generation Status Filter — segmented control */}
+        <div className="space-y-1.5">
+          <span className="block text-overline text-muted-foreground" id="pack-status-filter-label">Status</span>
+          <div
+            className="pill-tabs w-full"
+            role="group"
+            aria-labelledby="pack-status-filter-label"
+          >
+            {GENERATION_FILTERS.map((filter) => (
               <button
-                onClick={() => setGenderFilter(filter.value)}
-                className={`flex-1 px-2 py-1.5 text-[10px] font-medium transition-all ${
-                  genderFilter === filter.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-accent/50 text-muted-foreground hover:bg-accent'
-                } ${filter.value !== "all" ? 'rounded-l-lg' : 'rounded-lg'}`}
+                key={filter.value}
+                type="button"
+                onClick={() => setGenerationFilter(filter.value)}
+                aria-pressed={generationFilter === filter.value}
+                className="pill-tab flex-1 justify-center px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {filter.label}
               </button>
-              {filter.value !== "all" && onDownloadPacksByGender && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDownloadPacksByGender(filter.value);
-                  }}
-                  className={`px-1.5 py-1.5 text-[10px] rounded-r-lg transition-all border-l ${
-                    genderFilter === filter.value
-                      ? 'bg-primary/80 text-primary-foreground border-primary-foreground/20 hover:bg-primary/70'
-                      : 'bg-accent/50 text-muted-foreground border-border/30 hover:bg-accent'
-                  }`}
-                  title={`Download ${filter.label} packs`}
-                >
-                  <Download className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Generation Status Filter */}
-        <div className="flex gap-0.5 mb-3">
-          {GENERATION_FILTERS.map((filter) => (
-            <button
-              key={filter.value}
-              onClick={() => setGenerationFilter(filter.value)}
-              className={`flex-1 px-2 py-1.5 text-[10px] font-medium rounded-lg transition-all ${
-                generationFilter === filter.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-accent/50 text-muted-foreground hover:bg-accent'
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
+            ))}
+          </div>
         </div>
 
       </div>
 
       {/* Upload Component - Always Visible */}
-      <div className="px-3 pb-2 flex-shrink-0">
+      <div className="px-3 pt-3 pb-2 flex-shrink-0">
         <JsonUploader onPacksLoad={onPacksLoad} />
       </div>
 
       {/* Pack List */}
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-2">
+        <div className="p-3 pt-1 space-y-0.5">
           {filteredPacks.length === 0 ? (
-            <div className="text-center py-8">
-              <Sparkles className="w-8 h-8 mx-auto mb-2 text-muted-foreground/20" />
-              <p className="text-xs text-muted-foreground">
-                {packs.length === 0 ? "No packs yet" : "No packs match this filter"}
-              </p>
+            <div className="flex flex-col items-center text-center py-8 px-4 gap-2">
+              <Sparkles className="size-5 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+              <div className="space-y-1">
+                <p className="text-heading-md text-foreground">
+                  {packs.length === 0 ? "No packs yet" : "No packs match this filter"}
+                </p>
+                <p className="text-body-sm text-muted-foreground">
+                  {packs.length === 0
+                    ? "Upload a JSON pack above to start generating shots."
+                    : "Try a different gender or status filter."}
+                </p>
+              </div>
             </div>
           ) : groupedPacks.length === 1 ? (
             // Single category - no grouping
@@ -788,19 +836,19 @@ export const PackSidebar = ({
                 defaultOpen={true}
                 onOpenChange={() => toggleCategory(category)}
               >
-                <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-lg hover:bg-secondary/50 transition-colors">
+                <CollapsibleTrigger className="flex items-center gap-2 w-full h-control-md px-2 rounded-md hover:bg-control transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   {expandedCategories.has(category) ? (
-                    <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                    <ChevronDown className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
                   ) : (
-                    <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                    <ChevronRight className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
                   )}
-                  {categoryIcons[category] || <Palette className="w-4 h-4" />}
-                  <span className="text-xs font-medium capitalize">{category}</span>
-                  <Badge variant="secondary" className="text-[9px] h-3.5 px-1 ml-auto">
+                  {categoryIcons[category] || <Palette className={categoryIconClass} strokeWidth={1.5} aria-hidden="true" />}
+                  <span className="text-overline text-muted-foreground">{category}</span>
+                  <span className="ml-auto text-caption text-muted-foreground tabular-nums">
                     {categoryPacks.length}
-                  </Badge>
+                  </span>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-1.5 mt-1.5 ml-5">
+                <CollapsibleContent className="space-y-0.5 mt-1">
                   {categoryPacks.map(pack => (
                     <PackCard
                       key={pack.packId}
@@ -823,32 +871,33 @@ export const PackSidebar = ({
 
       {/* Footer with Delete All */}
       {packs.length > 0 && !isSelectionMode && (
-        <div className="p-3 border-t border-border/50">
+        <div className="p-3 safe-bottom">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
-                variant="ghost"
+                type="button"
+                variant="danger-outline"
                 size="sm"
-                className="w-full text-xs text-muted-foreground hover:text-destructive"
+                fullWidth
               >
-                <Trash2 className="w-3 h-3 mr-1" />
-                Delete All Packs
+                <Trash2 strokeWidth={1.5} aria-hidden="true" />
+                Delete all packs
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete All Packs?</AlertDialogTitle>
+                <AlertDialogTitle>Delete all packs?</AlertDialogTitle>
                 <AlertDialogDescription>
                   {packs.length} pack(s) and all images will be deleted.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel className={buttonVariants({ variant: "outline" })}>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={onDeleteAllPacks}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className={buttonVariants({ variant: "danger" })}
                 >
-                  Delete All
+                  Delete all
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -858,3 +907,9 @@ export const PackSidebar = ({
     </div>
   );
 };
+
+// TODO(magnific): PackCard is a clickable div with nested action buttons (role="button" + tabIndex added without a
+// keyboard handler per presentation-only rule). Ideally the row itself becomes a <button> and the actions move
+// outside it, which requires restructuring the click handlers.
+// TODO(magnific): "Delete cloud data" (Bomb) sits in the panel toolbar next to non-destructive actions; conventions
+// suggest moving destructive actions into an overflow menu, which requires a DropdownMenu + new handler wiring.

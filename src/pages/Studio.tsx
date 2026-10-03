@@ -8,7 +8,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ArrowUp, Loader2, Sparkles, ChevronDown, Check } from "lucide-react";
+import { Loader2, Sparkles, ChevronDown, Check, ImageIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -50,11 +53,12 @@ const ASPECT_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "4:5", "3:2", "2:3",
 const COUNTS = [1, 2, 4] as const;
 const RESOLUTIONS = ["1K", "2K", "4K"] as const;
 
-const TIER_STYLES: Record<Tier, string> = {
-  free: "border-white/20 text-white/70 bg-white/5",
-  basic: "border-sky-400/40 text-sky-300 bg-sky-500/10",
-  pro: "border-violet-400/40 text-violet-300 bg-violet-500/10",
-  ultra: "border-amber-400/50 text-amber-300 bg-amber-500/10",
+/* Neutral meta chips for paid tiers; FREE is the upsell → brand pill. */
+const TIER_STYLES: Record<Tier, "default" | "brand"> = {
+  free: "brand",
+  basic: "default",
+  pro: "default",
+  ultra: "default",
 };
 
 export default function Studio() {
@@ -152,37 +156,33 @@ export default function Studio() {
   };
 
   return (
-    <div
-      className="min-h-svh w-full bg-[#0a0a0a] text-white flex flex-col"
-      style={{ fontFamily: "'Geist', ui-sans-serif, system-ui, sans-serif" }}
-    >
-      {/* Top Bar */}
-      <header className="h-14 shrink-0 flex items-center justify-between px-4 sm:px-6">
-        <button
+    <div className="min-h-svh w-full bg-background text-foreground flex flex-col">
+      {/* Top bar */}
+      <header className="h-header-mobile md:h-header shrink-0 flex items-center justify-between px-4 md:px-8">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-[13px] font-medium text-white/60 hover:text-white transition-colors"
+          aria-label="Studio — back to home"
+          className="text-foreground"
         >
-          <Sparkles className="w-4 h-4" />
-          <span className="hidden sm:inline">Studio</span>
-        </button>
+          <Sparkles strokeWidth={1.5} aria-hidden="true" />
+          <span className="hidden sm:inline text-heading-sm">Studio</span>
+        </Button>
 
-        <div className="flex items-center gap-2.5">
-          <span
-            className={cn(
-              "h-7 px-2.5 rounded-full border text-[11px] font-medium uppercase tracking-wide flex items-center",
-              TIER_STYLES[tier],
-            )}
-          >
+        <div className="flex items-center gap-3">
+          <Badge variant={TIER_STYLES[tier]} className="uppercase text-micro tracking-wide">
             {tier}
-          </span>
+          </Badge>
 
-          {/* 40px frame with 2px stroke around 32px avatar */}
           <button
+            type="button"
             onClick={() => supabase.auth.signOut().then(() => navigate("/auth"))}
-            className="h-10 w-10 rounded-full border-2 border-white/20 hover:border-white/40 transition-colors flex items-center justify-center"
-            aria-label="Account"
+            className="h-control-md w-control-md rounded-full hover:bg-control transition-colors duration-fast ease-standard flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="Account — sign out"
           >
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-neutral-200 to-neutral-500 text-neutral-900 text-[13px] font-semibold flex items-center justify-center">
+            <div className="size-8 rounded-full bg-active text-foreground text-label-md flex items-center justify-center" aria-hidden="true">
               {email.charAt(0).toUpperCase() || "U"}
             </div>
           </button>
@@ -190,22 +190,36 @@ export default function Studio() {
       </header>
 
       {/* Canvas */}
-      <main className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 pb-40">
+      <main className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 pb-40">
         {images.length === 0 && !loading && (
           <div className="h-full min-h-[50vh] flex items-center justify-center">
-            <div className="text-center max-w-md">
-              <div className="text-[15px] text-white/40">
+            <div className="flex flex-col items-center text-center max-w-md px-4">
+              <ImageIcon className="size-6 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
+              <h1 className="text-heading-md text-foreground">Henüz görsel yok</h1>
+              <p className="text-body-sm text-muted-foreground mt-1">
                 Aşağıdaki alandan bir görsel üretmeye başlayın.
-              </div>
+              </p>
             </div>
           </div>
         )}
 
         {loading && (
-          <div className="h-full min-h-[50vh] flex items-center justify-center">
-            <div className="flex items-center gap-3 text-white/60 text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
+          <div className="mx-auto max-w-5xl pt-4 space-y-4" role="status" aria-live="polite" aria-busy="true">
+            <div className="flex items-center justify-center gap-2 text-body-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" strokeWidth={1.5} aria-hidden="true" />
               Üretiliyor…
+            </div>
+            <div
+              className={cn(
+                "grid gap-3",
+                count === 1 && "grid-cols-1",
+                count === 2 && "grid-cols-1 sm:grid-cols-2",
+                count >= 3 && "grid-cols-2",
+              )}
+            >
+              {Array.from({ length: count }).map((_, i) => (
+                <Skeleton key={i} className="aspect-square rounded-md" />
+              ))}
             </div>
           </div>
         )}
@@ -222,7 +236,7 @@ export default function Studio() {
             {images.map((src, i) => (
               <div
                 key={i}
-                className="relative rounded-xl overflow-hidden bg-neutral-900 border border-white/5"
+                className="relative rounded-md overflow-hidden bg-control"
               >
                 <img src={src} alt={`Generated ${i + 1}`} className="w-full h-auto block" />
               </div>
@@ -231,11 +245,13 @@ export default function Studio() {
         )}
       </main>
 
-      {/* Bottom Input Bar */}
-      <div className="fixed bottom-0 inset-x-0 pb-4 sm:pb-6 px-3 sm:px-6 pointer-events-none">
+      {/* Bottom floating action bar */}
+      <div className="fixed bottom-0 inset-x-0 pb-4 md:pb-6 px-4 md:px-6 safe-bottom pointer-events-none">
         <div className="mx-auto max-w-2xl pointer-events-auto">
-          <div className="rounded-2xl bg-neutral-900/90 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.6)]">
+          <div className="rounded-lg bg-card border border-border shadow-overlay focus-within:border-ring transition-[border-color] duration-fast ease-standard">
+            <Label htmlFor="studio-prompt" className="sr-only">Prompt</Label>
             <textarea
+              id="studio-prompt"
               ref={textareaRef}
               value={prompt}
               onChange={(e) => {
@@ -250,48 +266,57 @@ export default function Studio() {
               }}
               rows={1}
               placeholder="Bir görsel tanımla…"
-              className="w-full resize-none bg-transparent outline-none text-[14px] leading-6 text-white placeholder:text-white/30 px-4 pt-3.5 pb-2 max-h-[200px]"
+              className="w-full resize-none bg-transparent focus:outline-none text-body-md text-foreground placeholder:text-tertiary-foreground px-3 pt-3 pb-2 max-h-[200px]"
             />
 
-            <div className="flex items-center justify-between px-2 pb-2">
+            <div className="flex items-center justify-between gap-2 px-2 pb-2">
               {/* Model selector button */}
               <Popover open={menuOpen} onOpenChange={setMenuOpen}>
                 <PopoverTrigger asChild>
-                  <button
-                    className="group flex items-center gap-1.5 h-8 px-2.5 rounded-lg hover:bg-white/5 text-[11.5px] text-white/70 hover:text-white transition-colors"
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="group text-muted-foreground"
+                    aria-label={`Generation settings: ${model.name}, ${aspect}, ${count}x`}
+                    aria-expanded={menuOpen}
                   >
-                    <span className="font-medium text-white/90">{model.name}</span>
-                    <span className="text-white/40">·</span>
+                    <span className="text-label-md text-foreground">{model.name}</span>
+                    <span className="text-tertiary-foreground" aria-hidden="true">·</span>
                     <span>{aspect}</span>
-                    <span className="text-white/40">·</span>
+                    <span className="text-tertiary-foreground" aria-hidden="true">·</span>
                     <span>{count}x</span>
-                    <ChevronDown className="w-3 h-3 text-white/40 group-hover:text-white/70" />
-                  </button>
+                    <ChevronDown className="text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+                  </Button>
                 </PopoverTrigger>
 
                 <PopoverContent
                   align="start"
                   side="top"
                   sideOffset={10}
-                  className="w-[300px] p-0 rounded-xl border-white/10 bg-neutral-950/95 backdrop-blur-xl text-white shadow-2xl"
+                  className="w-[300px] p-0"
                 >
-                  <div className="p-3 space-y-3">
+                  <div className="p-2 space-y-4">
                     {/* Model */}
                     <Section title="Model">
-                      <div className="grid grid-cols-1 gap-0.5">
+                      <div role="radiogroup" aria-label="Model" className="grid grid-cols-1 gap-1">
                         {MODELS.map((m) => (
                           <button
                             key={m.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={modelId === m.id}
                             onClick={() => setModelId(m.id)}
                             className={cn(
-                              "flex items-center justify-between h-7 px-2 rounded-md text-[11.5px] transition-colors",
+                              "flex items-center justify-between min-h-touch md:min-h-control-md px-3 rounded-md text-label-md transition-colors duration-fast ease-standard",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                               modelId === m.id
-                                ? "bg-white/10 text-white"
-                                : "text-white/60 hover:bg-white/5 hover:text-white",
+                                ? "bg-active text-foreground"
+                                : "text-muted-foreground hover:bg-control hover:text-foreground",
                             )}
                           >
                             <span>{m.name}</span>
-                            {modelId === m.id && <Check className="w-3 h-3" />}
+                            {modelId === m.id && <Check className="size-4" strokeWidth={1.5} aria-hidden="true" />}
                           </button>
                         ))}
                       </div>
@@ -299,7 +324,7 @@ export default function Studio() {
 
                     {/* Aspect */}
                     <Section title="Aspect ratio">
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-2">
                         {ASPECT_RATIOS.map((a) => (
                           <Chip key={a} active={aspect === a} onClick={() => setAspect(a)}>
                             {a}
@@ -310,7 +335,7 @@ export default function Studio() {
 
                     {/* Count */}
                     <Section title="Görsel sayısı">
-                      <div className="flex gap-1">
+                      <div className="flex flex-wrap gap-2">
                         {COUNTS.map((c) => (
                           <Chip key={c} active={count === c} onClick={() => setCount(c)}>
                             {c}x
@@ -322,7 +347,7 @@ export default function Studio() {
                     {/* Resolution (only if supported) */}
                     {model.supportsResolution && (
                       <Section title="Çözünürlük">
-                        <div className="flex gap-1">
+                        <div className="flex flex-wrap gap-2">
                           {RESOLUTIONS.map((r) => (
                             <Chip key={r} active={resolution === r} onClick={() => setResolution(r)}>
                               {r}
@@ -333,9 +358,9 @@ export default function Studio() {
                     )}
 
                     {/* Cost estimate */}
-                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
-                      <span className="text-white/40">Tahmini maliyet</span>
-                      <span className="text-white/80 font-medium tabular-nums">
+                    <div className="bg-app rounded-md px-3 h-control-md flex items-center justify-between text-caption">
+                      <span className="text-muted-foreground">Tahmini maliyet</span>
+                      <span className="text-label-md text-foreground tabular-nums">
                         ${estCost.toFixed(3)}
                       </span>
                     </div>
@@ -343,18 +368,18 @@ export default function Studio() {
                 </PopoverContent>
               </Popover>
 
-              {/* Send */}
+              {/* Generate — single black primary action */}
               <Button
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || loading}
-                size="icon"
-                className="h-8 w-8 rounded-lg bg-white text-neutral-900 hover:bg-white/90 disabled:opacity-40"
-                aria-label="Generate"
+                size="md"
+                className="shrink-0"
               >
+                Generate
                 {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
                 ) : (
-                  <ArrowUp className="w-4 h-4" />
+                  <Sparkles strokeWidth={1.5} aria-hidden="true" />
                 )}
               </Button>
             </div>
@@ -368,7 +393,7 @@ export default function Studio() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 px-0.5">
+      <div className="text-overline text-muted-foreground mb-2 px-1">
         {title}
       </div>
       {children}
@@ -387,15 +412,26 @@ function Chip({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "h-6 px-2 rounded-md text-[11px] transition-colors border",
-        active
-          ? "bg-white text-neutral-900 border-white"
-          : "bg-transparent text-white/60 border-white/10 hover:border-white/30 hover:text-white",
+        "min-w-touch md:min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xs",
       )}
     >
-      {children}
+      <Badge
+        className={cn(
+          "cursor-pointer transition-colors duration-fast ease-standard hover:bg-control-hover",
+          active && "bg-active ring-1 ring-foreground/80 border-transparent",
+        )}
+      >
+        {children}
+      </Badge>
     </button>
   );
 }
+
+// TODO(magnific): Studio renders outside AppLayout (no mobile bottom nav), so the floating bar uses
+// `fixed bottom-0`. If Studio is later wrapped in AppLayout, switch to `bottom-bottom-nav md:bottom-0`.
+// TODO(magnific): Studio forces dark theme via setTheme("dark") in an effect; tokens now follow the theme,
+// so removing that effect (logic) would let Studio respect the user's theme preference.
