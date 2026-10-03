@@ -519,7 +519,7 @@ const TextToImage = () => {
                 {loadingHistory && (
                   <div className="bg-app rounded-lg p-4 space-y-3" aria-busy="true" aria-label="Loading history">
                     <Skeleton className="h-6 w-1/2" />
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
                       {Array.from({ length: 10 }).map((_, i) => (
                         <Skeleton key={i} className="aspect-square rounded-md" />
                       ))}
@@ -550,7 +550,7 @@ const TextToImage = () => {
                         </div>
                         <time dateTime={head.created_at} className="text-caption text-muted-foreground shrink-0">{relativeTime(head.created_at)}</time>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
                         {group.items.map((item) => (
                           <GalleryCard
                             key={item.id}
