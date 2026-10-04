@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Loader2, ImageIcon, Trash2, Download, X, Plus, Upload,
-  RefreshCw, AlertCircle, Archive, XCircle, Sparkles,
+  RefreshCw, AlertCircle, Archive, XCircle, Sparkles, TextCursorInput,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JSZip from "jszip";
@@ -19,6 +19,7 @@ import { triggerDownload, mapLimit, chunkArray } from "@/lib/download-utils";
 import { AppLayout } from "@/components/AppLayout";
 import { FullscreenImageView } from "@/components/FullscreenImageView";
 import { User } from "@supabase/supabase-js";
+import { MediaAction, mediaActionsVisibility, PromptIdeas, ResultGrid, ResultGroup, SampleResultsFeed, ToolHeader } from "@/components/results";
 
 const MAX_REF_IMAGES = 5;
 const SETTINGS_KEY = "text-to-image-settings";
@@ -82,7 +83,9 @@ const TextToImage = () => {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const galleryRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const isProModel = model === "pro" || model === "flash-3.1";
   const isGenerating = activeGenerations > 0;
@@ -108,6 +111,24 @@ const TextToImage = () => {
   }, [navigate]);
 
   useEffect(() => { if (user && !historyLoaded) loadHistory(); }, [user, historyLoaded]);
+
+  // Deep link: /text-to-image?prompt=... prefills the prompt
+  const promptParam = searchParams.get("prompt");
+  useEffect(() => {
+    if (promptParam) setPrompt(promptParam);
+  }, [promptParam]);
+
+  /** Fills the prompt field (ideas, "Use prompt") and moves focus there. */
+  const applyPrompt = (text: string) => {
+    setPrompt(text);
+    requestAnimationFrame(() => {
+      const el = promptRef.current;
+      if (!el) return;
+      if (window.matchMedia("(max-width: 1023px)").matches) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.focus({ preventScroll: true });
+      el.setSelectionRange(text.length, text.length);
+    });
+  };
 
   const loadHistory = async () => {
     setLoadingHistory(true);
@@ -358,59 +379,59 @@ const TextToImage = () => {
             className="w-full lg:w-tool-panel shrink-0 bg-card rounded-lg p-3 flex flex-col gap-4 lg:h-full lg:min-h-0 lg:overflow-y-auto"
           >
             {/* Tool title card */}
-            <div className="rounded-[12px] px-3 py-2 bg-cat-image/10 flex items-center gap-2">
-              <ImageIcon className="size-4 text-cat-image" strokeWidth={1.5} aria-hidden="true" />
-              <h1 className="text-heading-sm text-foreground">Text to Image</h1>
-            </div>
+            <ToolHeader icon={ImageIcon} category="image" title="Text to Image" description="Describe it, get images in seconds" />
 
-            <div className="space-y-1.5">
-              <Label htmlFor="tti-model">Model</Label>
-              <Select value={model} onValueChange={setModel}>
-                <SelectTrigger id="tti-model" aria-label="Model">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MODEL_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="tti-aspect">Aspect ratio</Label>
-              <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                <SelectTrigger id="tti-aspect" aria-label="Aspect ratio">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ASPECT_RATIO_OPTIONS.map(ar => <SelectItem key={ar} value={ar}>{ar}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {isProModel && (
-              <div className="space-y-1.5">
-                <Label htmlFor="tti-resolution">Resolution</Label>
-                <Select value={resolution} onValueChange={setResolution}>
-                  <SelectTrigger id="tti-resolution" aria-label="Resolution">
+            {/* Settings */}
+            <div className="grid grid-cols-2 gap-x-2 gap-y-4">
+              <div className="space-y-1.5 min-w-0">
+                <Label htmlFor="tti-model">Model</Label>
+                <Select value={model} onValueChange={setModel}>
+                  <SelectTrigger id="tti-model" aria-label="Model">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {RESOLUTION_OPTIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    {MODEL_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-            )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="tti-count">Count</Label>
-              <Select value={String(imageCount)} onValueChange={(v) => setImageCount(Number(v))}>
-                <SelectTrigger id="tti-count">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNT_OPTIONS.map(c => <SelectItem key={c} value={String(c)}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1.5 min-w-0">
+                <Label htmlFor="tti-count">Count</Label>
+                <Select value={String(imageCount)} onValueChange={(v) => setImageCount(Number(v))}>
+                  <SelectTrigger id="tti-count">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNT_OPTIONS.map(c => <SelectItem key={c} value={String(c)}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className={cn("space-y-1.5 min-w-0", !isProModel && "col-span-2")}>
+                <Label htmlFor="tti-aspect">Aspect ratio</Label>
+                <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                  <SelectTrigger id="tti-aspect" aria-label="Aspect ratio">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASPECT_RATIO_OPTIONS.map(ar => <SelectItem key={ar} value={ar}>{ar}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isProModel && (
+                <div className="space-y-1.5 min-w-0">
+                  <Label htmlFor="tti-resolution">Resolution</Label>
+                  <Select value={resolution} onValueChange={setResolution}>
+                    <SelectTrigger id="tti-resolution" aria-label="Resolution">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESOLUTION_OPTIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* References */}
@@ -470,14 +491,31 @@ const TextToImage = () => {
 
             {/* Prompt */}
             <div className="space-y-1.5 flex-1 flex flex-col">
-              <Label htmlFor="tti-prompt">Prompt</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="tti-prompt">Prompt</Label>
+                {prompt.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => applyPrompt("")}
+                    className="text-caption text-muted-foreground hover:text-foreground rounded-xs transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               <Textarea
+                ref={promptRef}
                 id="tti-prompt"
                 value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={handleKeyDown}
                 placeholder="Describe the image you want..."
-                className="min-h-[112px] text-body-md resize-none"
+                className="min-h-[112px] lg:flex-1 text-body-md resize-none"
                 rows={4}
+                aria-describedby="tti-prompt-hint"
               />
+              <p id="tti-prompt-hint" className="hidden md:block text-caption text-tertiary-foreground">
+                Enter to generate · Shift + Enter for a new line
+              </p>
+              {!prompt.trim() && <PromptIdeas onSelect={applyPrompt} className="pt-2" />}
             </div>
 
             {/* Generate */}
@@ -495,6 +533,7 @@ const TextToImage = () => {
 
           {/* Results feed */}
           <section aria-label="Results" className="flex-1 min-w-0 flex flex-col lg:min-h-0">
+            {(isGenerating || successItems.length > 0) && (
             <div className="flex items-center gap-2 flex-wrap min-h-control-md px-1 pb-2">
               {isGenerating && (
                 <Badge aria-live="polite">
@@ -526,44 +565,41 @@ const TextToImage = () => {
                 </div>
               )}
             </div>
+            )}
 
-            <ScrollArea className="flex-1 lg:min-h-0" ref={galleryRef as any}>
+            <ScrollArea className="flex-1 lg:min-h-0 [&_[data-radix-scroll-area-viewport]>div]:!block" ref={galleryRef as any}>
               <div className="space-y-3 pb-4">
                 {loadingHistory && (
                   <div className="bg-app rounded-lg p-4 space-y-3" aria-busy="true" aria-label="Loading history">
                     <Skeleton className="h-6 w-1/2" />
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
-                      {Array.from({ length: 10 }).map((_, i) => (
+                    <ResultGrid>
+                      {Array.from({ length: 8 }).map((_, i) => (
                         <Skeleton key={i} className="aspect-square rounded-md" />
                       ))}
-                    </div>
+                    </ResultGrid>
                   </div>
                 )}
 
                 {!loadingHistory && items.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-                    <ImageIcon className="size-6 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
-                    <h2 className="text-heading-md text-foreground">No images yet</h2>
-                    <p className="text-body-sm text-muted-foreground mt-1 max-w-sm">
-                      Describe the image you want to create in the panel. Your generations will appear here.
-                    </p>
-                  </div>
+                  <SampleResultsFeed onUsePrompt={applyPrompt} notice="Your generations will appear here." />
                 )}
 
                 {!loadingHistory && items.length > 0 && groupItems(items).map((group) => {
                   const head = group.items[0];
                   return (
-                    <section key={group.key} className="bg-app rounded-lg p-4 space-y-3" aria-label={head.prompt}>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <p className="truncate text-label-md text-foreground flex-1 min-w-0" title={head.prompt}>{head.prompt}</p>
-                        <div className="hidden sm:flex items-center gap-1 shrink-0">
-                          <Badge>{MODEL_OPTIONS.find(o => o.value === head.model)?.label ?? head.model}</Badge>
-                          <Badge>{head.aspect_ratio}</Badge>
-                          <Badge>{head.resolution}</Badge>
-                        </div>
-                        <time dateTime={head.created_at} className="text-caption text-muted-foreground shrink-0">{relativeTime(head.created_at)}</time>
-                      </div>
-                      <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
+                    <ResultGroup
+                      key={group.key}
+                      title={head.prompt}
+                      meta={[MODEL_OPTIONS.find(o => o.value === head.model)?.label ?? head.model, head.aspect_ratio, head.resolution]}
+                      createdAt={head.created_at}
+                      actions={
+                        <Button type="button" variant="ghost" size="xs" className="text-muted-foreground" onClick={() => applyPrompt(head.prompt)}>
+                          <TextCursorInput strokeWidth={1.5} aria-hidden="true" />
+                          Use prompt
+                        </Button>
+                      }
+                    >
+                      <ResultGrid>
                         {group.items.map((item) => (
                           <GalleryCard
                             key={item.id}
@@ -574,8 +610,8 @@ const TextToImage = () => {
                             onClick={() => openFullscreen(item)}
                           />
                         ))}
-                      </div>
-                    </section>
+                      </ResultGrid>
+                    </ResultGroup>
                   );
                 })}
               </div>
@@ -628,20 +664,6 @@ const groupItems = (list: GalleryItem[]) => {
   return groups;
 };
 
-const relativeTime = (iso: string) => {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.round(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m} min ago`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h} h ago`;
-  const d = Math.round(h / 24);
-  if (d < 30) return `${d} d ago`;
-  const mo = Math.round(d / 30);
-  if (mo < 12) return `${mo} mo ago`;
-  return `${Math.round(mo / 12)} y ago`;
-};
-
 // --- Gallery Card ---
 interface GalleryCardProps {
   item: GalleryItem;
@@ -683,45 +705,18 @@ const GalleryCard = ({ item, onRegenerate, onDelete, onDownload, onClick }: Gall
         {isSuccess ? (
           <>
             <img src={item.image_url!} alt={item.prompt} className="w-full h-full object-cover" loading="lazy" />
-            <div className="absolute inset-0 bg-foreground/0 md:group-hover:bg-foreground/10 transition-colors duration-fast ease-standard" aria-hidden="true" />
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-fast ease-standard">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="bg-card/90 hover:bg-card"
-                aria-label="Regenerate"
-                onClick={(e) => { e.stopPropagation(); onRegenerate(); }}
-              >
-                <RefreshCw strokeWidth={1.5} aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="bg-card/90 hover:bg-card"
-                aria-label="Download"
-                onClick={(e) => { e.stopPropagation(); onDownload(); }}
-              >
-                <Download strokeWidth={1.5} aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="bg-card/90 hover:bg-card text-destructive hover:text-destructive"
-                aria-label="Delete"
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              >
-                <Trash2 strokeWidth={1.5} aria-hidden="true" />
-              </Button>
+            <div className="pointer-events-none absolute inset-0 bg-foreground/0 [@media(hover:hover)]:group-hover:bg-foreground/10 transition-colors duration-fast ease-standard" aria-hidden="true" />
+            <div className={cn("absolute bottom-2 right-2 flex items-center gap-1", mediaActionsVisibility)}>
+              <MediaAction label="Regenerate" icon={RefreshCw} onClick={onRegenerate} />
+              <MediaAction label="Download" icon={Download} onClick={onDownload} />
+              <MediaAction label="Delete" icon={Trash2} onClick={onDelete} className="text-destructive hover:text-destructive" />
             </div>
-            <div className="absolute top-0 left-0 right-0 p-2 opacity-0 md:group-hover:opacity-100 transition-opacity duration-fast ease-standard pointer-events-none">
+            <div className="absolute top-0 left-0 right-0 p-2 opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity duration-fast ease-standard pointer-events-none">
               <p className="text-caption text-white bg-foreground/25 rounded-xs px-2 py-1 line-clamp-2">{item.prompt}</p>
             </div>
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3 bg-control">
+          <div className={cn("w-full h-full flex flex-col items-center justify-center gap-2 p-3", isGenerating ? "skeleton rounded-none" : "bg-control")}>
             {isGenerating ? (
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="size-5 text-muted-foreground animate-spin" strokeWidth={1.5} aria-hidden="true" />

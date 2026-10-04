@@ -21,6 +21,7 @@ import { getPackId, getPackName, getSceneCount, hasScenes, buildFinalPrompt, get
 import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
 import { usePackCreatorState } from "@/hooks/usePackCreatorState";
+import { ResultGroup, SamplePackGrid, ToolHeader } from "@/components/results";
 
 interface UploadedImage {
   id: string;
@@ -673,19 +674,22 @@ export default function PackCreator() {
         >
           <div className="md:flex-1 md:min-h-0 md:overflow-y-auto p-3 space-y-5">
             {/* Tool title card */}
-            <div className="rounded-[12px] px-3 py-2 bg-cat-spaces/10 flex items-start gap-2">
-              <Sparkles className="size-5 text-cat-spaces shrink-0 mt-0.5" strokeWidth={1.5} aria-hidden="true" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-heading-sm text-foreground truncate">Pack Creator</h1>
-                  {autoRender && (
-                    <Badge variant="default">
-                      <Play aria-hidden="true" />
-                      Auto-render
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-caption text-muted-foreground truncate">
+            <ToolHeader
+              icon={Sparkles}
+              category="spaces"
+              title="Pack Creator"
+              badge={autoRender && (
+                <Badge variant="default" className="shrink-0">
+                  <Play aria-hidden="true" />
+                  Auto-render
+                </Badge>
+              )}
+              actions={
+                <Button type="button" variant="ghost" size="icon-sm" className="shrink-0 -mr-1" onClick={() => navigate("/")} aria-label="Home" title="Home">
+                  <Home strokeWidth={1.5} aria-hidden="true" />
+                </Button>
+              }
+              description={<>
                   {packType === "god-eye" ? "God-Eye Photography Director" :
                    packType === "artist" ? "Artist v1" :
                    packType === "eye" ? "Eye Portrait Director" :
@@ -707,12 +711,8 @@ export default function PackCreator() {
                    packType === "dop-architect" ? "Adaptive intelligence & wardrobe strategy" :
                    packType === "all-seeing-eye" ? "God Mode visual engineering" :
                    "7-layer prompt architecture"}
-                </p>
-              </div>
-              <Button type="button" variant="ghost" size="icon-sm" className="shrink-0 -mr-1" onClick={() => navigate("/")} aria-label="Home" title="Home">
-                <Home strokeWidth={1.5} aria-hidden="true" />
-              </Button>
-            </div>
+              </>}
+            />
 
             {/* VISUAL STYLE */}
             <section className="space-y-2" aria-labelledby="pack-style-heading">
@@ -1149,39 +1149,35 @@ export default function PackCreator() {
 
           {/* Empty state */}
           {renderProgress.length === 0 && generatedPacks.length === 0 && (
-            <div className="bg-app rounded-lg p-4 min-h-[280px] flex flex-col items-center justify-center text-center gap-2">
-              <Layers className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
-              <h3 className="text-heading-md text-foreground">No packs yet</h3>
-              <p className="text-body-sm text-muted-foreground">
-                {pendingOrErrorCount > 0
-                  ? `${pendingOrErrorCount} reference(s) ready — generate to start.`
-                  : "Add reference images or write a brief, then generate."}
-              </p>
-            </div>
+            <SamplePackGrid
+              notice={pendingOrErrorCount > 0
+                ? `${pendingOrErrorCount} reference(s) ready — generate to start.`
+                : "Add references or write a brief — your packs will appear here."}
+              onOpenPack={() => navigate("/")}
+              latestRender
+            />
           )}
 
           {/* Render Results */}
           {renderProgress.length > 0 && (
             <div className="space-y-3" aria-label="Render results">
               {renderProgress.map((rp) => (
-                <article key={rp.packId} className="bg-app rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <h3 className="text-label-md text-foreground truncate min-w-0 flex-1">{rp.packName}</h3>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <Badge variant="default">{rp.totalScenes} scenes</Badge>
-                      <Badge variant="default">{renderAspectRatio}</Badge>
-                      <Badge variant="default">{renderResolution}</Badge>
-                      <span className="text-caption text-muted-foreground tabular-nums">
-                        {rp.completedScenes - rp.failedScenes}/{rp.totalScenes} rendered
-                      </span>
-                      {rp.failedScenes > 0 && (
-                        <Badge variant="danger">
-                          <XCircle aria-hidden="true" />
-                          {rp.failedScenes} failed
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+                <ResultGroup
+                  key={rp.packId}
+                  title={rp.packName}
+                  meta={[`${rp.totalScenes} scenes`, renderAspectRatio, renderResolution]}
+                  status={<>
+                    <span className="text-caption text-muted-foreground tabular-nums whitespace-nowrap">
+                      {rp.completedScenes - rp.failedScenes}/{rp.totalScenes} rendered
+                    </span>
+                    {rp.failedScenes > 0 && (
+                      <Badge variant="danger">
+                        <XCircle aria-hidden="true" />
+                        {rp.failedScenes} failed
+                      </Badge>
+                    )}
+                  </>}
+                >
                   <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 list-none m-0 p-0">
                     {rp.sceneResults.map((sr) => (
                       <li key={sr.sceneId} className="relative aspect-[4/5] rounded-md overflow-hidden bg-control">
@@ -1203,7 +1199,7 @@ export default function PackCreator() {
                       </li>
                     ))}
                   </ul>
-                </article>
+                </ResultGroup>
               ))}
             </div>
           )}

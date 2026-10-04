@@ -18,6 +18,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
 import { ModelSelector } from "@/components/ModelSelector";
 import { useGenerationSettings } from "@/hooks/useGenerationSettings";
+import { SamplePackFeed, ToolHeader } from "@/components/results";
 
 // JSON Uploader Component
 const JsonUploader = ({ onPacksLoad, disabled }: { onPacksLoad: (packs: PackFile[]) => Promise<{ uploadedCount: number; failed: string[] }>; disabled?: boolean }) => {
@@ -464,10 +465,7 @@ export default function Generator() {
           className="w-full lg:w-tool-panel shrink-0 bg-card rounded-lg p-3 flex flex-col gap-4 lg:h-full lg:min-h-0 lg:overflow-y-auto"
         >
           {/* Tool title card */}
-          <div className="rounded-[12px] px-3 py-2 bg-cat-image/10 flex items-center gap-2">
-            <Layers className="size-4 text-cat-image" strokeWidth={1.5} aria-hidden="true" />
-            <h1 className="text-heading-sm text-foreground">Bulk Pack Generator</h1>
-          </div>
+          <ToolHeader icon={Layers} category="image" title="Bulk Pack Generator" description="One pack per reference, in parallel" />
 
           {/* Pack type selector */}
           <div className="space-y-1.5">
@@ -621,6 +619,7 @@ export default function Generator() {
 
         {/* Results feed */}
         <section aria-label="Results" className="flex-1 min-w-0 flex flex-col lg:min-h-0">
+          {images.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap min-h-control-md px-1 pb-2">
             <Badge>
               <ImageIcon strokeWidth={1.5} aria-hidden="true" />
@@ -650,16 +649,14 @@ export default function Generator() {
               </Button>
             )}
           </div>
+          )}
 
           <div className="flex-1 lg:min-h-0 lg:overflow-y-auto space-y-3 pb-4">
             {images.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-                <ImageIcon className="size-6 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
-                <h2 className="text-heading-md text-foreground">No references yet</h2>
-                <p className="text-body-sm text-muted-foreground mt-1 max-w-sm">
-                  Upload reference images in the panel to generate packs from them.
-                </p>
-              </div>
+              <SamplePackFeed
+                notice="Upload references in the panel — each one becomes a pack here."
+                onOpenPack={goToMainPage}
+              />
             )}
 
             {/* Uploaded thumbnails */}
