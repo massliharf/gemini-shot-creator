@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JSZip from "jszip";
-import { triggerDownload, mapLimit } from "@/lib/download-utils";
+import { triggerDownload, mapLimit, chunkArray } from "@/lib/download-utils";
 import { AppLayout } from "@/components/AppLayout";
 import { FullscreenImageView } from "@/components/FullscreenImageView";
 import { User } from "@supabase/supabase-js";
@@ -237,38 +237,51 @@ const TextToImage = () => {
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadingAndDeleting, setDownloadingAndDeleting] = useState(false);
 
+  const ZIP_BATCH_SIZE = 100;
+
   const buildZipAndDownload = async (downloadable: GalleryItem[]) => {
-    const zip = new JSZip();
-    const manifest = downloadable.map((it, i) => ({
-      file: `${String(i + 1).padStart(3, "0")}.png`,
-      prompt: it.prompt,
-      model: it.model,
-      aspect_ratio: it.aspect_ratio,
-      resolution: it.resolution,
-      created_at: it.created_at,
-    }));
-    zip.file("prompts.json", JSON.stringify(manifest, null, 2));
-    const textLines = downloadable.map((it, i) =>
-      `${String(i + 1).padStart(3, "0")}.png\n  Prompt: ${it.prompt}\n  Model: ${it.model} | AR: ${it.aspect_ratio} | Res: ${it.resolution}\n  Date: ${it.created_at}`
-    );
-    zip.file("prompts.txt", textLines.join("\n\n"));
-
     const failed: string[] = [];
-    await mapLimit(downloadable, 16, async (it, idx) => {
-      try {
-        const resp = await fetch(it.image_url!, { cache: "force-cache" });
-        if (!resp.ok) throw new Error(String(resp.status));
-        const buf = await resp.arrayBuffer();
-        zip.file(`${String(idx + 1).padStart(3, "0")}.png`, buf, { compression: "STORE" });
-      } catch {
-        failed.push(it.id);
-      }
-    });
+    const batches = chunkArray(downloadable, ZIP_BATCH_SIZE);
+    const dateStr = new Date().toISOString().slice(0, 10);
 
-    const content = await zip.generateAsync({ type: "blob", compression: "STORE" });
-    const url = URL.createObjectURL(content);
-    triggerDownload(url, `text-to-image-${new Date().toISOString().slice(0, 10)}.zip`);
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    for (let b = 0; b < batches.length; b++) {
+      const batch = batches[b];
+      const zip = new JSZip();
+      const manifest = batch.map((it, i) => ({
+        file: `${String(i + 1).padStart(3, "0")}.png`,
+        prompt: it.prompt,
+        model: it.model,
+        aspect_ratio: it.aspect_ratio,
+        resolution: it.resolution,
+        created_at: it.created_at,
+      }));
+      zip.file("prompts.json", JSON.stringify(manifest, null, 2));
+      const textLines = batch.map((it, i) =>
+        `${String(i + 1).padStart(3, "0")}.png\n  Prompt: ${it.prompt}\n  Model: ${it.model} | AR: ${it.aspect_ratio} | Res: ${it.resolution}\n  Date: ${it.created_at}`
+      );
+      zip.file("prompts.txt", textLines.join("\n\n"));
+
+      await mapLimit(batch, 16, async (it, idx) => {
+        try {
+          const resp = await fetch(it.image_url!, { cache: "force-cache" });
+          if (!resp.ok) throw new Error(String(resp.status));
+          const buf = await resp.arrayBuffer();
+          const base = String(idx + 1).padStart(3, "0");
+          zip.file(`${base}.png`, buf, { compression: "STORE" });
+          zip.file(`${base}.txt`, it.prompt, { compression: "STORE" });
+        } catch {
+          failed.push(it.id);
+        }
+      });
+
+      const content = await zip.generateAsync({ type: "blob", compression: "STORE" });
+      const url = URL.createObjectURL(content);
+      const filename = batches.length > 1
+        ? `text-to-image-${dateStr}-part-${b + 1}-of-${batches.length}.zip`
+        : `text-to-image-${dateStr}.zip`;
+      triggerDownload(url, filename);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
     return failed;
   };
 
