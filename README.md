@@ -1,73 +1,50 @@
-# Welcome to your Lovable project
+# Lumra — AI image studio
 
-## Project info
+Lumra turns one reference into a whole, consistent image pack. Pick a tool or a
+template, add a reference photo, and generate every scene of a pack in parallel
+with Google Gemini image models.
 
-**URL**: https://lovable.dev/projects/ecbc57f9-c6c7-4fae-af36-163bb7aef749
+Built with Vite, React, TypeScript, Tailwind CSS, shadcn/ui and Supabase.
+The interface follows the Magnific-style design rules in
+[`MAGNIFIC_CONVENTIONS.md`](./MAGNIFIC_CONVENTIONS.md).
 
-## How can I edit this code?
+## Highlights
 
-There are several ways of editing your application.
+- **Home** — greeting, global search, tool grid, recent creations, projects and credits.
+- **Explore** — Discover / Use cases / Templates / Community. Opening a template
+  deep-links into the right tool with the prompt filled in (`?prompt=`).
+- **⌘K / Ctrl K command palette** — tools, templates, prompt ideas and quick actions from anywhere.
+- **Packs, Pack Creator, Bulk Generator, Text to Image, Prompt / Quote generators, Glasses try-on.**
+- **Library, Styles and Usage & cost** pages.
+- Notifications, onboarding toast and a three-step guided tour.
+- Light and dark themes, mobile layout with bottom navigation.
 
-**Use Lovable**
+## Demo mode
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ecbc57f9-c6c7-4fae-af36-163bb7aef749) and start prompting.
+Anyone can tour the product without an account:
 
-Changes made via Lovable will be committed automatically to this repo.
+- open the app with `?demo=1`, or
+- press **Explore the demo** on the sign-in page.
 
-**Use your preferred IDE**
+Demo mode signs in a sample user and fills empty pages with sample content
+(`src/data/mock.ts`, images in `src/assets/mock`). Reads return nothing, and
+writes / generations are blocked with a "sign in to save" message — see
+`src/lib/demo.ts`. Signing out (or `?demo=0`) leaves demo mode.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Develop
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+bun install      # or npm install
+bun run dev      # http://localhost:8080
+npx tsc -p tsconfig.app.json --noEmit
+bun run lint
 ```
 
-**Edit a file directly in GitHub**
+Environment variables (`.env`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
+`VITE_SUPABASE_PROJECT_ID`. Edge functions live in `supabase/functions`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Brand
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/ecbc57f9-c6c7-4fae-af36-163bb7aef749) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+The Lumra mark is a lowercase “l” next to a glowing orb of light
+(`src/components/brand/Logo.tsx`, `public/favicon.svg`). Fonts: Geist and Geist Mono
+(SIL Open Font License), self-hosted in `public/fonts`.

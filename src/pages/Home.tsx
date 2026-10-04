@@ -145,8 +145,8 @@ const Home = () => {
               onClick={openSearch}
               className="group flex flex-col items-center gap-2.5 rounded-lg px-2 py-4 hover:bg-card transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span className="flex size-12 items-center justify-center rounded-md bg-cat-stock/10 transition-transform duration-fast group-hover:scale-105">
-                <LayoutGrid className="size-5 text-cat-stock" strokeWidth={1.75} aria-hidden="true" />
+              <span className="flex size-12 items-center justify-center rounded-md bg-active transition-transform duration-fast group-hover:scale-105">
+                <LayoutGrid className="size-5 text-foreground" strokeWidth={1.75} aria-hidden="true" />
               </span>
               <span className="text-heading-sm text-foreground leading-tight">All tools</span>
             </button>
