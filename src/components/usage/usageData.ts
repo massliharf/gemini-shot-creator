@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { sampleUsage, sampleUsageByModel, type UsagePoint } from "@/data/mock";
 
 /* --------------------------------------------------------------------------
@@ -86,7 +86,8 @@ const dayKey = (d: Date) => format(d, "yyyy-MM-dd");
 const dayPoint = (d: Date, cost = 0, images = 0): UsageSeriesPoint => ({
   key: dayKey(d),
   label: format(d, "MMM d"),
-  fullLabel: format(d, "EEE, MMM d"),
+  // All time can span years; name the year for days outside the current one.
+  fullLabel: format(d, d.getFullYear() === new Date().getFullYear() ? "EEE, MMM d" : "EEE, MMM d, yyyy"),
   cost,
   images,
 });
@@ -98,6 +99,17 @@ const hourPoint = (h: number, cost = 0, images = 0): UsageSeriesPoint => ({
   cost,
   images,
 });
+
+/** Calendar days before today that each bounded range also covers. */
+const PAST_DAYS: Record<Exclude<UsageRangeKey, "all">, number> = { today: 0, "7d": 6, "30d": 29 };
+
+/**
+ * Local midnight at the start of a range (null for all time): today, or the last
+ * 7 / 30 calendar days including today. The Usage page fetches from here and
+ * `bucketLogs` charts from here, so the chart covers exactly the fetched logs.
+ */
+export const usageRangeStart = (range: UsageRangeKey, now = new Date()): Date | null =>
+  range === "all" ? null : new Date(now.getFullYear(), now.getMonth(), now.getDate() - PAST_DAYS[range]);
 
 /** Buckets real logs into hours (today) or days, filling empty buckets with zero. */
 export const bucketLogs = (logs: UsageLogRow[], range: UsageRangeKey): { granularity: UsageGranularity; series: UsageSeriesPoint[] } => {
@@ -115,18 +127,16 @@ export const bucketLogs = (logs: UsageLogRow[], range: UsageRangeKey): { granula
     return { granularity: "hour", series };
   }
 
-  let start: Date;
-  if (range === "all") {
-    const oldest = logs.reduce((min, l) => Math.min(min, new Date(l.created_at).getTime()), now.getTime());
-    start = new Date(Math.max(oldest, now.getTime() - 365 * 86_400_000));
-  } else {
-    start = new Date(now.getTime() - (range === "7d" ? 6 : 29) * 86_400_000);
-  }
-  start.setHours(0, 0, 0, 0);
+  // Same window as the fetch; all time starts at the oldest fetched log (no cap).
+  const start =
+    usageRangeStart(range, now) ??
+    startOfDay(logs.reduce((min, l) => Math.min(min, new Date(l.created_at).getTime()), now.getTime()));
 
+  // Step by calendar day, not a fixed 24h, so every bucket stays on local midnight across DST changes.
+  const dayAt = (i: number) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
   const series: UsageSeriesPoint[] = [];
   const index = new Map<string, UsageSeriesPoint>();
-  for (let d = new Date(start); d <= now; d = new Date(d.getTime() + 86_400_000)) {
+  for (let i = 0, d = dayAt(0); d <= now; d = dayAt(++i)) {
     const p = dayPoint(d);
     series.push(p);
     index.set(p.key, p);

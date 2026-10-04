@@ -258,7 +258,7 @@ export interface SampleTemplate {
   section: "featured" | "use-case" | "template";
   description: string;
   prompt: string;
-  /** Route the template opens. */
+  /** Route the template opens; it must read `?prompt=` (Pack Creator, Text to Image). */
   path: string;
   cover: MockImageKey;
   gallery?: MockImageKey[];
@@ -282,7 +282,7 @@ export const sampleTemplates: SampleTemplate[] = [
   },
   {
     id: "t3", title: "Architectural interiors", kind: "Flow", category: "3d", section: "featured",
-    description: "Furniture heroes in sunlit concrete.", path: "/generator",
+    description: "Furniture heroes in sunlit concrete.", path: "/pack-creator",
     prompt: "Sculptural lounge chair in a sunlit concrete courtyard, olive shadows",
     cover: "space-sage", gallery: ["space-terracotta", "space-cobalt", "space-mustard"], uses: 7450, author: "Lumra",
   },
@@ -330,7 +330,7 @@ export const sampleTemplates: SampleTemplate[] = [
   },
   {
     id: "t11", title: "Golden hour interior", kind: "Flow", category: "3d", section: "template",
-    description: "Warm light through concrete openings.", path: "/generator",
+    description: "Warm light through concrete openings.", path: "/pack-creator",
     prompt: "Mustard lounge chair, golden hour light through a concrete courtyard",
     cover: "space-mustard", uses: 1730, author: "Atelier N",
   },

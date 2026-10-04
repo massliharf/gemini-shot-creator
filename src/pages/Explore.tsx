@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, ChevronRight, Copy, Heart, Loader2, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
@@ -53,6 +53,7 @@ const community: { key: MockImageKey; author: string; likes: number; tall: boole
 
 const Explore = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading } = useRequireUser();
   const [params, setParams] = useSearchParams();
   const [tab, setTab] = useState<Tab>("discover");
@@ -62,8 +63,13 @@ const Explore = () => {
 
   const openId = params.get("template");
   const active = sampleTemplates.find((t) => t.id === openId) ?? null;
-  const openTemplate = (t: SampleTemplate) => setParams({ template: t.id }, { replace: false });
-  const closeTemplate = () => setParams({}, { replace: true });
+  // Opening from this page pushes an entry, so closing pops it and Back stays meaningful.
+  // A direct ?template= link (Home, reload of a deep link) has no entry to pop: just clear the param.
+  const openTemplate = (t: SampleTemplate) => setParams({ template: t.id }, { state: { templateFromExplore: true } });
+  const closeTemplate = () =>
+    (location.state as { templateFromExplore?: boolean } | null)?.templateFromExplore
+      ? navigate(-1)
+      : setParams({}, { replace: true });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -345,7 +351,7 @@ const TemplateDialog = ({
         }
       }}
     >
-      <DialogContent className="max-w-[860px] gap-0 overflow-hidden p-0">
+      <DialogContent className="max-h-[90dvh] max-w-[860px] gap-0 overflow-y-auto overscroll-contain p-0">
         {template && (
           <div className="grid md:grid-cols-[1.1fr_1fr]">
             <div className="bg-app p-3">

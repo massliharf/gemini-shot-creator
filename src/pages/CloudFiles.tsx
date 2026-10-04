@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { isDemoMode } from "@/lib/demo";
 import { toast } from "sonner";
 import {
   Download,
@@ -19,6 +20,7 @@ import {
   FileJson,
   Archive,
   AlertTriangle,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -98,8 +100,10 @@ const CloudFiles = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Restore folders from localStorage on mount
+  // Restore folders from localStorage on mount. Demo mode never reads or writes the
+  // cached library, so the tour can't show (or overwrite) a real account's folders.
   const [folders, setFolders] = useState<CloudFolder[]>(() => {
+    if (isDemoMode()) return [];
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.folders);
       return saved ? JSON.parse(saved) : [];
@@ -108,10 +112,17 @@ const CloudFiles = () => {
     }
   });
   
+  // "pending" until a folder list has loaded (cached or fetched), so a slow or failed
+  // first load shows loading / error instead of the sample library.
+  const [libraryState, setLibraryState] = useState<"pending" | "loaded" | "error">(() =>
+    folders.length > 0 ? "loaded" : "pending",
+  );
+
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   
   // Restore expanded folder
   const [expandedFolder, setExpandedFolder] = useState<string | null>(() => {
+    if (isDemoMode()) return null;
     try {
       return localStorage.getItem(STORAGE_KEYS.expandedFolder) || null;
     } catch {
@@ -125,6 +136,7 @@ const CloudFiles = () => {
 
   // Restore pagination state
   const [folderOffset, setFolderOffset] = useState(() => {
+    if (isDemoMode()) return 0;
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.folderOffset);
       return saved ? parseInt(saved, 10) : 0;
@@ -134,6 +146,7 @@ const CloudFiles = () => {
   });
   
   const [hasMoreFolders, setHasMoreFolders] = useState(() => {
+    if (isDemoMode()) return false;
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.hasMoreFolders);
       return saved === 'true';
@@ -217,24 +230,27 @@ const CloudFiles = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Persist folders to localStorage whenever they change
+  // Persist folders to localStorage whenever they change (never in demo mode)
   useEffect(() => {
-    if (folders.length > 0) {
+    if (folders.length > 0 && !isDemoMode()) {
       localStorage.setItem(STORAGE_KEYS.folders, JSON.stringify(folders));
     }
   }, [folders]);
 
   // Persist pagination state
   useEffect(() => {
+    if (isDemoMode()) return;
     localStorage.setItem(STORAGE_KEYS.folderOffset, folderOffset.toString());
   }, [folderOffset]);
 
   useEffect(() => {
+    if (isDemoMode()) return;
     localStorage.setItem(STORAGE_KEYS.hasMoreFolders, hasMoreFolders.toString());
   }, [hasMoreFolders]);
 
   // Persist expanded folder
   useEffect(() => {
+    if (isDemoMode()) return;
     if (expandedFolder) {
       localStorage.setItem(STORAGE_KEYS.expandedFolder, expandedFolder);
     } else {
@@ -421,8 +437,10 @@ const CloudFiles = () => {
 
       if (forceRefresh) {
         // Clear cached data when forcing refresh
-        localStorage.removeItem(STORAGE_KEYS.folders);
-        localStorage.removeItem(STORAGE_KEYS.scrollPosition);
+        if (!isDemoMode()) {
+          localStorage.removeItem(STORAGE_KEYS.folders);
+          localStorage.removeItem(STORAGE_KEYS.scrollPosition);
+        }
         setFolders([]);
         setSelectedFolders(new Set());
         setExpandedFolder(null);
@@ -438,9 +456,11 @@ const CloudFiles = () => {
       });
 
       setFolders(firstBatch);
+      setLibraryState("loaded");
     } catch (error) {
       console.error("Error loading cloud data:", error);
       toast.error("Couldn't load your library");
+      setLibraryState("error");
     } finally {
       setLoading(false);
     }
@@ -1543,8 +1563,10 @@ const CloudFiles = () => {
     ? folders.filter(f => !downloadedFolders.has(f.name))
     : folders;
 
-  // Empty bucket (always in demo mode): show the sample library instead of a bare empty state.
-  const showSampleLibrary = !loading && folders.length === 0;
+  // Empty bucket (always in demo mode): show the sample library instead of a bare empty state —
+  // only once the list has actually loaded empty, never while loading or after a failed load.
+  const showSampleLibrary = !loading && libraryState === "loaded" && folders.length === 0;
+  const showLoadError = !loading && libraryState === "error" && folders.length === 0;
 
   if (loading && !user) {
     return (
@@ -1617,7 +1639,7 @@ const CloudFiles = () => {
           {/* FILES TAB */}
           <TabsContent value="files" className="flex-1 min-h-0 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Toolbar: outline filter + single black primary action (hidden while the sample library is shown) */}
-            {!showSampleLibrary && (
+            {!showSampleLibrary && !showLoadError && (
               <div className="px-4 md:px-8 pb-4 flex items-center gap-2 flex-wrap flex-shrink-0" role="toolbar" aria-label="File tools">
                 <Button
                   variant={hideDownloaded ? "secondary" : "outline"}
@@ -1690,7 +1712,7 @@ const CloudFiles = () => {
               onScroll={handleScroll}
               className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 pb-8"
             >
-              {loading ? (
+              {loading || (folders.length === 0 && libraryState === "pending") ? (
                 <div className="space-y-2" aria-busy="true" aria-label="Loading folders">
                   <Skeleton className="h-control-md w-full rounded-md" />
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -1704,6 +1726,16 @@ const CloudFiles = () => {
                       <Skeleton className="h-7 w-24 rounded-md" />
                     </div>
                   ))}
+                </div>
+              ) : showLoadError ? (
+                <div className="flex flex-col items-center justify-center text-center py-20 px-4" role="alert">
+                  <AlertCircle className="size-5 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
+                  <h2 className="text-heading-md text-foreground mb-1">Couldn't load your library</h2>
+                  <p className="text-body-sm text-muted-foreground mb-4">Check your connection and try again.</p>
+                  <Button variant="outline" onClick={() => loadCloudData(true)}>
+                    <RefreshCw strokeWidth={1.5} aria-hidden="true" />
+                    Retry
+                  </Button>
                 </div>
               ) : folders.length === 0 ? (
                 <SampleLibrary />

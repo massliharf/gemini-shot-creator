@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { PackFile, getPackId, getPackName, hasScenes } from "@/types/pack";
+import type { PackFile } from "@/types/pack";
+import { safePackId, safePackName, safeSceneCount } from "@/components/packs/packMeta";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -77,12 +78,12 @@ export const PackUploadDialog = ({ open, onOpenChange, onPacksLoad }: PackUpload
       const packsToUpload = normalizeToPacks(parsed);
 
       for (const pack of packsToUpload) {
-        if (!getPackId(pack) || !getPackName(pack)) {
+        if (!safePackId(pack).trim() || !safePackName(pack, "")) {
           setUploadError("Invalid JSON: missing pack_id or package_name");
           setIsUploading(false);
           return;
         }
-        if (!hasScenes(pack)) {
+        if (safeSceneCount(pack) === 0) {
           setUploadError("Invalid JSON: missing or empty scenes array");
           setIsUploading(false);
           return;

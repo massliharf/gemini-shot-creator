@@ -19,7 +19,7 @@ interface PackRecord {
   id: string;
   pack_id: string;
   pack_name: string;
-  pack_data: Record<string, unknown>;
+  pack_data: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -72,14 +72,19 @@ export default function Styles() {
     setLoading(false);
   };
 
-  const getSceneCount = (packData: Record<string, unknown>): number => {
-    return Array.isArray(packData.scenes) ? packData.scenes.length : 0;
+  // pack_data is stored JSON (legacy or hand-written) — read it defensively so a malformed pack can't crash the grid.
+  const getSceneCount = (packData: Record<string, unknown> | null): number => {
+    return packData && Array.isArray(packData.scenes) ? packData.scenes.length : 0;
   };
 
-  const getCategory = (packData: Record<string, unknown>): string => {
-    const meta = packData.meta as Record<string, unknown> | undefined;
-    return (meta?.category as string) || "—";
+  const getCategory = (packData: Record<string, unknown> | null): string => {
+    const meta = packData && typeof packData === "object" ? packData.meta : undefined;
+    const category = meta && typeof meta === "object" ? (meta as Record<string, unknown>).category : undefined;
+    return typeof category === "string" && category.trim() ? category : "—";
   };
+
+  const getName = (pack: PackRecord): string =>
+    [pack.pack_name, pack.pack_id].find((v): v is string => typeof v === "string" && v.trim() !== "") ?? "Untitled pack";
 
   /** Client-side search + category filter shared by real and sample styles. */
   const matches = (name: string, cat: string) => {
@@ -90,7 +95,7 @@ export default function Styles() {
   };
 
   const visiblePacks = useMemo(
-    () => packs.filter((p) => matches(p.pack_name || p.pack_id, getCategory(p.pack_data))),
+    () => packs.filter((p) => matches(getName(p), getCategory(p.pack_data))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [packs, query, category],
   );
@@ -102,7 +107,10 @@ export default function Styles() {
 
   const showSamples = !loading && packs.length === 0;
   const isFiltering = query.trim() !== "" || category !== "all";
-  const allVisibleSelected = visiblePacks.length > 0 && visiblePacks.every((p) => selectedIds.has(p.id));
+  // Selection actions only ever see packs the current search/category shows — hidden picks are never downloaded.
+  const visibleSelected = visiblePacks.filter((p) => selectedIds.has(p.id));
+  const selectedCount = visibleSelected.length;
+  const allVisibleSelected = visiblePacks.length > 0 && selectedCount === visiblePacks.length;
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -113,8 +121,16 @@ export default function Styles() {
     });
   };
 
+  /** Selects or clears the visible packs only; picks hidden by the filter are left alone. */
   const toggleSelectAll = () => {
-    setSelectedIds(allVisibleSelected ? new Set() : new Set(visiblePacks.map((p) => p.id)));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const p of visiblePacks) {
+        if (allVisibleSelected) next.delete(p.id);
+        else next.add(p.id);
+      }
+      return next;
+    });
   };
 
   const downloadSinglePack = async (pack: PackRecord) => {
@@ -124,7 +140,7 @@ export default function Styles() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${pack.pack_name || pack.pack_id}.json`;
+      a.download = `${getName(pack)}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch { toast.error("Download failed"); }
@@ -132,22 +148,22 @@ export default function Styles() {
   };
 
   const downloadSelected = async () => {
-    if (selectedIds.size === 0) return;
+    const selectedPacks = visibleSelected;
+    if (selectedPacks.length === 0) return;
     setDownloading("bulk");
     try {
       const zip = new JSZip();
-      const selectedPacks = packs.filter((p) => selectedIds.has(p.id));
       for (const pack of selectedPacks) {
-        zip.file(`${pack.pack_name || pack.pack_id}.json`, JSON.stringify(pack.pack_data, null, 2));
+        zip.file(`${getName(pack)}.json`, JSON.stringify(pack.pack_data, null, 2));
       }
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `style-packs-${selectedIds.size}.zip`;
+      a.download = `style-packs-${selectedPacks.length}.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`Downloaded ${selectedIds.size} packs`);
+      toast.success(`Downloaded ${selectedPacks.length} packs`);
     } catch { toast.error("Bulk download failed"); }
     setDownloading(null);
   };
@@ -214,20 +230,21 @@ export default function Styles() {
                 <div
                   className={cn(
                     "flex items-center gap-2 h-control-lg md:h-control-md px-3 rounded-md transition-colors duration-fast",
-                    selectedIds.size > 0 ? "bg-active" : "bg-control",
+                    selectedCount > 0 ? "bg-active" : "bg-control",
                   )}
                 >
                   <Checkbox
                     id="styles-select-all"
                     checked={allVisibleSelected}
                     onCheckedChange={toggleSelectAll}
+                    disabled={visiblePacks.length === 0}
                     aria-label="Select all packs"
                   />
                   <label htmlFor="styles-select-all" className="text-label-md text-foreground cursor-pointer select-none tabular-nums whitespace-nowrap">
-                    {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+                    {selectedCount > 0 ? `${selectedCount} selected` : "Select all"}
                   </label>
                 </div>
-                {selectedIds.size > 0 && (
+                {selectedCount > 0 && (
                   <Button
                     variant="outline"
                     className="h-control-lg md:h-control-md"
@@ -239,7 +256,7 @@ export default function Styles() {
                     ) : (
                       <Download strokeWidth={1.5} aria-hidden="true" />
                     )}
-                    Download {selectedIds.size}
+                    Download {selectedCount}
                   </Button>
                 )}
               </div>
@@ -291,7 +308,7 @@ export default function Styles() {
                   {visiblePacks.map((pack) => {
                     const selected = selectedIds.has(pack.id);
                     const checkboxId = `pack-select-${pack.id}`;
-                    const name = pack.pack_name || pack.pack_id;
+                    const name = getName(pack);
                     return (
                       <li key={pack.id} className="group min-w-0">
                         {/* Cover */}

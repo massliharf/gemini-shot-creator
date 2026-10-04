@@ -18,6 +18,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
 import { ModelSelector } from "@/components/ModelSelector";
 import { useGenerationSettings } from "@/hooks/useGenerationSettings";
+import { isDemoMode } from "@/lib/demo";
 import { SamplePackFeed, ToolHeader } from "@/components/results";
 
 // JSON Uploader Component
@@ -652,10 +653,11 @@ export default function Generator() {
           )}
 
           <div className="flex-1 lg:min-h-0 lg:overflow-y-auto space-y-3 pb-4">
+            {/* Sample packs only exist in the demo workspace, so "View pack" is demo-only */}
             {images.length === 0 && (
               <SamplePackFeed
                 notice="Upload references in the panel — each one becomes a pack here."
-                onOpenPack={goToMainPage}
+                onOpenPack={isDemoMode() ? (p) => navigate(`/?pack=${encodeURIComponent(p.id)}`) : undefined}
               />
             )}
 

@@ -138,7 +138,7 @@ export const OnboardingToast = () => {
   return (
     <div
       role="status"
-      className="fixed left-1/2 z-header -translate-x-1/2 bottom-[calc(var(--bottom-nav-height)+12px)] md:bottom-6 flex items-center gap-3 rounded-full bg-card pl-4 pr-1.5 py-1.5 shadow-overlay animate-in fade-in-0 slide-in-from-bottom-4 duration-slow max-w-[calc(100vw-24px)]"
+      className="fixed left-1/2 z-header -translate-x-1/2 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+12px)] md:bottom-6 flex items-center gap-3 rounded-full bg-card pl-4 pr-1.5 py-1.5 shadow-overlay animate-in fade-in-0 slide-in-from-bottom-4 duration-slow max-w-[calc(100vw-24px)]"
     >
       <p className="text-label-md text-foreground truncate">
         New here? <span className="text-muted-foreground">Make your first generation</span>

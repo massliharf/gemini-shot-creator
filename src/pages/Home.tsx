@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowUpRight,
+  BarChart3,
   ChevronRight,
   Gem,
   LayoutGrid,
@@ -13,11 +14,17 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { SmartImage } from "@/components/SmartImage";
+import { SampleChip } from "@/components/SampleNotice";
+import { PackThumb } from "@/components/packs/PackThumb";
+import { useHomeFeed } from "@/components/home/useHomeFeed";
 import { navItems, categoryClasses, type Category } from "@/components/IconRail";
 import { useCommandPalette, isMac } from "@/components/command/CommandPalette";
 import { OnboardingToast } from "@/components/onboarding/OnboardingToast";
 import { TemplateCard } from "@/components/explore/TemplateCard";
 import { useRequireUser, displayName } from "@/hooks/useRequireUser";
+import { isDemoMode } from "@/lib/demo";
 import {
   mockImage,
   relativeTime,
@@ -48,9 +55,22 @@ const readFlag = (key: string) => {
 };
 
 /** Section header: title left, ghost "See all ›" right. */
-const SectionHeader = ({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) => (
+const SectionHeader = ({
+  title,
+  badge,
+  action,
+  onAction,
+}: {
+  title: string;
+  badge?: ReactNode;
+  action?: string;
+  onAction?: () => void;
+}) => (
   <div className="flex items-center justify-between mb-3">
-    <h2 className="text-heading-sm text-foreground">{title}</h2>
+    <h2 className="flex items-center gap-2 text-heading-sm text-foreground">
+      {title}
+      {badge}
+    </h2>
     {action && (
       <Button variant="ghost" size="md" onClick={onAction} className="-mr-2 text-muted-foreground hover:text-foreground">
         {action}
@@ -65,6 +85,7 @@ const Home = () => {
   const { user, loading } = useRequireUser();
   const { open: openSearch } = useCommandPalette();
   const [bannerHidden, setBannerHidden] = useState(() => readFlag(BANNER_KEY));
+  const feed = useHomeFeed(user?.id);
 
   if (loading || !user) {
     return (
@@ -79,6 +100,14 @@ const Home = () => {
     .flatMap((c) => c.images.map((key) => ({ key, prompt: c.prompt, tool: c.tool })))
     .slice(0, 9);
   const templates = sampleTemplates.filter((t) => t.section !== "template").slice(0, 4);
+  // Credits have no real source yet, so the plan/balance card only exists in the demo workspace.
+  const demo = isDemoMode();
+  // Real packs / generations when the user has some; otherwise the labelled samples (also the demo case).
+  const recentLoading = feed.creations === null;
+  const recentIsSample = feed.creations?.length === 0;
+  const projectsLoading = feed.packs === null;
+  const projectsIsSample = feed.packs?.length === 0;
+  const packCover = (packId: string) => feed.creations?.find((c) => c.packId === packId)?.url;
 
   const dismissBanner = () => {
     setBannerHidden(true);
@@ -173,10 +202,47 @@ const Home = () => {
           {/* Two columns */}
           <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
             <section aria-labelledby="recent-title">
-              <SectionHeader title="Recent creations" action="See all" onAction={() => navigate("/cloud-files")} />
+              <SectionHeader
+                title="Recent creations"
+                badge={recentIsSample && <SampleChip />}
+                action="See all"
+                onAction={() => navigate("/cloud-files")}
+              />
               <h2 id="recent-title" className="sr-only">Recent creations</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {recent.slice(0, 7).map((r, i) => (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" aria-busy={recentLoading || undefined}>
+                {recentLoading &&
+                  Array.from({ length: 7 }, (_, i) => (
+                    <Skeleton key={i} className={cn("rounded-md", i === 0 ? "col-span-2 row-span-2 aspect-square" : "aspect-square")} />
+                  ))}
+                {feed.creations?.map((c, i) => {
+                  const when = c.updatedAt ? relativeTime(c.updatedAt) : null;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => navigate(c.packId ? `/?pack=${encodeURIComponent(c.packId)}` : "/cloud-files")}
+                      className={cn(
+                        "group relative overflow-hidden rounded-md bg-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        i === 0 ? "col-span-2 row-span-2 aspect-square" : "aspect-square",
+                      )}
+                    >
+                      <SmartImage
+                        src={c.url}
+                        alt={when ? `Generated ${when.toLowerCase()}` : "Generated image"}
+                        fit="cover"
+                        loading="lazy"
+                        maxRetries={1}
+                        className="size-full transition-transform duration-slow group-hover:scale-[1.03]"
+                      />
+                      {when && (
+                        <span className="absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/60 to-transparent p-2.5 pt-8 text-left text-caption text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-normal">
+                          {when}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+                {recentIsSample && recent.slice(0, 7).map((r, i) => (
                   <button
                     key={`${r.key}-${i}`}
                     type="button"
@@ -204,14 +270,45 @@ const Home = () => {
               {/* Projects */}
               <section aria-labelledby="projects-title" className="rounded-lg bg-card p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 id="projects-title" className="text-heading-sm text-foreground">Projects</h2>
+                  <h2 id="projects-title" className="flex items-center gap-2 text-heading-sm text-foreground">
+                    Projects
+                    {projectsIsSample && <SampleChip />}
+                  </h2>
                   <Button variant="ghost" size="md" className="-mr-2 text-muted-foreground hover:text-foreground" onClick={() => navigate("/")}>
                     All projects
                     <ChevronRight aria-hidden="true" />
                   </Button>
                 </div>
-                <ul className="flex flex-col">
-                  {sampleProjects.map((p) => {
+                <ul className="flex flex-col" aria-busy={projectsLoading || undefined}>
+                  {projectsLoading &&
+                    Array.from({ length: 3 }, (_, i) => (
+                      <li key={i} className="flex items-center gap-3 px-2 py-2" aria-hidden="true">
+                        <Skeleton className="size-8 rounded-md" />
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-3 w-2/3" />
+                          <Skeleton className="h-2.5 w-1/3" />
+                        </div>
+                      </li>
+                    ))}
+                  {feed.packs?.map((p) => (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/?pack=${encodeURIComponent(p.id)}`)}
+                        className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-control transition-colors duration-fast"
+                      >
+                        <PackThumb name={p.name} src={packCover(p.id)} className="size-8" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-label-md text-foreground">{p.name}</span>
+                          <span className="block text-caption text-tertiary-foreground">
+                            {p.scenes} {p.scenes === 1 ? "scene" : "scenes"}
+                            {p.createdAt && ` · ${relativeTime(p.createdAt)}`}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                  {projectsIsSample && sampleProjects.map((p) => {
                     const cat = categoryClasses[p.category as Category];
                     return (
                       <li key={p.id}>
@@ -244,27 +341,44 @@ const Home = () => {
                 </Button>
               </section>
 
-              {/* Credits */}
-              <section aria-labelledby="credits-title" className="rounded-lg bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <h2 id="credits-title" className="text-overline text-muted-foreground">Credits this month</h2>
-                  <span className="inline-flex h-5 items-center rounded-full bg-control px-2 text-micro text-foreground">Pro</span>
-                </div>
-                <p className="mt-2 flex items-baseline gap-1">
-                  <span className="text-heading-lg text-foreground tabular-nums">1,240</span>
-                  <span className="text-body-sm text-tertiary-foreground">/ 2,000</span>
-                </p>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-track" role="progressbar" aria-valuenow={62} aria-valuemin={0} aria-valuemax={100} aria-label="Credits used">
-                  <div className="h-full w-[62%] rounded-full bg-foreground" />
-                </div>
-                <div className="mt-3 flex items-center justify-between text-caption">
-                  <span className="text-tertiary-foreground">Resets in 12 days</span>
-                  <button type="button" onClick={() => navigate("/usage")} className="inline-flex items-center gap-1 text-label-md text-brand hover:underline">
-                    <Gem className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-                    Upgrade
-                  </button>
-                </div>
-              </section>
+              {/* Credits — sample plan/balance, demo workspace only */}
+              {demo ? (
+                <section aria-labelledby="credits-title" className="rounded-lg bg-card p-4">
+                  <div className="flex items-center justify-between">
+                    <h2 id="credits-title" className="text-overline text-muted-foreground">Credits this month</h2>
+                    <span className="flex items-center gap-1.5">
+                      <SampleChip />
+                      <span className="inline-flex h-5 items-center rounded-full bg-control px-2 text-micro text-foreground">Pro</span>
+                    </span>
+                  </div>
+                  <p className="mt-2 flex items-baseline gap-1">
+                    <span className="text-heading-lg text-foreground tabular-nums">1,240</span>
+                    <span className="text-body-sm text-tertiary-foreground">/ 2,000</span>
+                  </p>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-track" role="progressbar" aria-valuenow={62} aria-valuemin={0} aria-valuemax={100} aria-label="Credits used">
+                    <div className="h-full w-[62%] rounded-full bg-foreground" />
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-caption">
+                    <span className="text-tertiary-foreground">Resets in 12 days</span>
+                    <button type="button" onClick={() => navigate("/usage")} className="inline-flex items-center gap-1 text-label-md text-brand hover:underline">
+                      <Gem className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                      Upgrade
+                    </button>
+                  </div>
+                </section>
+              ) : (
+                <section aria-labelledby="usage-title" className="rounded-lg bg-card p-4">
+                  <div className="flex items-center justify-between">
+                    <h2 id="usage-title" className="text-overline text-muted-foreground">Usage & cost</h2>
+                    <BarChart3 className="size-4 text-tertiary-foreground" strokeWidth={1.75} aria-hidden="true" />
+                  </div>
+                  <p className="mt-2 text-body-sm text-muted-foreground">Tokens, images and estimated spend for your generations.</p>
+                  <Button variant="ghost" size="md" className="mt-2 -ml-2" onClick={() => navigate("/usage")}>
+                    View usage
+                    <ChevronRight aria-hidden="true" />
+                  </Button>
+                </section>
+              )}
             </aside>
           </div>
 

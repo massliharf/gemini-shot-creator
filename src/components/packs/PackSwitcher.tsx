@@ -1,6 +1,6 @@
-import { getPackName } from "@/types/pack";
 import type { PackInfo } from "@/hooks/usePacks";
 import { PackThumb } from "@/components/packs/PackThumb";
+import { safePackName } from "@/components/packs/packMeta";
 import { cn } from "@/lib/utils";
 
 interface PackSwitcherProps {
@@ -21,7 +21,7 @@ export const PackSwitcher = ({ packs, selectedPackId, onSelectPack, className }:
     <nav aria-label="Switch pack" className={className}>
       <ul className="flex gap-1.5 overflow-x-auto px-4 md:px-8 scroll-px-4 md:scroll-px-8 pb-1 list-none m-0 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {packs.map((pack) => {
-          const name = getPackName(pack.pack);
+          const name = safePackName(pack.pack);
           const isActive = pack.packId === selectedPackId;
           return (
             <li key={pack.packId} className="snap-start shrink-0">

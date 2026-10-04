@@ -5,7 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
  * Demo mode — lets anyone tour Lumra without an account.
  *
  * Enabled with `?demo=1` (or the "Explore the demo" button on /auth) and kept in
- * localStorage. While active, the Supabase client is shadowed so that:
+ * localStorage. Each tab reads the flag once at boot, so toggling the demo in one
+ * tab never switches another open tab mid-session. While active, the Supabase
+ * client is shadowed so that:
  *  - auth returns a fake signed-in demo user,
  *  - reads resolve to empty results (pages then render their sample content),
  *  - writes / edge functions resolve to a friendly "sign in to save" error.
@@ -23,9 +25,13 @@ const safeGet = (key: string) => {
   }
 };
 
-export const isDemoMode = () => safeGet(STORAGE_KEY) === "1";
+/** Per-tab snapshot of the flag, taken at boot and changed only by enter/exit below. */
+let demoActive = safeGet(STORAGE_KEY) === "1";
+
+export const isDemoMode = () => demoActive;
 
 export const enterDemoMode = () => {
+  demoActive = true;
   try {
     localStorage.setItem(STORAGE_KEY, "1");
   } catch {
@@ -34,6 +40,7 @@ export const enterDemoMode = () => {
 };
 
 export const exitDemoMode = () => {
+  demoActive = false;
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {
@@ -66,10 +73,13 @@ const DEMO_SESSION = {
  * Chainable query stub: every builder method returns the stub, awaiting it
  * yields the result. Reads are empty, writes fail softly.
  * ------------------------------------------------------------------------- */
-type StubResult = { data: unknown; error: { message: string } | null; count?: number };
+type StubResult = { data: unknown; error: Error | null; count?: number };
+
+/** A real Error (like Supabase's own errors) so `instanceof Error` checks show the message. */
+const demoError = () => new Error(DEMO_MESSAGE);
 
 const READ_RESULT: StubResult = { data: [], error: null, count: 0 };
-const WRITE_RESULT: StubResult = { data: null, error: { message: DEMO_MESSAGE } };
+const WRITE_RESULT: StubResult = { data: null, error: demoError() };
 const WRITE_METHODS = new Set(["insert", "update", "upsert", "delete"]);
 
 const queryStub = (result: StubResult = READ_RESULT): unknown => {
@@ -93,11 +103,11 @@ const queryStub = (result: StubResult = READ_RESULT): unknown => {
 
 const storageBucketStub = {
   list: async () => ({ data: [], error: null }),
-  download: async () => ({ data: null, error: { message: DEMO_MESSAGE } }),
-  upload: async () => ({ data: null, error: { message: DEMO_MESSAGE } }),
-  remove: async () => ({ data: null, error: { message: DEMO_MESSAGE } }),
-  move: async () => ({ data: null, error: { message: DEMO_MESSAGE } }),
-  createSignedUrl: async () => ({ data: null, error: { message: DEMO_MESSAGE } }),
+  download: async () => ({ data: null, error: demoError() }),
+  upload: async () => ({ data: null, error: demoError() }),
+  remove: async () => ({ data: null, error: demoError() }),
+  move: async () => ({ data: null, error: demoError() }),
+  createSignedUrl: async () => ({ data: null, error: demoError() }),
   createSignedUrls: async () => ({ data: [], error: null }),
   getPublicUrl: (path: string) => ({ data: { publicUrl: path } }),
 };
@@ -138,11 +148,10 @@ export const installDemoLayer = () => {
     isDemoMode()
       ? { data: { subscription: { id: "demo", callback: cb, unsubscribe: () => {} } } }
       : realOnChange(cb);
+  // Leaving the demo also clears any real session stored alongside it; with no
+  // stored session the real signOut just resolves `{ error: null }`.
   auth.signOut = (opts?: Parameters<typeof realSignOut>[0]) => {
-    if (isDemoMode()) {
-      exitDemoMode();
-      return Promise.resolve({ error: null });
-    }
+    if (isDemoMode()) exitDemoMode();
     return realSignOut(opts);
   };
 
@@ -168,7 +177,13 @@ export const installDemoLayer = () => {
       configurable: true,
       get: () =>
         isDemoMode()
-          ? { invoke: async () => ({ data: null, error: { message: DEMO_MESSAGE } }) }
+          ? {
+              // Error for callers that read `error`, a failed body for those that read `data`.
+              invoke: async () => ({
+                data: { success: false, message: DEMO_MESSAGE, error: DEMO_MESSAGE },
+                error: demoError(),
+              }),
+            }
           : functionsGetter.call(supabase),
     });
   }

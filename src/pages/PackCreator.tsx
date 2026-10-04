@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ import { getPackId, getPackName, getSceneCount, hasScenes, buildFinalPrompt, get
 import { AppLayout } from "@/components/AppLayout";
 import { User } from "@supabase/supabase-js";
 import { usePackCreatorState } from "@/hooks/usePackCreatorState";
+import { isDemoMode } from "@/lib/demo";
 import { ResultGroup, SamplePackGrid, ToolHeader } from "@/components/results";
 
 interface UploadedImage {
@@ -120,6 +121,24 @@ export default function PackCreator() {
     setGender, setShowAdvanced, setSelectedInfluences, setLightingPreference, setColorPalette,
     setCustomPrompt, setGeneratedPacks, setImages, setAutoRender, setRenderModel, setRenderAspectRatio, setRenderResolution,
   } = usePackCreatorState();
+
+  // Templates link here with ?prompt=…: put it in the creative brief, then drop the param
+  // so the same template can be applied again and a reload doesn't overwrite later edits.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const promptParam = searchParams.get("prompt");
+  useEffect(() => {
+    if (!promptParam) return;
+    setInputMode("text");
+    setTextPrompt(promptParam);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("prompt");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [promptParam, setInputMode, setTextPrompt, setSearchParams]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1147,13 +1166,13 @@ export default function PackCreator() {
             </div>
           </div>
 
-          {/* Empty state */}
+          {/* Empty state — sample packs only exist in the demo workspace, so "View pack" is demo-only */}
           {renderProgress.length === 0 && generatedPacks.length === 0 && (
             <SamplePackGrid
               notice={pendingOrErrorCount > 0
                 ? `${pendingOrErrorCount} reference(s) ready — generate to start.`
                 : "Add references or write a brief — your packs will appear here."}
-              onOpenPack={() => navigate("/")}
+              onOpenPack={isDemoMode() ? (p) => navigate(`/?pack=${encodeURIComponent(p.id)}`) : undefined}
               latestRender
             />
           )}

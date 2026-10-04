@@ -85,7 +85,7 @@ const TextToImage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const isProModel = model === "pro" || model === "flash-3.1";
   const isGenerating = activeGenerations > 0;
@@ -112,11 +112,21 @@ const TextToImage = () => {
 
   useEffect(() => { if (user && !historyLoaded) loadHistory(); }, [user, historyLoaded]);
 
-  // Deep link: /text-to-image?prompt=... prefills the prompt
+  // Deep link: /text-to-image?prompt=... prefills the prompt once, then the param is dropped
+  // so picking the same prompt again (⌘K, templates) re-applies it and a reload doesn't refill it.
   const promptParam = searchParams.get("prompt");
   useEffect(() => {
-    if (promptParam) setPrompt(promptParam);
-  }, [promptParam]);
+    if (!promptParam) return;
+    setPrompt(promptParam);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("prompt");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [promptParam, setSearchParams]);
 
   /** Fills the prompt field (ideas, "Use prompt") and moves focus there. */
   const applyPrompt = (text: string) => {

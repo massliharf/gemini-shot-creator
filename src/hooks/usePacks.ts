@@ -5,9 +5,6 @@ import {
   SceneWithStatus,
   SceneStatus,
   SceneVersion,
-  getPackId,
-  getPackName,
-  hasScenes,
   getScenes,
 } from "@/types/pack";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +12,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { isDemoMode, DEMO_MESSAGE } from "@/lib/demo";
 import { samplePacks } from "@/data/mock";
+import { safePackId, safePackName, safeSceneCount } from "@/components/packs/packMeta";
 
 export interface PackData {
   pack: PackFile;
@@ -33,6 +31,9 @@ export interface PackInfo {
   generatingShots: number;
   thumbnailUrl?: string;
 }
+
+/** "loading" until the first fetch of the user's packs settles — an empty map means nothing until then. */
+export type PacksStatus = "loading" | "ready" | "error";
 
 type PacksLoadResult = {
   uploadedCount: number;
@@ -81,14 +82,18 @@ const getSceneStatusFromRow = (row?: QueueRow): { status: SceneStatus; error?: s
 
 // Convert scenes to SceneWithStatus array
 const scenesToArray = (packFile: PackFile): { id: string; title: string; prompt: string }[] => {
+  // pack_data is stored JSON and may be null or malformed — never throw while loading packs.
+  if (!packFile || typeof packFile !== "object") return [];
   const scenes = getScenes(packFile);
   if (!scenes || !Array.isArray(scenes)) return [];
 
-  return scenes.map((scene) => ({
-    id: String(scene.id),
-    title: `Scene ${scene.id}`,
-    prompt: scene.prompt || "",
-  }));
+  return scenes
+    .filter((scene) => scene && typeof scene === "object")
+    .map((scene) => ({
+      id: String(scene.id),
+      title: `Scene ${scene.id}`,
+      prompt: typeof scene.prompt === "string" ? scene.prompt : "",
+    }));
 };
 
 const mergeQueueRowsIntoScenes = (packFile: PackFile, rows: QueueRow[] | undefined): SceneWithStatus[] => {
@@ -200,6 +205,8 @@ export const usePacks = (user: User | null) => {
     isDemoMode() ? samplePacks[0]?.id ?? null : null,
   );
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [packsStatus, setPacksStatus] = useState<PacksStatus>(() => (isDemoMode() ? "ready" : "loading"));
+  const [reloadToken, setReloadToken] = useState(0);
 
   const selectedPack = selectedPackId ? packs.get(selectedPackId) : null;
   const packKeys = Array.from(packs.keys());
@@ -223,12 +230,14 @@ export const usePacks = (user: User | null) => {
       if (error) {
         console.error("Error loading packs:", error);
         toast.error("Failed to load packs");
+        setPacksStatus("error");
         return;
       }
 
       if (!existingPacks || existingPacks.length === 0) {
         setPacks(new Map());
         setSelectedPackId(null);
+        setPacksStatus("ready");
         return;
       }
 
@@ -276,13 +285,26 @@ export const usePacks = (user: User | null) => {
         if (prev && loadedPacks.has(prev)) return prev;
         return loadedPacks.size > 0 ? Array.from(loadedPacks.keys())[0] : null;
       });
+      setPacksStatus("ready");
     };
 
-    loadPacks();
+    loadPacks().catch((err) => {
+      if (cancelled) return;
+      console.error("Error loading packs:", err);
+      toast.error("Failed to load packs");
+      setPacksStatus("error");
+    });
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, reloadToken]);
+
+  /** Re-run the initial packs fetch (e.g. after it failed). */
+  const reloadPacks = useCallback(() => {
+    if (isDemoMode()) return;
+    setPacksStatus("loading");
+    setReloadToken((n) => n + 1);
+  }, []);
 
   // Realtime: keep scene statuses/image URLs "anlık" up to date
   useEffect(() => {
@@ -393,15 +415,15 @@ export const usePacks = (user: User | null) => {
 
       const validPacks = newPacks
         .map((pack, index) => {
-          const packId = getPackId(pack);
-          const displayName = getPackName(pack);
+          const packId = safePackId(pack);
+          const displayName = safePackName(pack, "");
 
-          if (!packId || !displayName) {
+          if (!packId.trim() || !displayName) {
             toast.error("Invalid JSON: missing pack_id or pack_name");
             return null;
           }
 
-          if (!hasScenes(pack)) {
+          if (safeSceneCount(pack) === 0) {
             toast.error("Invalid JSON: missing or empty scenes array");
             return null;
           }
@@ -621,6 +643,8 @@ export const usePacks = (user: User | null) => {
   return {
     packs,
     setPacks,
+    packsStatus,
+    reloadPacks,
     selectedPackId,
     setSelectedPackId,
     selectedPack,

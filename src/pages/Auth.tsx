@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Logo, LogoMark } from "@/components/brand/Logo";
-import { enterDemoMode } from "@/lib/demo";
+import { enterDemoMode, exitDemoMode } from "@/lib/demo";
 import { mockImage, type MockImageKey } from "@/data/mock";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +34,8 @@ export default function Auth() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // A real account replaces any demo tour left on in this browser.
+        exitDemoMode();
         toast({ title: "Welcome back!", description: "You're signed in." });
         navigate("/home");
       } else {
@@ -42,6 +44,7 @@ export default function Auth() {
           options: { emailRedirectTo: `${window.location.origin}/home` },
         });
         if (error) throw error;
+        exitDemoMode();
         toast({ title: "Account created", description: "You can sign in now." });
         setIsLogin(true);
       }

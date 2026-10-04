@@ -1,4 +1,13 @@
-import { PackFile, getPackName, getPackCategory, getPackGender, getSceneCount, getPackDescription, getPackTags } from "@/types/pack";
+import type { PackFile } from "@/types/pack";
+import {
+  formatPackCategory,
+  safePackCategory,
+  safePackDescription,
+  safePackGender,
+  safePackName,
+  safePackTags,
+  safeSceneCount,
+} from "@/components/packs/packMeta";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -43,12 +52,14 @@ export const PackHeader = ({
   onDownload,
   isGenerating,
 }: PackHeaderProps) => {
-  const packName = getPackName(pack);
-  const description = getPackDescription(pack);
-  const category = getPackCategory(pack);
-  const gender = getPackGender(pack);
-  const sceneCount = getSceneCount(pack);
-  const tags = getPackTags(pack);
+  // pack_data is user-supplied JSON — read meta defensively so a malformed pack can't blank the page.
+  const packName = safePackName(pack);
+  const description = safePackDescription(pack);
+  const category = safePackCategory(pack);
+  const gender = safePackGender(pack);
+  const genderLabel = genderLabels[gender] || gender;
+  const sceneCount = safeSceneCount(pack);
+  const tags = safePackTags(pack);
   const percent = sceneCount > 0 ? Math.round((completedCount / sceneCount) * 100) : 0;
   const isComplete = sceneCount > 0 && completedCount === sceneCount;
   const hasImages = completedCount > 0;
@@ -66,12 +77,14 @@ export const PackHeader = ({
         <div className="flex flex-wrap items-center gap-1.5" aria-label="Pack details">
           <Badge>
             <Tag strokeWidth={1.5} aria-hidden="true" />
-            {category === "3d" ? "3D" : category.charAt(0).toUpperCase() + category.slice(1)}
+            {formatPackCategory(category)}
           </Badge>
-          <Badge>
-            <User strokeWidth={1.5} aria-hidden="true" />
-            {genderLabels[gender] || gender}
-          </Badge>
+          {genderLabel && (
+            <Badge>
+              <User strokeWidth={1.5} aria-hidden="true" />
+              {genderLabel}
+            </Badge>
+          )}
           <Badge>
             <Layers strokeWidth={1.5} aria-hidden="true" />
             <span className="tabular-nums">{sceneCount}</span> scenes

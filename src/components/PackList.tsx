@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { PackFile, getPackName, getPackCategory, getPackGender } from "@/types/pack";
+import type { PackFile } from "@/types/pack";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +11,7 @@ import { isDemoMode } from "@/lib/demo";
 import { SampleChip } from "@/components/SampleNotice";
 import { PackThumb } from "@/components/packs/PackThumb";
 import { PackUploadDialog } from "@/components/packs/PackUploadDialog";
+import { safePackCategory, safePackGender, safePackName } from "@/components/packs/packMeta";
 
 export type PacksLoadResult = {
   uploadedCount: number;
@@ -50,6 +51,8 @@ interface PackListProps {
   isGeneratingAll?: boolean;
   onPacksLoad?: (packs: PackFile[]) => Promise<PacksLoadResult>;
   onOpenTextGen?: () => void;
+  /** Load state of `packs`; while not "ready" an empty list is not shown as "No packs yet". */
+  packsStatus?: "loading" | "ready" | "error";
 }
 const genderLabels: Record<string, string> = {
   woman_only: "Female",
@@ -77,8 +80,8 @@ const PackItem = ({
   isChecked?: boolean;
   onToggleCheck?: () => void;
 }) => {
-  const packName = getPackName(pack.pack);
-  const gender = getPackGender(pack.pack);
+  const packName = safePackName(pack.pack);
+  const gender = safePackGender(pack.pack);
   const handleClick = () => {
     if (isSelectionMode && onToggleCheck) {
       onToggleCheck();
@@ -160,6 +163,7 @@ export const PackList = ({
   isGeneratingAll = false,
   onPacksLoad,
   onOpenTextGen,
+  packsStatus = "ready",
 }: PackListProps) => {
   const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -199,7 +203,7 @@ export const PackList = ({
   const filteredPacks = useMemo(() => {
     return packs.filter(pack => {
       if (genderFilter === "all") return true;
-      const gender = getPackGender(pack.pack);
+      const gender = safePackGender(pack.pack);
       if (genderFilter === "female") return gender === "woman_only" || gender === "female";
       if (genderFilter === "male") return gender === "man_only" || gender === "male";
       return true;
@@ -210,7 +214,7 @@ export const PackList = ({
   const groupedPacks = useMemo(() => {
     const groups: Record<string, PackInfo[]> = {};
     filteredPacks.forEach(pack => {
-      const category = getPackCategory(pack.pack);
+      const category = safePackCategory(pack.pack);
       if (!groups[category]) groups[category] = [];
       groups[category].push(pack);
     });
@@ -354,7 +358,16 @@ export const PackList = ({
       {/* Pack List */}
       <ScrollArea className="flex-1 min-h-0 overscroll-contain">
         <div className="px-2 pb-3 space-y-4">
-          {packs.length === 0 ? (
+          {packs.length === 0 && packsStatus === "loading" ? (
+            <p className="flex items-center justify-center gap-2 px-2 py-6 text-caption text-muted-foreground" role="status">
+              <Loader2 className="size-3.5 animate-spin" strokeWidth={1.5} aria-hidden="true" />
+              Loading packs...
+            </p>
+          ) : packs.length === 0 && packsStatus === "error" ? (
+            <p className="px-2 py-6 text-center text-caption text-muted-foreground" role="status">
+              Couldn't load your packs.
+            </p>
+          ) : packs.length === 0 ? (
             <div className="mx-1 mt-1 flex flex-col items-center gap-1.5 rounded-md bg-app px-4 py-8 text-center">
               <Layers className="size-5 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
               <p className="text-label-md text-foreground">No packs yet</p>

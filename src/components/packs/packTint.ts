@@ -10,7 +10,8 @@ const TINTS = [
 
 /** Stable tint for a pack, derived from its name. */
 export const packTint = (seed: string) => {
+  const text = typeof seed === "string" ? seed : "";
   let hash = 0;
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) | 0;
   return TINTS[Math.abs(hash) % TINTS.length];
 };

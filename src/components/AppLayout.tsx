@@ -8,7 +8,7 @@ import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { TopHeader } from "@/components/TopHeader";
-import { NavRail, navItems, navGroups, primaryMobileNav, getPageTitle, categoryClasses } from "@/components/IconRail";
+import { NavRail, navItems, navGroups, primaryMobileNav, getPageTitle, categoryClasses, normalizePath } from "@/components/IconRail";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -47,7 +47,8 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
   };
 
   const primaryItems = primaryMobileNav.map((p) => navItems.find((i) => i.path === p)!).filter(Boolean);
-  const moreActive = !primaryMobileNav.includes(location.pathname) && navItems.some((i) => i.path === location.pathname);
+  const currentPath = normalizePath(location.pathname);
+  const moreActive = !primaryMobileNav.includes(currentPath) && navItems.some((i) => i.path === currentPath);
 
   return (
     <div className="h-screen w-full bg-app flex overflow-hidden md:p-shell md:gap-shell">
@@ -96,7 +97,7 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
       <nav aria-label="Primary" className="md:hidden fixed bottom-0 inset-x-0 z-header bg-card border-t border-border safe-bottom">
         <ul className="grid grid-cols-5 h-bottom-nav">
           {primaryItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = currentPath === item.path;
             return (
               <li key={item.path}>
                 <button
@@ -151,7 +152,7 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
                   {navItems
                     .filter((i) => i.group === group.key)
                     .map((item) => {
-                      const isActive = location.pathname === item.path;
+                      const isActive = currentPath === item.path;
                       const cat = item.category ? categoryClasses[item.category] : undefined;
                       return (
                         <li key={item.path}>

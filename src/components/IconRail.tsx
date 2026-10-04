@@ -81,10 +81,18 @@ export const primaryMobileNav = ["/home", "/explore", "/", "/text-to-image"];
 
 const extraTitles: Record<string, string> = { "/studio": "Studio", "/auth": "Sign in", "/pack-editor": "Pack Editor" };
 
-export const getPageTitle = (pathname: string) =>
-  navItems.find((i) => i.path === pathname)?.label ?? extraTitles[pathname] ?? "Page not found";
+/** Router matching ignores case and trailing slashes, so lookups do too ("/Home/" → "/home"). */
+export const normalizePath = (pathname: string) => (pathname.replace(/\/+$/, "") || "/").toLowerCase();
 
-export const getNavItem = (pathname: string) => navItems.find((i) => i.path === pathname);
+export const getPageTitle = (pathname: string) => {
+  const path = normalizePath(pathname);
+  return navItems.find((i) => i.path === path)?.label ?? extraTitles[path] ?? "Page not found";
+};
+
+export const getNavItem = (pathname: string) => {
+  const path = normalizePath(pathname);
+  return navItems.find((i) => i.path === path);
+};
 
 /* Geriye dönük uyumluluk: eski gruplama API'si */
 export const navGroups: { key: NavGroup; label: string }[] = [
@@ -154,7 +162,7 @@ export const CreateMenu = ({ align = "start", side = "right" }: { align?: "start
 const RailButton = ({ item }: { item: NavItem }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isActive = location.pathname === item.path;
+  const isActive = normalizePath(location.pathname) === item.path;
   return (
     <Tooltip>
       <TooltipTrigger asChild>

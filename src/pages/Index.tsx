@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MousePointerClick } from "lucide-react";
+import { AlertCircle, Loader2, MousePointerClick, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { getPackGender } from "@/types/pack";
 import { isDemoMode, DEMO_MESSAGE } from "@/lib/demo";
 
 // Components
@@ -19,6 +18,8 @@ import { SampleNotice } from "@/components/SampleNotice";
 import { PacksStartView } from "@/components/packs/PacksStartView";
 import { PackUploadDialog } from "@/components/packs/PackUploadDialog";
 import { PackSwitcher } from "@/components/packs/PackSwitcher";
+import { safePackGender, safePackId } from "@/components/packs/packMeta";
+import { Button } from "@/components/ui/button";
 
 // Hooks
 import { usePacks } from "@/hooks/usePacks";
@@ -37,12 +38,16 @@ const Index = () => {
   const [textGenOpen, setTextGenOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedPackId = searchParams.get("pack");
   const demo = isDemoMode();
 
   // Custom Hooks
   const {
     packs,
     setPacks,
+    packsStatus,
+    reloadPacks,
     selectedPackId,
     setSelectedPackId,
     selectedPack,
@@ -77,7 +82,7 @@ const Index = () => {
   } = useGenerationSettings();
 
   // Determine if current pack is unisex
-  const selectedPackGender = selectedPack ? getPackGender(selectedPack.pack) : null;
+  const selectedPackGender = selectedPack ? safePackGender(selectedPack.pack) : null;
   const isUnisexPack = selectedPackGender === "unisex";
 
   const { generateSingleScene, generatePackScenes, generateAllPacks } = useGeneration({
@@ -133,6 +138,23 @@ const Index = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Deep link: "/?pack=<id>" opens that pack once the real list has loaded, then drops the param.
+  useEffect(() => {
+    if (!requestedPackId || packsStatus !== "ready") return;
+    const match = packs.has(requestedPackId)
+      ? requestedPackId
+      : Array.from(packs.values()).find((p) => safePackId(p.pack) === requestedPackId)?.packId;
+    if (match) setSelectedPackId(match);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("pack");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requestedPackId, packsStatus, packs, setSelectedPackId, setSearchParams]);
 
   /** Demo workspace can browse sample packs but not generate — explain instead of failing. */
   const blockedInDemo = () => {
@@ -196,6 +218,7 @@ const Index = () => {
             isGeneratingAll={isGeneratingAll}
             onPacksLoad={handlePacksLoad}
             onOpenTextGen={() => setTextGenOpen(true)}
+            packsStatus={packsStatus}
           />
         }
       >
@@ -236,6 +259,25 @@ const Index = () => {
                   }}
                   onDownloadScene={downloadScene}
                 />
+              </div>
+            </div>
+          ) : packs.size === 0 && packsStatus === "loading" ? (
+            <div className="h-full flex items-center justify-center px-4 md:px-8" role="status" aria-live="polite">
+              <div className="flex items-center gap-3">
+                <Loader2 className="size-5 animate-spin text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+                <p className="text-body-sm text-muted-foreground">Loading packs...</p>
+              </div>
+            </div>
+          ) : packs.size === 0 && packsStatus === "error" ? (
+            <div className="h-full flex items-center justify-center px-4 md:px-8">
+              <div className="flex flex-col items-center text-center max-w-sm" role="alert">
+                <AlertCircle className="size-5 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
+                <h2 className="text-heading-md text-foreground mb-1">Couldn't load your packs</h2>
+                <p className="text-body-sm text-muted-foreground mb-4">Check your connection and try again.</p>
+                <Button variant="outline" className="h-control-lg md:h-control-md" onClick={reloadPacks}>
+                  <RefreshCw strokeWidth={1.5} aria-hidden="true" />
+                  Retry
+                </Button>
               </div>
             </div>
           ) : packs.size === 0 ? (
