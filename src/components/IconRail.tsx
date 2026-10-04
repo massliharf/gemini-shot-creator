@@ -79,8 +79,10 @@ export const categoryClasses: Record<Category, { icon: string; box: string; dot:
 /** Mobil bottom nav'da gösterilen 4 birincil hedef; kalanı "More" sheet'inde. */
 export const primaryMobileNav = ["/home", "/explore", "/", "/text-to-image"];
 
+const extraTitles: Record<string, string> = { "/studio": "Studio", "/auth": "Sign in", "/pack-editor": "Pack Editor" };
+
 export const getPageTitle = (pathname: string) =>
-  navItems.find((i) => i.path === pathname)?.label ?? (pathname === "/studio" ? "Studio" : pathname === "/auth" ? "Sign in" : "Lumra");
+  navItems.find((i) => i.path === pathname)?.label ?? extraTitles[pathname] ?? "Page not found";
 
 export const getNavItem = (pathname: string) => navItems.find((i) => i.path === pathname);
 

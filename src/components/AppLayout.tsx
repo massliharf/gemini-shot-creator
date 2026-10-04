@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,18 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
   const location = useLocation();
   const [panelOpen, setPanelOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  // Pages that don't pass the e-mail still get the right avatar initial.
+  const [sessionEmail, setSessionEmail] = useState<string | undefined>();
+  useEffect(() => {
+    if (userEmail) return;
+    let active = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (active) setSessionEmail(session?.user.email ?? undefined);
+    });
+    return () => {
+      active = false;
+    };
+  }, [userEmail]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -50,7 +62,7 @@ export const AppLayout = ({ children, userEmail, sidebar }: AppLayoutProps) => {
 
       {/* Ana yüzey */}
       <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden bg-background md:rounded-lg">
-        <TopHeader userEmail={userEmail} onSignOut={handleSignOut} onMenuClick={() => setPanelOpen(true)} hasPanel={!!sidebar} />
+        <TopHeader userEmail={userEmail ?? sessionEmail} onSignOut={handleSignOut} onMenuClick={() => setPanelOpen(true)} hasPanel={!!sidebar} />
 
         {/* Mobil / tablet: sayfaya özel panel (Sheet) */}
         {sidebar && (
