@@ -10,9 +10,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PanelLeft, FolderOpen, LogOut, BarChart3, ChevronRight } from "lucide-react";
+import { PanelLeft, FolderOpen, LogOut, BarChart3, ChevronRight, Search, Gem, Compass } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { getNavItem, getPageTitle, categoryClasses, CreateMenu } from "@/components/IconRail";
+import { NotificationsMenu } from "@/components/NotificationsMenu";
+import { LogoMark } from "@/components/brand/Logo";
+import { useCommandPalette, isMac } from "@/components/command/CommandPalette";
+import { isDemoMode } from "@/lib/demo";
 import { cn } from "@/lib/utils";
 
 interface TopHeaderProps {
@@ -35,6 +39,8 @@ export const TopHeader = ({ userEmail, onSignOut, onMenuClick, hasPanel }: TopHe
   const item = getNavItem(location.pathname);
   const cat = item?.category ? categoryClasses[item.category] : undefined;
   const initial = userEmail?.charAt(0).toUpperCase() || "U";
+  const { open: openSearch } = useCommandPalette();
+  const demo = isDemoMode();
 
   return (
     <header className="h-header-mobile md:h-header flex items-center gap-2 px-3 md:px-4 shrink-0 safe-top" role="banner">
@@ -53,25 +59,59 @@ export const TopHeader = ({ userEmail, onSignOut, onMenuClick, hasPanel }: TopHe
       <nav aria-label="Breadcrumb" className="flex items-center gap-1 min-w-0 flex-1 text-label-md">
         <button
           type="button"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/home")}
           className="hidden sm:inline-flex items-center gap-2 h-8 px-2 rounded-md text-muted-foreground hover:bg-control hover:text-foreground transition-colors duration-fast"
         >
-          <span className="h-3 w-3 rounded-[3px] bg-foreground" aria-hidden="true" />
+          <LogoMark size={16} />
           Lumra
         </button>
         <ChevronRight className="hidden sm:block size-3.5 text-tertiary-foreground" aria-hidden="true" />
         <h1 className="inline-flex items-center gap-2 h-8 px-2 text-foreground truncate" aria-current="page">
-          {cat && <span className={cn("h-3 w-3 rounded-[3px]", cat.box, "ring-1 ring-inset", cat.icon.replace("text-", "ring-"))} aria-hidden="true" />}
+          {cat && <span className={cn("h-3 w-3 rounded-[3px]", cat.dot)} aria-hidden="true" />}
           {title}
         </h1>
       </nav>
 
       {/* Sağ aksiyonlar */}
       <div className="flex items-center gap-1.5">
-        <Button variant="outline" size="md" className="hidden md:inline-flex" onClick={() => navigate("/cloud-files")}>
-          <FolderOpen />
-          Library
+        {demo && (
+          <span className="hidden lg:inline-flex h-6 items-center rounded-full bg-control px-2.5 text-micro text-muted-foreground">
+            Demo workspace
+          </span>
+        )}
+
+        <button
+          type="button"
+          onClick={openSearch}
+          aria-label="Search"
+          aria-keyshortcuts={isMac() ? "Meta+K" : "Control+K"}
+          className="hidden md:inline-flex items-center gap-2 h-8 w-[220px] pl-2.5 pr-1.5 rounded-md bg-control text-label-md text-tertiary-foreground hover:bg-control-hover transition-colors duration-fast"
+        >
+          <Search className="size-4" strokeWidth={1.5} aria-hidden="true" />
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="inline-flex h-5 items-center rounded-xs bg-card px-1.5 text-micro text-muted-foreground">{isMac() ? "⌘K" : "Ctrl K"}</kbd>
+        </button>
+        <Button variant="ghost" size="icon" className="md:hidden" onClick={openSearch} aria-label="Search">
+          <Search />
         </Button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/usage")}
+          className="hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-label-md text-brand hover:bg-brand-soft transition-colors duration-fast"
+        >
+          <Gem className="size-4" strokeWidth={1.75} aria-hidden="true" />
+          Upgrade
+        </button>
+
+        <Button variant="outline" size="md" className="hidden xl:inline-flex" onClick={() => navigate("/explore")}>
+          <Compass />
+          Explore
+        </Button>
+
+        <div className="md:hidden">
+          <NotificationsMenu side="bottom" align="end" variant="header" />
+        </div>
 
         <ThemeToggle />
 

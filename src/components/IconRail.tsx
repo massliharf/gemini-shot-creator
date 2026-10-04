@@ -21,8 +21,12 @@ import {
   Wand2,
   BarChart3,
   Plus,
+  House,
+  Compass,
   type LucideIcon,
 } from "lucide-react";
+import { LogoMark } from "@/components/brand/Logo";
+import { NotificationsMenu } from "@/components/NotificationsMenu";
 
 /* ------------------------------------------------------------------
  * Navigasyon modeli — route'lar ve etiketler aynen korunur.
@@ -47,6 +51,8 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
+  { icon: House, label: "Home", path: "/home", group: "primary", description: "Start creating" },
+  { icon: Compass, label: "Explore", path: "/explore", group: "primary", description: "Templates and use cases" },
   { icon: Eye, label: "Packs", path: "/", group: "primary", description: "Browse and generate your packs" },
   { icon: Paintbrush, label: "Styles", path: "/styles", group: "primary", description: "Style packs you uploaded" },
   { icon: FileText, label: "My Library", short: "Library", path: "/cloud-files", group: "primary", description: "Generated files in the cloud" },
@@ -60,18 +66,18 @@ export const navItems: NavItem[] = [
 ];
 
 /** Kategori rengi → ikon/zemin sınıfları */
-export const categoryClasses: Record<Category, { icon: string; box: string }> = {
-  spaces: { icon: "text-cat-spaces", box: "bg-cat-spaces/10" },
-  image: { icon: "text-cat-image", box: "bg-cat-image/10" },
-  video: { icon: "text-cat-video", box: "bg-cat-video/10" },
-  audio: { icon: "text-cat-audio", box: "bg-cat-audio/10" },
-  design: { icon: "text-cat-design", box: "bg-cat-design/10" },
-  "3d": { icon: "text-cat-3d", box: "bg-cat-3d/10" },
-  stock: { icon: "text-cat-stock", box: "bg-cat-stock/10" },
+export const categoryClasses: Record<Category, { icon: string; box: string; dot: string }> = {
+  spaces: { icon: "text-cat-spaces", box: "bg-cat-spaces/10", dot: "bg-cat-spaces" },
+  image: { icon: "text-cat-image", box: "bg-cat-image/10", dot: "bg-cat-image" },
+  video: { icon: "text-cat-video", box: "bg-cat-video/10", dot: "bg-cat-video" },
+  audio: { icon: "text-cat-audio", box: "bg-cat-audio/10", dot: "bg-cat-audio" },
+  design: { icon: "text-cat-design", box: "bg-cat-design/10", dot: "bg-cat-design" },
+  "3d": { icon: "text-cat-3d", box: "bg-cat-3d/10", dot: "bg-cat-3d" },
+  stock: { icon: "text-cat-stock", box: "bg-cat-stock/10", dot: "bg-cat-stock" },
 };
 
 /** Mobil bottom nav'da gösterilen 4 birincil hedef; kalanı "More" sheet'inde. */
-export const primaryMobileNav = ["/", "/pack-creator", "/text-to-image", "/cloud-files"];
+export const primaryMobileNav = ["/home", "/explore", "/", "/text-to-image"];
 
 export const getPageTitle = (pathname: string) =>
   navItems.find((i) => i.path === pathname)?.label ?? (pathname === "/studio" ? "Studio" : pathname === "/auth" ? "Sign in" : "Lumra");
@@ -89,16 +95,7 @@ export const navGroups: { key: NavGroup; label: string }[] = [
  * Logo
  * ------------------------------------------------------------------ */
 export const BrandMark = ({ size = "md", className }: { size?: "sm" | "md"; className?: string }) => (
-  <div
-    className={cn(
-      "flex items-center justify-center rounded-md bg-foreground text-background font-semibold shrink-0 select-none",
-      size === "sm" ? "h-7 w-7 text-xs" : "h-8 w-8 text-sm",
-      className,
-    )}
-    aria-hidden="true"
-  >
-    L
-  </div>
+  <LogoMark size={size === "sm" ? 28 : 32} className={className} />
 );
 
 /* ------------------------------------------------------------------
@@ -140,6 +137,10 @@ export const CreateMenu = ({ align = "start", side = "right" }: { align?: "start
           <Paintbrush className="size-4" strokeWidth={1.75} aria-hidden="true" />
           Styles
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/explore")}>
+          <Compass className="size-4" strokeWidth={1.75} aria-hidden="true" />
+          Browse templates
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -171,6 +172,7 @@ const RailButton = ({ item }: { item: NavItem }) => {
 };
 
 export const NavRail = () => {
+  const navigate = useNavigate();
   const primary = navItems.filter((i) => i.group === "primary");
   const tools = navItems.filter((i) => i.group === "tools");
   const footer = navItems.filter((i) => i.group === "footer");
@@ -181,7 +183,19 @@ export const NavRail = () => {
       className="h-full w-rail flex-shrink-0 bg-card rounded-lg flex flex-col items-center py-4 px-5 gap-1 overflow-y-auto no-scrollbar"
     >
       <div className="flex flex-col items-center gap-3 mb-3">
-        <BrandMark />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => navigate("/home")}
+              aria-label="Lumra home"
+              className="rounded-md transition-transform duration-fast hover:scale-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+            >
+              <BrandMark />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Lumra</TooltipContent>
+        </Tooltip>
         <CreateMenu />
       </div>
 
@@ -200,6 +214,7 @@ export const NavRail = () => {
       </div>
 
       <div className="mt-auto flex flex-col items-center gap-1 pt-3">
+        <NotificationsMenu side="right" align="end" />
         {footer.map((item) => (
           <RailButton key={item.path} item={item} />
         ))}
