@@ -36,6 +36,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import JSZip from "jszip";
 import { AppLayout } from "@/components/AppLayout";
+import { SampleChip } from "@/components/SampleNotice";
+import { SampleLibrary } from "@/components/library/SampleLibrary";
+import { sampleLibraryStats } from "@/components/library/sampleLibraryStats";
 
 interface PackInfo {
   id: string;
@@ -437,7 +440,7 @@ const CloudFiles = () => {
       setFolders(firstBatch);
     } catch (error) {
       console.error("Error loading cloud data:", error);
-      toast.error("Cloud verisi yüklenemedi");
+      toast.error("Couldn't load your library");
     } finally {
       setLoading(false);
     }
@@ -460,7 +463,7 @@ const CloudFiles = () => {
       });
     } catch (error) {
       console.error("Error loading more folders:", error);
-      toast.error("Daha fazla klasör yüklenemedi");
+      toast.error("Couldn't load more folders");
     } finally {
       setLoadingMore(false);
     }
@@ -645,13 +648,13 @@ const CloudFiles = () => {
       markAsDownloaded(folder.name);
 
       if (missingFiles.length > 0) {
-        toast.success(`${packName} indirildi (${missingFiles.length} eksik dosya atlandı)`);
+        toast.success(`${packName} downloaded (${missingFiles.length} missing ${missingFiles.length === 1 ? "file" : "files"} skipped)`);
       } else {
-        toast.success(`${packName} indirildi`);
+        toast.success(`${packName} downloaded`);
       }
     } catch (error) {
       console.error("Download error:", error);
-      toast.error("İndirme başarısız");
+      toast.error("Download failed");
     } finally {
       setDownloading(null);
     }
@@ -702,11 +705,11 @@ const CloudFiles = () => {
         console.error("Failed to clear downloaded folder marks:", err);
       }
     }
-    toast.success("İndirildi işaretleri temizlendi");
+    toast.success("Downloaded marks cleared");
   };
 
   const deleteFolder = async (folder: CloudFolder) => {
-    if (!confirm(`"${folder.pack?.pack_name || folder.name}" klasörünü silmek istediğinizden emin misiniz?`)) {
+    if (!confirm(`Delete the folder "${folder.pack?.pack_name || folder.name}"? This can't be undone.`)) {
       return;
     }
 
@@ -722,7 +725,7 @@ const CloudFiles = () => {
         const denied = Array.isArray(data?.denied) ? data.denied.join(", ") : "";
         const errors = data?.deleted?.[folder.name]?.errors;
         const errText = Array.isArray(errors) && errors.length ? errors.join(" | ") : "";
-        throw new Error(denied ? `Silme yetkisi yok: ${denied}` : (errText || "Silme başarısız"));
+        throw new Error(denied ? `No permission to delete: ${denied}` : (errText || "Delete failed"));
       }
 
       setFolders((prev) => {
@@ -744,10 +747,10 @@ const CloudFiles = () => {
 
       processedFolderNamesRef.current.add(folder.name);
 
-      toast.success(`${folder.pack?.pack_name || folder.name} silindi`);
+      toast.success(`${folder.pack?.pack_name || folder.name} deleted`);
     } catch (error) {
       console.error("Delete error:", error);
-      toast.error(error instanceof Error ? error.message : "Silme başarısız");
+      toast.error(error instanceof Error ? error.message : "Delete failed");
     } finally {
       setDeleting(null);
     }
@@ -884,10 +887,10 @@ const CloudFiles = () => {
         }
       }
 
-      toast.success(`${selectedFolders.size} klasör indirildi`);
+      toast.success(`${selectedFolders.size} ${selectedFolders.size === 1 ? "folder" : "folders"} downloaded`);
     } catch (error) {
       console.error('Bulk download error:', error);
-      toast.error('Toplu indirme başarısız');
+      toast.error('Bulk download failed');
     } finally {
       setBulkAction(null);
     }
@@ -896,7 +899,7 @@ const CloudFiles = () => {
   const handleBulkDelete = async () => {
     if (selectedFolders.size === 0) return;
 
-    if (!confirm(`${selectedFolders.size} klasörü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!`)) {
+    if (!confirm(`Delete ${selectedFolders.size} ${selectedFolders.size === 1 ? "folder" : "folders"}? This can't be undone.`)) {
       return;
     }
 
@@ -914,7 +917,7 @@ const CloudFiles = () => {
 
       if (!data?.ok) {
         const denied = Array.isArray(data?.denied) ? data.denied.join(", ") : "";
-        throw new Error(denied ? `Silme yetkisi yok: ${denied}` : "Toplu silme tamamlanamadı");
+        throw new Error(denied ? `No permission to delete: ${denied}` : "Bulk delete couldn't finish");
       }
 
       // Update UI
@@ -947,10 +950,10 @@ const CloudFiles = () => {
 
       folderNames.forEach((n) => processedFolderNamesRef.current.add(n));
 
-      toast.success(`${selectedFolderList.length} klasör silindi`);
+      toast.success(`${selectedFolderList.length} ${selectedFolderList.length === 1 ? "folder" : "folders"} deleted`);
     } catch (error) {
       console.error("Bulk delete error:", error);
-      toast.error(error instanceof Error ? error.message : "Toplu silme başarısız");
+      toast.error(error instanceof Error ? error.message : "Bulk delete failed");
     } finally {
       setBulkAction(null);
     }
@@ -1036,7 +1039,7 @@ const CloudFiles = () => {
 
   const startBatchExport = async () => {
     if (!user) {
-      toast.error("Kullanıcı oturumu bulunamadı");
+      toast.error("You're signed out. Sign in and try again.");
       return;
     }
 
@@ -1062,7 +1065,7 @@ const CloudFiles = () => {
       currentBatchFolders: [],
       processedFoldersInBatch: 0,
       totalFoldersInBatch: 0,
-      currentFolderName: "Klasörler taranıyor...",
+      currentFolderName: "Scanning folders…",
       currentBatchSize: 0,
       totalBatchesCompleted: batchNumber - 1,
       totalFoldersExported: totalExportedSoFar,
@@ -1080,9 +1083,9 @@ const CloudFiles = () => {
         setBatchExport(prev => ({
           ...prev,
           phase: "complete",
-          currentFolderName: "Tüm veriler export edildi!",
+          currentFolderName: "Everything has been exported",
         }));
-        toast.success(`Toplam ${totalExportedSoFar} klasör (${formatFileSize(totalBytesSoFar)}) export edildi ve silindi!`);
+        toast.success(`${totalExportedSoFar} folders (${formatFileSize(totalBytesSoFar)}) exported and deleted`);
         return;
       }
 
@@ -1195,7 +1198,7 @@ const CloudFiles = () => {
       setBatchExport(prev => ({
         ...prev,
         processedFoldersInBatch: batchFolders.length,
-        currentFolderName: "ZIP oluşturuluyor...",
+        currentFolderName: "Creating ZIP…",
       }));
 
       // Generate ZIP
@@ -1227,7 +1230,7 @@ const CloudFiles = () => {
     } catch (error) {
       console.error("Batch export error:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      toast.error(`Export hatası: ${errorMessage}`);
+      toast.error(`Export failed: ${errorMessage}`);
       resetBatchExport();
     }
   };
@@ -1243,7 +1246,7 @@ const CloudFiles = () => {
     setBatchExport((prev) => ({
       ...prev,
       phase: "deleting",
-      currentFolderName: "Dosyalar siliniyor...",
+      currentFolderName: "Deleting files…",
       downloadUrl: null,
     }));
 
@@ -1259,7 +1262,7 @@ const CloudFiles = () => {
 
       if (!data?.ok) {
         const denied = Array.isArray(data?.denied) ? data.denied.join(", ") : "";
-        throw new Error(denied ? `Silme yetkisi yok: ${denied}` : "Silme işlemi tamamlanamadı");
+        throw new Error(denied ? `No permission to delete: ${denied}` : "Delete couldn't finish");
       }
 
       const newTotalExported = totalFoldersExported + currentBatchFolders.length;
@@ -1296,7 +1299,7 @@ const CloudFiles = () => {
         return next;
       });
 
-      toast.success(`Batch ${currentBatchNumber}: ${currentBatchFolders.length} klasör (${formatFileSize(currentBatchSize)}) silindi`);
+      toast.success(`Batch ${currentBatchNumber}: ${currentBatchFolders.length} folders (${formatFileSize(currentBatchSize)}) deleted`);
 
       // Small delay then process next batch
       await new Promise((resolve) => setTimeout(resolve, 800));
@@ -1305,7 +1308,7 @@ const CloudFiles = () => {
       await processNextBatch(currentBatchNumber + 1, newTotalExported, newTotalBytes);
     } catch (error) {
       console.error("Delete error:", error);
-      toast.error(error instanceof Error ? error.message : "Silme sırasında hata oluştu");
+      toast.error(error instanceof Error ? error.message : "Something went wrong while deleting");
       resetBatchExport();
     }
   };
@@ -1316,7 +1319,7 @@ const CloudFiles = () => {
       URL.revokeObjectURL(batchExport.downloadUrl);
     }
     resetBatchExport();
-    toast.info("Export iptal edildi");
+    toast.info("Export cancelled");
   };
 
   const resetBatchExport = () => {
@@ -1357,11 +1360,11 @@ const CloudFiles = () => {
 
   const getPhaseText = () => {
     switch (batchExport.phase) {
-      case "scanning": return "Taranıyor...";
-      case "downloading": return "İndiriliyor...";
-      case "waiting_confirm": return "İndirme tamamlandı - Onay bekleniyor";
-      case "deleting": return "Siliniyor...";
-      case "complete": return "Tamamlandı!";
+      case "scanning": return "Scanning…";
+      case "downloading": return "Downloading…";
+      case "waiting_confirm": return "Download ready — waiting for confirmation";
+      case "deleting": return "Deleting…";
+      case "complete": return "Done";
       default: return "";
     }
   };
@@ -1383,7 +1386,7 @@ const CloudFiles = () => {
       setDbPacks((data || []) as typeof dbPacks);
     } catch (e) {
       console.error("Failed to load packs for JSON archive:", e);
-      toast.error("Pack listesi yüklenemedi");
+      toast.error("Couldn't load packs");
     } finally {
       setJsonArchiveLoading(false);
     }
@@ -1411,7 +1414,7 @@ const CloudFiles = () => {
 
   const downloadSelectedJsonPacks = async () => {
     if (selectedJsonPacks.size === 0) {
-      toast.error("Lütfen en az bir pack seçin");
+      toast.error("Select at least one pack");
       return;
     }
 
@@ -1457,10 +1460,10 @@ const CloudFiles = () => {
       a.click();
       URL.revokeObjectURL(url);
 
-      toast.success(`${selectedPacks.length} pack JSON indirildi`);
+      toast.success(`${selectedPacks.length} pack JSON ${selectedPacks.length === 1 ? "file" : "files"} downloaded`);
     } catch (e) {
       console.error("JSON archive download error:", e);
-      toast.error("JSON arşivi indirilemedi");
+      toast.error("Couldn't download the JSON archive");
     } finally {
       setJsonArchiveLoading(false);
     }
@@ -1468,7 +1471,7 @@ const CloudFiles = () => {
 
   const downloadAllJsonPacks = async () => {
     if (dbPacks.length === 0) {
-      toast.error("İndirilecek pack bulunamadı");
+      toast.error("No packs to download");
       return;
     }
 
@@ -1514,10 +1517,10 @@ const CloudFiles = () => {
       a.click();
       URL.revokeObjectURL(url);
 
-      toast.success(`${dbPacks.length} pack JSON indirildi`);
+      toast.success(`${dbPacks.length} pack JSON ${dbPacks.length === 1 ? "file" : "files"} downloaded`);
     } catch (e) {
       console.error("JSON archive download error:", e);
-      toast.error("JSON arşivi indirilemedi");
+      toast.error("Couldn't download the JSON archive");
     } finally {
       setJsonArchiveLoading(false);
     }
@@ -1540,10 +1543,13 @@ const CloudFiles = () => {
     ? folders.filter(f => !downloadedFolders.has(f.name))
     : folders;
 
+  // Empty bucket (always in demo mode): show the sample library instead of a bare empty state.
+  const showSampleLibrary = !loading && folders.length === 0;
+
   if (loading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" strokeWidth={1.5} aria-label="Yükleniyor" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" strokeWidth={1.5} aria-label="Loading" />
       </div>
     );
   }
@@ -1561,15 +1567,24 @@ const CloudFiles = () => {
           {/* Page header — list page pattern (§5): name + counts left, pill tabs + refresh right */}
           <div className="px-4 md:px-8 pt-6 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 flex-shrink-0">
             <div className="min-w-0">
-              <h1 className="text-heading-md text-foreground">Cloud dosya yöneticisi</h1>
+              <h1 className="text-heading-md text-foreground">My Library</h1>
               <p className="text-body-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
-                <span>
-                  {folders.length} klasör, {totalFiles} dosya
-                </span>
+                {showSampleLibrary ? (
+                  <>
+                    <span>
+                      {sampleLibraryStats.folders} folders · {sampleLibraryStats.files} files
+                    </span>
+                    <SampleChip />
+                  </>
+                ) : (
+                  <span>
+                    {folders.length} {folders.length === 1 ? "folder" : "folders"} · {totalFiles} {totalFiles === 1 ? "file" : "files"}
+                  </span>
+                )}
                 {downloadedCount > 0 && (
                   <Badge variant="success">
                     <CheckCircle2 strokeWidth={1.5} aria-hidden="true" />
-                    {downloadedCount} indirildi
+                    {downloadedCount} downloaded
                   </Badge>
                 )}
               </p>
@@ -1579,11 +1594,11 @@ const CloudFiles = () => {
               <TabsList className="w-fit max-w-full">
                 <TabsTrigger value="files">
                   <Folder strokeWidth={1.5} aria-hidden="true" />
-                  Dosyalar
+                  Files
                 </TabsTrigger>
                 <TabsTrigger value="json-archive">
                   <FileJson strokeWidth={1.5} aria-hidden="true" />
-                  Pack JSON arşivi
+                  Pack JSON archive
                 </TabsTrigger>
               </TabsList>
               <Button
@@ -1591,8 +1606,8 @@ const CloudFiles = () => {
                 size="icon"
                 onClick={() => loadCloudData(true)}
                 disabled={loading}
-                aria-label="Yenile"
-                title="Yenile"
+                aria-label="Refresh library"
+                title="Refresh"
               >
                 <RefreshCw className={loading ? "animate-spin" : ""} strokeWidth={1.5} aria-hidden="true" />
               </Button>
@@ -1601,42 +1616,44 @@ const CloudFiles = () => {
 
           {/* FILES TAB */}
           <TabsContent value="files" className="flex-1 min-h-0 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
-            {/* Toolbar: outline filter + single black primary action */}
-            <div className="px-4 md:px-8 pb-4 flex items-center gap-2 flex-wrap flex-shrink-0" role="toolbar" aria-label="Dosya araçları">
-              <Button
-                variant={hideDownloaded ? "secondary" : "outline"}
-                onClick={() => setHideDownloaded(!hideDownloaded)}
-                aria-pressed={hideDownloaded}
-              >
-                {hideDownloaded ? (
-                  <FilterX strokeWidth={1.5} aria-hidden="true" />
-                ) : (
-                  <Filter strokeWidth={1.5} aria-hidden="true" />
-                )}
-                <span>{hideDownloaded ? 'Tümünü göster' : 'İndirilenleri gizle'}</span>
-              </Button>
+            {/* Toolbar: outline filter + single black primary action (hidden while the sample library is shown) */}
+            {!showSampleLibrary && (
+              <div className="px-4 md:px-8 pb-4 flex items-center gap-2 flex-wrap flex-shrink-0" role="toolbar" aria-label="File tools">
+                <Button
+                  variant={hideDownloaded ? "secondary" : "outline"}
+                  onClick={() => setHideDownloaded(!hideDownloaded)}
+                  aria-pressed={hideDownloaded}
+                >
+                  {hideDownloaded ? (
+                    <FilterX strokeWidth={1.5} aria-hidden="true" />
+                  ) : (
+                    <Filter strokeWidth={1.5} aria-hidden="true" />
+                  )}
+                  <span>{hideDownloaded ? 'Show all' : 'Hide downloaded'}</span>
+                </Button>
 
-              <Button
-                variant="primary"
-                onClick={startBatchExport}
-                disabled={loading || batchExport.isRunning}
-                className="ml-auto"
-              >
-                <Download strokeWidth={1.5} aria-hidden="true" />
-                <span>Export & sil</span>
-              </Button>
-            </div>
+                <Button
+                  variant="primary"
+                  onClick={startBatchExport}
+                  disabled={loading || batchExport.isRunning}
+                  className="ml-auto"
+                >
+                  <Download strokeWidth={1.5} aria-hidden="true" />
+                  <span>Export & delete</span>
+                </Button>
+              </div>
+            )}
 
             {/* Contextual selection bar */}
             {selectedCount > 0 && (
               <div
                 role="region"
                 aria-live="polite"
-                aria-label="Seçim işlemleri"
+                aria-label="Selection actions"
                 className="mx-4 md:mx-8 mb-4 rounded-lg bg-app px-4 py-2 flex items-center justify-between gap-3 flex-shrink-0"
               >
                 <span className="text-label-md text-foreground tabular-nums">
-                  {selectedCount} klasör seçildi
+                  {selectedCount} {selectedCount === 1 ? "folder" : "folders"} selected
                 </span>
                 <div className="flex gap-2">
                   <Button
@@ -1649,7 +1666,7 @@ const CloudFiles = () => {
                     ) : (
                       <Download strokeWidth={1.5} aria-hidden="true" />
                     )}
-                    İndir
+                    Download
                   </Button>
                   <Button
                     variant="danger-outline"
@@ -1661,7 +1678,7 @@ const CloudFiles = () => {
                     ) : (
                       <Trash2 strokeWidth={1.5} aria-hidden="true" />
                     )}
-                    Sil
+                    Delete
                   </Button>
                 </div>
               </div>
@@ -1674,7 +1691,7 @@ const CloudFiles = () => {
               className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 pb-8"
             >
               {loading ? (
-                <div className="space-y-2" aria-busy="true" aria-label="Klasörler yükleniyor">
+                <div className="space-y-2" aria-busy="true" aria-label="Loading folders">
                   <Skeleton className="h-control-md w-full rounded-md" />
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="flex items-center gap-3 min-h-[56px] md:min-h-12 px-3 rounded-lg bg-card">
@@ -1689,22 +1706,16 @@ const CloudFiles = () => {
                   ))}
                 </div>
               ) : folders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center py-20 px-4 gap-2">
-                  <Folder className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
-                  <h2 className="text-heading-md text-foreground">Cloud'da dosya bulunamadı</h2>
-                  <p className="text-body-sm text-muted-foreground">
-                    Üretilen görseller burada klasörler halinde listelenir. Yeni görseller ürettikten sonra yenileyin.
-                  </p>
-                </div>
+                <SampleLibrary />
               ) : displayedFolders.length === 0 && hideDownloaded ? (
                 <div className="flex flex-col items-center justify-center text-center py-20 px-4 gap-2">
                   <CheckCircle2 className="size-6 text-success" strokeWidth={1.5} aria-hidden="true" />
-                  <h2 className="text-heading-md text-foreground">Tüm klasörler indirildi!</h2>
+                  <h2 className="text-heading-md text-foreground">Every folder is downloaded</h2>
                   <p className="text-body-sm text-muted-foreground">
-                    İndirilen klasörler filtre nedeniyle gizleniyor.
+                    Downloaded folders are hidden by the current filter.
                   </p>
                   <Button variant="outline" onClick={() => setHideDownloaded(false)} className="mt-2">
-                    Tümünü göster
+                    Show all
                   </Button>
                 </div>
               ) : (
@@ -1721,15 +1732,15 @@ const CloudFiles = () => {
                           setSelectedFolders(new Set(displayedFolders.map(f => f.name)));
                         }
                       }}
-                      aria-label="Tüm klasörleri seç"
+                      aria-label="Select all folders"
                     />
                     <label htmlFor="cloud-select-all" className="text-label-md text-muted-foreground cursor-pointer select-none">
-                      {selectedFolders.size === displayedFolders.length ? 'Tümünü kaldır' : 'Tümünü seç'}
+                      {selectedFolders.size === displayedFolders.length ? 'Deselect all' : 'Select all'}
                     </label>
                     {hideDownloaded && (
                       <Badge variant="neutral" className="ml-auto tabular-nums">
                         <FilterX strokeWidth={1.5} aria-hidden="true" />
-                        {folders.length - displayedFolders.length} gizli
+                        {folders.length - displayedFolders.length} hidden
                       </Badge>
                     )}
                   </div>
@@ -1752,7 +1763,7 @@ const CloudFiles = () => {
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => toggleSelectFolder(folder.name)}
-                            aria-label={`${displayName} klasörünü seç`}
+                            aria-label={`Select ${displayName}`}
                           />
 
                           <button
@@ -1769,7 +1780,7 @@ const CloudFiles = () => {
                             <div className="flex-1 min-w-0">
                               <p className="text-label-md text-foreground truncate">{displayName}</p>
                               <p className="text-caption text-muted-foreground tabular-nums">
-                                {folder.files.length} dosya
+                                {folder.files.length} {folder.files.length === 1 ? "file" : "files"}
                               </p>
                             </div>
                           </button>
@@ -1779,11 +1790,11 @@ const CloudFiles = () => {
                               type="button"
                               onClick={() => unmarkAsDownloaded(folder.name)}
                               className="inline-flex items-center gap-1 h-6 px-2 rounded-xs bg-success-bg text-success-text text-caption whitespace-nowrap shrink-0 transition-colors duration-fast hover:bg-control focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                              title="İndirildi - tıkla kaldır"
-                              aria-label="İndirildi işaretini kaldır"
+                              title="Downloaded — click to unmark"
+                              aria-label="Unmark as downloaded"
                             >
                               <CheckCircle2 className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
-                              <span className="hidden sm:inline">İndirildi</span>
+                              <span className="hidden sm:inline">Downloaded</span>
                             </button>
                           )}
 
@@ -1793,8 +1804,8 @@ const CloudFiles = () => {
                                 size="icon-sm"
                                 variant="ghost"
                                 onClick={() => markAsDownloaded(folder.name)}
-                                title="İndirildi olarak işaretle"
-                                aria-label="İndirildi olarak işaretle"
+                                title="Mark as downloaded"
+                                aria-label="Mark as downloaded"
                                 className="text-muted-foreground hover:text-success"
                               >
                                 <CheckCircle2 strokeWidth={1.5} aria-hidden="true" />
@@ -1805,8 +1816,8 @@ const CloudFiles = () => {
                               variant="ghost"
                               onClick={() => downloadFolder(folder)}
                               disabled={downloading === folder.name}
-                              aria-label={`${displayName} klasörünü indir`}
-                              title="İndir"
+                              aria-label={`Download ${displayName}`}
+                              title="Download"
                             >
                               {downloading === folder.name ? (
                                 <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />
@@ -1819,8 +1830,8 @@ const CloudFiles = () => {
                               variant="ghost"
                               onClick={() => deleteFolder(folder)}
                               disabled={deleting === folder.name}
-                              aria-label={`${displayName} klasörünü sil`}
-                              title="Sil"
+                              aria-label={`Delete ${displayName}`}
+                              title="Delete"
                               className="text-muted-foreground hover:text-danger-text hover:bg-danger-bg"
                             >
                               {deleting === folder.name ? (
@@ -1836,7 +1847,7 @@ const CloudFiles = () => {
                           <div className="px-2 pb-2">
                             <div className="bg-app rounded-lg p-4">
                               <ScrollArea className="max-h-64">
-                                <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 list-none m-0 p-0" aria-label={`${displayName} dosyaları`}>
+                                <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 list-none m-0 p-0" aria-label={`${displayName} files`}>
                                   {folder.files.map(file => (
                                     <li
                                       key={file.path}
@@ -1868,7 +1879,7 @@ const CloudFiles = () => {
                         disabled={loadingMore}
                       >
                         {loadingMore && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden="true" />}
-                        Daha fazla yükle
+                        Load more
                       </Button>
                     </div>
                   )}
@@ -1880,7 +1891,7 @@ const CloudFiles = () => {
           {/* JSON ARCHIVE TAB */}
           <TabsContent value="json-archive" className="flex-1 min-h-0 flex flex-col overflow-hidden mt-0 data-[state=inactive]:hidden">
             {/* Toolbar */}
-            <div className="px-4 md:px-8 pb-4 flex items-center gap-2 flex-wrap flex-shrink-0" role="toolbar" aria-label="JSON arşivi araçları">
+            <div className="px-4 md:px-8 pb-4 flex items-center gap-2 flex-wrap flex-shrink-0" role="toolbar" aria-label="JSON archive tools">
               <Button
                 variant="outline"
                 onClick={downloadSelectedJsonPacks}
@@ -1888,15 +1899,15 @@ const CloudFiles = () => {
                 className="tabular-nums"
               >
                 <Download strokeWidth={1.5} aria-hidden="true" />
-                Seçilenleri indir ({selectedJsonPacks.size})
+                Download selected ({selectedJsonPacks.size})
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={loadDbPacks}
                 disabled={jsonArchiveLoading}
-                aria-label="Pack listesini yenile"
-                title="Pack listesini yenile"
+                aria-label="Refresh pack list"
+                title="Refresh pack list"
               >
                 <RefreshCw className={jsonArchiveLoading ? 'animate-spin' : ''} strokeWidth={1.5} aria-hidden="true" />
               </Button>
@@ -1907,14 +1918,14 @@ const CloudFiles = () => {
                 className="tabular-nums ml-auto"
               >
                 <Archive strokeWidth={1.5} aria-hidden="true" />
-                Tümünü indir ({dbPacks.length})
+                Download all ({dbPacks.length})
               </Button>
             </div>
 
             {/* Pack list */}
             <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 pb-8">
               {jsonArchiveLoading ? (
-                <div className="space-y-2" aria-busy="true" aria-label="Pack listesi yükleniyor">
+                <div className="space-y-2" aria-busy="true" aria-label="Loading packs">
                   <Skeleton className="h-control-md w-full rounded-md" />
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="flex items-center gap-3 min-h-[56px] md:min-h-12 px-3 rounded-lg bg-card">
@@ -1930,9 +1941,9 @@ const CloudFiles = () => {
               ) : dbPacks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center py-20 px-4 gap-2">
                   <FileJson className="size-6 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
-                  <h2 className="text-heading-md text-foreground">Veritabanında pack bulunamadı</h2>
+                  <h2 className="text-heading-md text-foreground">No packs yet</h2>
                   <p className="text-body-sm text-muted-foreground">
-                    Pack Editor ile yüklediğiniz pack'lerin JSON'ları burada arşivlenir.
+                    JSON files for packs you upload in the Pack Editor are archived here.
                   </p>
                 </div>
               ) : (
@@ -1943,19 +1954,19 @@ const CloudFiles = () => {
                       id="json-select-all"
                       checked={selectedJsonPacks.size === dbPacks.length && dbPacks.length > 0}
                       onCheckedChange={selectAllJsonPacks}
-                      aria-label="Tüm pack'leri seç"
+                      aria-label="Select all packs"
                     />
                     <label htmlFor="json-select-all" className="text-label-md text-muted-foreground cursor-pointer select-none">
-                      {selectedJsonPacks.size === dbPacks.length ? 'Tümünü kaldır' : 'Tümünü seç'}
+                      {selectedJsonPacks.size === dbPacks.length ? 'Deselect all' : 'Select all'}
                     </label>
                     <Badge variant="neutral" className="ml-auto tabular-nums">
-                      {dbPacks.length} pack
+                      {dbPacks.length} {dbPacks.length === 1 ? "pack" : "packs"}
                     </Badge>
                   </div>
 
                   {dbPacks.map((pack) => {
                     const isSelected = selectedJsonPacks.has(pack.id);
-                    const createdAt = new Date(pack.created_at).toLocaleDateString('tr-TR', {
+                    const createdAt = new Date(pack.created_at).toLocaleDateString('en-US', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric',
@@ -1972,7 +1983,7 @@ const CloudFiles = () => {
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleJsonPackSelection(pack.id)}
-                          aria-label={`${pack.pack_name} pack'ini seç`}
+                          aria-label={`Select ${pack.pack_name}`}
                         />
                         <FileJson className="size-5 text-muted-foreground shrink-0" strokeWidth={1.5} aria-hidden="true" />
                         <div className="flex-1 min-w-0">
@@ -2006,10 +2017,10 @@ const CloudFiles = () => {
           <DialogHeader>
             <DialogTitle className="text-heading-md flex items-center gap-2">
               <Download className="size-5 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
-              Batch export & sil
+              Batch export & delete
             </DialogTitle>
             <DialogDescription className="text-body-sm text-muted-foreground">
-              Her 25 klasörde bir ZIP oluşturulur, indirmenizi bekler ve onayınız üzerine silinir.
+              A ZIP is created for every 25 folders. Once you’ve downloaded it and confirm, those folders are deleted.
             </DialogDescription>
           </DialogHeader>
 
@@ -2029,12 +2040,12 @@ const CloudFiles = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-app rounded-lg p-4">
-                <p className="text-overline text-muted-foreground">Bu batch</p>
-                <p className="text-heading-md text-foreground tabular-nums">{batchExport.totalFoldersInBatch} klasör</p>
+                <p className="text-overline text-muted-foreground">This batch</p>
+                <p className="text-heading-md text-foreground tabular-nums">{batchExport.totalFoldersInBatch} folders</p>
               </div>
               <div className="bg-app rounded-lg p-4">
-                <p className="text-overline text-muted-foreground">Toplam export</p>
-                <p className="text-heading-md text-foreground tabular-nums">{batchExport.totalFoldersExported} klasör</p>
+                <p className="text-overline text-muted-foreground">Exported so far</p>
+                <p className="text-heading-md text-foreground tabular-nums">{batchExport.totalFoldersExported} folders</p>
               </div>
             </div>
 
@@ -2053,7 +2064,7 @@ const CloudFiles = () => {
                     ? (batchExport.processedFoldersInBatch / batchExport.totalFoldersInBatch) * 100
                     : 0}
                   className="h-1.5"
-                  aria-label="Batch ilerlemesi"
+                  aria-label="Batch progress"
                 />
               </div>
             )}
@@ -2069,13 +2080,13 @@ const CloudFiles = () => {
                 <div className="space-y-2">
                   <p className="text-label-md text-foreground flex items-center gap-2 tabular-nums">
                     <CheckCircle2 className="size-4 shrink-0 text-success" strokeWidth={1.5} aria-hidden="true" />
-                    {batchExport.totalFoldersInBatch} klasör indirildi
+                    {batchExport.totalFoldersInBatch} folders downloaded
                   </p>
                   {batchExport.downloadUrl && (
                     <Button asChild className="w-full" variant="outline">
                       <a href={batchExport.downloadUrl} download={batchExport.downloadFilename}>
                         <Download strokeWidth={1.5} aria-hidden="true" />
-                        Tekrar indir
+                        Download again
                       </a>
                     </Button>
                   )}
@@ -2084,7 +2095,7 @@ const CloudFiles = () => {
                 <div className="space-y-2">
                   <p className="text-caption text-muted-foreground flex items-center gap-2">
                     <AlertTriangle className="size-4 shrink-0 text-warning" strokeWidth={1.5} aria-hidden="true" />
-                    ZIP'i indirdiğinizden emin olduktan sonra tıklayın.
+                    Only continue once the ZIP is saved on your device.
                   </p>
                   <Button
                     className="w-full"
@@ -2092,7 +2103,7 @@ const CloudFiles = () => {
                     onClick={confirmDownloadAndDelete}
                   >
                     <Trash2 strokeWidth={1.5} aria-hidden="true" />
-                    İndirdim, sil
+                    I’ve downloaded it — delete
                   </Button>
                 </div>
               </div>
@@ -2102,13 +2113,13 @@ const CloudFiles = () => {
               <div className="flex flex-col items-center text-center gap-1 pt-2">
                 <CheckCircle className="size-6 text-success mb-1" strokeWidth={1.5} aria-hidden="true" />
                 <p className="text-label-md text-foreground">
-                  Tüm veriler başarıyla export edildi!
+                  Everything was exported
                 </p>
                 <p className="text-caption text-muted-foreground tabular-nums">
-                  Toplam {batchExport.totalFoldersExported} klasör işlendi.
+                  {batchExport.totalFoldersExported} folders processed in total.
                 </p>
                 <Button className="mt-3" variant="primary" onClick={closeBatchExport}>
-                  Kapat
+                  Close
                 </Button>
               </div>
             )}
@@ -2116,7 +2127,7 @@ const CloudFiles = () => {
             {batchExport.phase !== "complete" && batchExport.phase !== "waiting_confirm" && (
               <Button variant="outline" className="w-full" onClick={cancelBatchExport}>
                 <X strokeWidth={1.5} aria-hidden="true" />
-                İptal et
+                Cancel
               </Button>
             )}
           </div>

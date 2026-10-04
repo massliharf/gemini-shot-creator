@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { QuoteGallery } from "@/components/QuoteGallery";
+import { SampleChip, SampleNotice } from "@/components/SampleNotice";
+import { mockImage, type MockImageKey } from "@/data/mock";
 import { toast } from "sonner";
 
 const GLASSES_ASSETS = [
@@ -26,6 +28,96 @@ const GLASSES_ASSETS = [
   { id: "savvy", name: "Savvy", url: "/glasses/savvy.png" },
   { id: "shy", name: "Shy", url: "/glasses/shy.png" },
 ];
+
+/**
+ * Sample before/after previews. The frame is placed over the eye line of the
+ * mock portraits: wide shots and close-ups share their own face geometry
+ * (percentages of the square image).
+ */
+const FACE_FRAMES = {
+  wide: { left: "33.5%", top: "26.5%", width: "31%" },
+  close: { left: "21.5%", top: "28%", width: "54%" },
+} as const;
+
+const SAMPLE_TRY_ONS: { id: string; photo: MockImageKey; frame: keyof typeof FACE_FRAMES; glasses: string }[] = [
+  { id: "t1", photo: "portrait-blush", frame: "wide", glasses: "center" },
+  { id: "t2", photo: "portrait-close-cobalt", frame: "close", glasses: "hearts" },
+  { id: "t3", photo: "portrait-mint", frame: "wide", glasses: "top-right" },
+  { id: "t4", photo: "portrait-close-tangerine", frame: "close", glasses: "savvy" },
+];
+
+const TryOnTile = ({ photo, label, glassesUrl, frame }: { photo: MockImageKey; label: string; glassesUrl?: string; frame: keyof typeof FACE_FRAMES }) => (
+  <div className="relative aspect-square overflow-hidden rounded-md bg-control">
+    <img src={mockImage(photo)} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
+    {glassesUrl && (
+      <img
+        src={glassesUrl}
+        alt=""
+        loading="lazy"
+        className="absolute h-auto max-w-none drop-shadow-md"
+        style={FACE_FRAMES[frame]}
+      />
+    )}
+    <span className="absolute left-2 top-2 inline-flex h-6 items-center rounded-xs bg-foreground/25 px-2 text-caption text-white backdrop-blur-sm">
+      {label}
+    </span>
+  </div>
+);
+
+const SampleTryOns = ({ onTry, selectedId }: { onTry: (glassesId: string) => void; selectedId: string | null }) => (
+  <div className="space-y-3">
+    <SampleNotice>Your try-on results will appear here.</SampleNotice>
+    <section className="bg-app rounded-lg p-3 sm:p-4 space-y-3" aria-labelledby="sample-tryons-heading">
+      <header className="flex items-center gap-2 min-w-0">
+        <h2 id="sample-tryons-heading" className="text-label-md text-foreground truncate">
+          Before & after
+        </h2>
+        <SampleChip className="shrink-0" />
+        <span className="ml-auto flex items-center gap-1.5 shrink-0">
+          <span className="meta-chip">Pro</span>
+          <span className="meta-chip">1:1</span>
+        </span>
+      </header>
+      <ul className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3 list-none m-0 p-0">
+        {SAMPLE_TRY_ONS.map((t) => {
+          const glasses = GLASSES_ASSETS.find((g) => g.id === t.glasses);
+          if (!glasses) return null;
+          return (
+            <li key={t.id} className="min-w-0 rounded-[12px] bg-card p-2">
+              <div className="grid grid-cols-2 gap-1.5">
+                <TryOnTile photo={t.photo} frame={t.frame} label="Before" />
+                <TryOnTile photo={t.photo} frame={t.frame} label="After" glassesUrl={glasses.url} />
+              </div>
+              <div className="flex items-center gap-2 px-1 pt-2">
+                <span className="flex h-8 w-12 shrink-0 items-center justify-center rounded-md bg-control" aria-hidden="true">
+                  <img src={glasses.url} alt="" className="w-9 h-auto" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-label-md text-foreground">{glasses.name}</p>
+                  <p className="truncate text-caption text-tertiary-foreground">Front-facing portrait</p>
+                </div>
+                <Button
+                  variant={selectedId === glasses.id ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => onTry(glasses.id)}
+                  aria-pressed={selectedId === glasses.id}
+                  aria-label={`Select ${glasses.name} glasses`}
+                >
+                  {selectedId === glasses.id ? (
+                    <Check strokeWidth={1.5} aria-hidden="true" />
+                  ) : (
+                    <Glasses strokeWidth={1.5} aria-hidden="true" />
+                  )}
+                  {selectedId === glasses.id ? "Selected" : "Try these"}
+                </Button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  </div>
+);
 
 interface GeneratedImage {
   id: string;
@@ -264,7 +356,10 @@ const GlassesGenerator = () => {
 
         {/* Right — results feed */}
         <div className="flex-1 min-h-[50vh] md:min-h-0 min-w-0 overflow-hidden">
-          <QuoteGallery quotes={generatedImages} />
+          <QuoteGallery
+            quotes={generatedImages}
+            emptyState={<SampleTryOns selectedId={selectedGlasses} onTry={(id) => setSelectedGlasses(id)} />}
+          />
         </div>
       </main>
     </AppLayout>

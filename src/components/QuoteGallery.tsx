@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Download, Expand, X, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -13,9 +13,11 @@ interface GeneratedQuote {
 
 interface QuoteGalleryProps {
   quotes: GeneratedQuote[];
+  /** Shown instead of the default empty state while there are no results (e.g. sample previews). */
+  emptyState?: ReactNode;
 }
 
-export const QuoteGallery = ({ quotes }: QuoteGalleryProps) => {
+export const QuoteGallery = ({ quotes, emptyState }: QuoteGalleryProps) => {
   const [selectedQuote, setSelectedQuote] = useState<GeneratedQuote | null>(null);
 
   const handleDownload = async (quote: GeneratedQuote) => {
@@ -34,6 +36,14 @@ export const QuoteGallery = ({ quotes }: QuoteGalleryProps) => {
       console.error("Download error:", error);
     }
   };
+
+  if (quotes.length === 0 && emptyState) {
+    return (
+      <ScrollArea className="h-full [&_[data-radix-scroll-area-viewport]>div]:!block">
+        <div className="px-2 md:px-4 py-2 md:py-4">{emptyState}</div>
+      </ScrollArea>
+    );
+  }
 
   if (quotes.length === 0) {
     return (

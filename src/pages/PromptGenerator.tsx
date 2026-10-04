@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Sparkles } from "lucide-react";
+import { Copy, Loader2, Sparkles } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { ProjectSidebar } from "@/components/prompt-generator/ProjectSidebar";
 import { UploadZone } from "@/components/prompt-generator/UploadZone";
@@ -12,6 +12,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SampleChip, SampleNotice } from "@/components/SampleNotice";
+import { mockImage, relativeTime, type MockImageKey } from "@/data/mock";
 import { User } from "@supabase/supabase-js";
 import { prepareImageForAi } from "@/lib/prepare-image-for-ai";
 
@@ -50,6 +54,168 @@ interface PromptImage {
   status?: string;
   error_message?: string;
 }
+
+/* --------------------------------------------------------------------------
+ * Sample style projects — shown before the first upload
+ * ------------------------------------------------------------------------ */
+interface SampleStyleProject {
+  id: string;
+  name: string;
+  reference: MockImageKey;
+  analysis: string;
+  minutesAgo: number;
+  prompts: { label: string; text: string }[];
+}
+
+const SAMPLE_STYLE_PROJECTS: SampleStyleProject[] = [
+  {
+    id: "sp1",
+    name: "Color theory editorial",
+    reference: "portrait-blush",
+    minutesAgo: 18,
+    analysis:
+      "Saturated seamless backdrops, soft frontal key light, crisp white shirting and small gold hoops. Calm, direct gaze; editorial retouching that keeps natural skin texture.",
+    prompts: [
+      {
+        label: "Hero portrait",
+        text: "Editorial portrait of a woman with dark wavy hair on a saturated tangerine seamless backdrop, soft frontal key light, oversized white shirt, small gold hoops, calm direct gaze, 85mm lens, natural skin texture.",
+      },
+      {
+        label: "Cool variant",
+        text: "Same model and wardrobe on a lilac seamless backdrop, cooler key light from camera left, shoulders angled away, chin slightly lowered, minimal retouching, fashion-magazine framing.",
+      },
+      {
+        label: "Beauty crop",
+        text: "Tight beauty crop on a mint backdrop, freckles visible, glossy lips, brushed-up brows, soft diffused light, a gold hoop catching a highlight, square composition.",
+      },
+    ],
+  },
+  {
+    id: "sp2",
+    name: "Marble still life",
+    reference: "product-coral",
+    minutesAgo: 60 * 5,
+    analysis:
+      "Frosted glass bottle on a marble plinth with a sculpted stone accent. Raking window light, long soft shadows and a muted pastel palette.",
+    prompts: [
+      {
+        label: "Campaign hero",
+        text: "Frosted glass perfume bottle on a white marble plinth beside a sculpted coral stone, raking morning window light, long soft shadows, warm neutral backdrop, 50mm product photography.",
+      },
+      {
+        label: "Colourway",
+        text: "Same composition recoloured: lilac stone with lilac-tinted reflections in the glass, cool daylight, subtle haze, clean grey wall, high-end fragrance campaign.",
+      },
+      {
+        label: "Detail",
+        text: "Macro detail of the bottle shoulder and cap, marble veining in soft focus, stone texture catching rim light, shallow depth of field, quiet luxury mood.",
+      },
+    ],
+  },
+  {
+    id: "sp3",
+    name: "Concrete courtyard",
+    reference: "space-terracotta",
+    minutesAgo: 60 * 30,
+    analysis:
+      "Sculptural lounge chair in sunlit concrete architecture. Hard midday shadows, olive-tree silhouettes and one saturated upholstery colour per shot.",
+    prompts: [
+      {
+        label: "Hero chair",
+        text: "Sculptural terracotta lounge chair in a sunlit concrete courtyard, hard midday shadows from an olive tree, minimal brutalist steps, warm stone tones, architectural photography.",
+      },
+      {
+        label: "Golden hour",
+        text: "Mustard upholstered lounge chair on polished concrete at golden hour, long raking light through a wall opening, soft dust in the air, calm editorial interior.",
+      },
+      {
+        label: "Cool contrast",
+        text: "Cobalt lounge chair against pale concrete stairs, crisp shade lines, clear blue-sky bounce light, symmetrical framing, design-magazine cover.",
+      },
+    ],
+  },
+];
+
+const copyText = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success("Copied");
+  } catch {
+    toast.error("Couldn't copy — select the text instead");
+  }
+};
+
+const SampleStyleProjects = () => (
+  <section className="px-4 md:px-8 pb-8 space-y-3 max-w-6xl" aria-labelledby="sample-projects-heading">
+    <h2 id="sample-projects-heading" className="sr-only">
+      Sample style projects
+    </h2>
+    <SampleNotice>Prompts like these are written from your reference photos.</SampleNotice>
+    {SAMPLE_STYLE_PROJECTS.map((project) => {
+      const createdAt = new Date(Date.now() - project.minutesAgo * 60_000).toISOString();
+      return (
+        <article
+          key={project.id}
+          aria-labelledby={`${project.id}-title`}
+          className="bg-card rounded-lg p-3 md:p-4 grid gap-3 md:gap-4 md:grid-cols-[168px_minmax(0,1fr)]"
+        >
+          {/* Reference image */}
+          <div className="relative aspect-[16/9] md:aspect-square overflow-hidden rounded-md bg-control md:self-start">
+            <img src={mockImage(project.reference)} alt="" loading="lazy" className="size-full object-cover" />
+            <span className="absolute left-2 top-2 inline-flex h-6 items-center rounded-xs bg-foreground/25 px-2 text-caption text-white backdrop-blur-sm">
+              Reference
+            </span>
+          </div>
+
+          <div className="min-w-0 flex flex-col gap-3">
+            {/* Project header + style analysis */}
+            <div className="space-y-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
+                <h3 id={`${project.id}-title`} className="text-heading-sm text-foreground truncate">
+                  {project.name}
+                </h3>
+                <SampleChip className="shrink-0" />
+                <span className="ml-auto text-caption text-tertiary-foreground whitespace-nowrap">
+                  {project.prompts.length} prompts · {relativeTime(createdAt)}
+                </span>
+              </div>
+              <p className="text-body-sm text-muted-foreground line-clamp-3 md:line-clamp-2">{project.analysis}</p>
+            </div>
+
+            {/* Generated prompts */}
+            <ul className="grid gap-2 lg:grid-cols-3 list-none m-0 p-0" aria-label={`${project.name} prompts`}>
+              {project.prompts.map((prompt, i) => (
+                <li key={prompt.label} className="bg-app rounded-[12px] p-3 flex flex-col gap-2 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-xs bg-card text-micro text-muted-foreground tabular-nums" aria-hidden="true">
+                      {i + 1}
+                    </span>
+                    <h4 className="flex-1 min-w-0 truncate text-label-md text-foreground">{prompt.label}</h4>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="-my-1 -mr-1 text-muted-foreground hover:text-foreground hover:bg-card"
+                          onClick={() => copyText(prompt.text)}
+                          aria-label={`Copy prompt: ${prompt.label}`}
+                        >
+                          <Copy strokeWidth={1.5} aria-hidden="true" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Copy prompt</TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-body-sm text-foreground/80">{prompt.text}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </article>
+      );
+    })}
+  </section>
+);
 
 const PromptGenerator = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -400,6 +566,8 @@ const PromptGenerator = () => {
   }
   if (!user) return null;
 
+  const showSampleProjects = projects.length === 0 && !loadingProjects && !isAnalyzing;
+
   const sidebar = (
     <ProjectSidebar
       projects={projects}
@@ -468,7 +636,12 @@ const PromptGenerator = () => {
 
           {/* Content */}
           {!selectedProjectId || !selectedProject ? (
-            <UploadZone onUpload={handleUpload} isAnalyzing={isAnalyzing} />
+            // Same wrapper in both states so UploadZone keeps its picked files.
+            // First visit (always in demo mode): upload area + sample projects below.
+            <div className={showSampleProjects ? "flex-1 min-h-0 overflow-y-auto" : "flex-1 min-h-0 flex flex-col"}>
+              <UploadZone onUpload={handleUpload} isAnalyzing={isAnalyzing} />
+              {showSampleProjects && <SampleStyleProjects />}
+            </div>
           ) : (
             <ScrollArea className="flex-1 min-h-0">
               <div className="px-4 md:px-8 pb-6 pt-2 space-y-4 max-w-4xl">

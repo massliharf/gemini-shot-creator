@@ -2,13 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Loader2, Quote } from "lucide-react";
+import { Sparkles, Loader2, Quote, CornerUpLeft } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QuoteGallery } from "@/components/QuoteGallery";
+import { SampleChip, SampleNotice } from "@/components/SampleNotice";
+import { mockImage, type MockImageKey } from "@/data/mock";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   Select,
@@ -26,6 +29,106 @@ interface GeneratedQuote {
   imageUrl: string;
   createdAt: Date;
 }
+
+interface SampleQuote {
+  id: string;
+  text: string;
+  author: string;
+  image: MockImageKey;
+  style: "Cafe photo" | "Chalk sign";
+  layout: "bottom" | "center";
+}
+
+const SAMPLE_QUOTES: SampleQuote[] = [
+  { id: "q1", text: "Simplicity is the ultimate sophistication.", author: "Leonardo da Vinci", image: "space-sage", style: "Cafe photo", layout: "bottom" },
+  { id: "q2", text: "Creativity takes courage.", author: "Henri Matisse", image: "portrait-crimson", style: "Chalk sign", layout: "center" },
+  { id: "q3", text: "Color is a power which directly influences the soul.", author: "Wassily Kandinsky", image: "product-lilac", style: "Cafe photo", layout: "bottom" },
+  { id: "q4", text: "Less is more.", author: "Ludwig Mies van der Rohe", image: "space-cobalt", style: "Chalk sign", layout: "center" },
+  { id: "q5", text: "Everything you can imagine is real.", author: "Pablo Picasso", image: "portrait-lemon", style: "Cafe photo", layout: "bottom" },
+  { id: "q6", text: "Have no fear of perfection — you’ll never reach it.", author: "Salvador Dalí", image: "product-detail-coral", style: "Cafe photo", layout: "bottom" },
+];
+
+/** Sample results shown before the first generation; picking one fills the quote field. */
+const SampleQuoteGallery = ({ onUse }: { onUse: (text: string) => void }) => (
+  <div className="space-y-3">
+    <SampleNotice>Your quote images will appear here — pick a sample to use its text.</SampleNotice>
+    <section className="bg-app rounded-lg p-3 sm:p-4 space-y-3" aria-labelledby="sample-quotes-heading">
+      <header className="flex items-center gap-2 min-w-0">
+        <h2 id="sample-quotes-heading" className="text-label-md text-foreground truncate">
+          Art & design quotes
+        </h2>
+        <SampleChip className="shrink-0" />
+        <span className="ml-auto flex items-center gap-1.5 shrink-0">
+          <span className="meta-chip">Pro</span>
+          <span className="meta-chip hidden sm:inline-flex">4:5</span>
+        </span>
+      </header>
+      <ul className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 list-none m-0 p-0">
+        {SAMPLE_QUOTES.map((q) => (
+          <li key={q.id} className="min-w-0">
+            <button
+              type="button"
+              onClick={() => onUse(q.text)}
+              aria-label={`Use quote: ${q.text}`}
+              className="group relative block w-full aspect-[4/5] overflow-hidden rounded-md bg-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-app"
+            >
+              <img
+                src={mockImage(q.image)}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 size-full object-cover transition-transform duration-slow ease-standard group-hover:scale-[1.03]"
+              />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute inset-0",
+                  q.layout === "center"
+                    ? "bg-foreground/70"
+                    : "bg-gradient-to-t from-foreground/90 via-foreground/45 to-foreground/5",
+                )}
+              />
+              <span className="absolute inset-0 flex flex-col p-4 sm:p-5">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="inline-flex h-6 items-center rounded-xs bg-foreground/25 px-2 text-caption text-white backdrop-blur-sm">
+                    {q.style}
+                  </span>
+                  <span className="inline-flex h-6 items-center gap-1 rounded-xs bg-card/90 px-2 text-label-md text-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-visible:opacity-100 transition-opacity duration-fast">
+                    <CornerUpLeft className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
+                    Use quote
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "flex flex-col gap-3",
+                    q.layout === "center" ? "my-auto items-center text-center" : "mt-auto",
+                  )}
+                >
+                  <Quote className="size-5 text-white/60" strokeWidth={1.5} aria-hidden="true" />
+                  <span
+                    className={cn(
+                      "text-white text-balance",
+                      q.layout === "center"
+                        ? "text-heading-lg uppercase tracking-wide"
+                        : q.text.length > 40
+                          ? "text-heading-md"
+                          : "text-heading-lg",
+                    )}
+                  >
+                    {q.text}
+                  </span>
+                  <span className="flex items-center gap-2 text-caption text-white/75">
+                    <span className="h-px w-5 bg-white/50" aria-hidden="true" />
+                    {q.author}
+                  </span>
+                </span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
+);
 
 const QuoteGenerator = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -181,7 +284,17 @@ const QuoteGenerator = () => {
 
         {/* Right — results feed */}
         <div className="flex-1 min-h-[50vh] md:min-h-0 min-w-0 overflow-hidden">
-          <QuoteGallery quotes={generatedQuotes} />
+          <QuoteGallery
+            quotes={generatedQuotes}
+            emptyState={
+              <SampleQuoteGallery
+                onUse={(text) => {
+                  setQuoteText(text);
+                  document.getElementById("quote-text")?.focus();
+                }}
+              />
+            }
+          />
         </div>
       </main>
     </AppLayout>
