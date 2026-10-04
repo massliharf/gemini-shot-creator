@@ -1,13 +1,16 @@
 import { useState, useMemo } from "react";
-import { PackFile, getPackId, getPackName, getPackCategory, getPackGender, getSceneCount, hasScenes } from "@/types/pack";
+import { PackFile, getPackName, getPackCategory, getPackGender } from "@/types/pack";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { SmartImage } from "@/components/SmartImage";
-import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, CheckCircle2, Circle, XCircle, Image as ImageIcon, Plus } from "lucide-react";
+import { Play, Trash2, Download, Upload, Square, SquareCheck, Loader2, Plus, Layers } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { isDemoMode } from "@/lib/demo";
+import { SampleChip } from "@/components/SampleNotice";
+import { PackThumb } from "@/components/packs/PackThumb";
+import { PackUploadDialog } from "@/components/packs/PackUploadDialog";
 
 export type PacksLoadResult = {
   uploadedCount: number;
@@ -84,14 +87,27 @@ const PackItem = ({
     }
   };
   const isActive = (isSelected && !isSelectionMode) || (isChecked && isSelectionMode);
+  const total = pack.totalShots;
+  const done = pack.completedShots;
+  const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+  const isComplete = total > 0 && done === total;
+  const isWorking = pack.generatingShots > 0;
+  const genderLabel = genderLabels[gender] || gender;
   return <li>
       <div
         role="button"
         tabIndex={0}
         aria-pressed={isActive || undefined}
+        aria-label={`${packName}, ${done} of ${total} scenes generated`}
         data-active={isActive || undefined}
         onClick={handleClick}
-        className="nav-item min-h-touch md:min-h-control-md px-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        className="nav-item group/pack items-center gap-2.5 px-2 py-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
       >
       {/* Selection checkbox (selection mode only) */}
       {isSelectionMode && (
@@ -104,28 +120,32 @@ const PackItem = ({
         />
       )}
 
-      {/* Thumbnail */}
-      <div className="size-6 rounded-xs bg-control overflow-hidden flex-shrink-0 relative">
-        {pack.thumbnailUrl ? (
-          <SmartImage
-            src={pack.thumbnailUrl}
-            alt=""
-            fit="cover"
-            loading="lazy"
-            className="w-full h-full"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center" aria-hidden="true">
-            <ImageIcon className="size-3.5 text-tertiary-foreground" strokeWidth={1.5} />
-          </div>
-        )}
-      </div>
+      {/* Thumbnail: first generated image, or a tinted initial */}
+      <PackThumb name={packName} src={pack.thumbnailUrl} className="size-9" />
 
-      {/* Pack Info */}
-      <span className="flex-1 min-w-0 truncate">{packName}</span>
-      <span className="text-caption text-tertiary-foreground shrink-0 tabular-nums whitespace-nowrap">
-        {genderLabels[gender] || gender} · {pack.totalShots}
+      {/* Name + progress */}
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="flex items-center gap-1.5 min-w-0">
+          <span className="truncate text-label-md text-foreground">{packName}</span>
+          {isWorking && <Loader2 className="size-3 shrink-0 animate-spin text-muted-foreground" strokeWidth={2} aria-hidden="true" />}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="relative h-1 flex-1 overflow-hidden rounded-full bg-track" aria-hidden="true">
+            <span
+              className={cn(
+                "absolute inset-y-0 left-0 rounded-full transition-[width] duration-normal ease-standard",
+                isComplete ? "bg-success" : "bg-foreground",
+              )}
+              style={{ width: `${percent}%` }}
+            />
+          </span>
+          <span className="text-caption text-tertiary-foreground shrink-0 tabular-nums whitespace-nowrap">
+            {done}/{total}
+            {pack.failedShots > 0 && <span className="text-destructive"> · {pack.failedShots} failed</span>}
+          </span>
+        </span>
       </span>
+      <span className="sr-only">{genderLabel}</span>
       </div>
     </li>;
 };
@@ -145,91 +165,8 @@ export const PackList = ({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // JSON Upload state
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [jsonText, setJsonText] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const handleJsonUpload = async () => {
-    if (!jsonText.trim() || !onPacksLoad) {
-      setUploadError("Please paste JSON content");
-      return;
-    }
-
-    const extractJsonSlice = (raw: string) => {
-      let s = raw.trim();
-      if (s.startsWith("```json")) s = s.slice(7);
-      else if (s.startsWith("```")) s = s.slice(3);
-      if (s.endsWith("```")) s = s.slice(0, -3);
-      s = s.trim();
-      const firstCurly = s.indexOf("{");
-      const firstSquare = s.indexOf("[");
-      const start = firstCurly === -1 ? firstSquare : firstSquare === -1 ? firstCurly : Math.min(firstCurly, firstSquare);
-      if (start === -1) return s;
-      const lastCurly = s.lastIndexOf("}");
-      const lastSquare = s.lastIndexOf("]");
-      const end = Math.max(lastCurly, lastSquare);
-      if (end === -1 || end <= start) return s.slice(start);
-      return s.slice(start, end + 1);
-    };
-
-    const normalizeToPacks = (parsed: any): PackFile[] => {
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        if (parsed.pack && typeof parsed.pack === "object") return [parsed.pack as PackFile];
-        if (Array.isArray(parsed.packs)) return parsed.packs as PackFile[];
-        if (Array.isArray(parsed.data)) return parsed.data as PackFile[];
-        if (parsed.data && typeof parsed.data === "object") {
-          if (parsed.data.pack) return [parsed.data.pack as PackFile];
-          if (Array.isArray(parsed.data.packs)) return parsed.data.packs as PackFile[];
-        }
-      }
-      if (Array.isArray(parsed)) return parsed as PackFile[];
-      return [parsed as PackFile];
-    };
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      const slice = extractJsonSlice(jsonText);
-      const parsed = JSON.parse(slice);
-      const packsToUpload = normalizeToPacks(parsed);
-
-      for (const pack of packsToUpload) {
-        const packId = getPackId(pack);
-        const packName = getPackName(pack);
-        if (!packId || !packName) {
-          setUploadError("Invalid JSON: missing pack_id or package_name");
-          setIsUploading(false);
-          return;
-        }
-        if (!hasScenes(pack)) {
-          setUploadError("Invalid JSON: missing or empty scenes array");
-          setIsUploading(false);
-          return;
-        }
-      }
-
-      const result = await onPacksLoad(packsToUpload);
-      if (result.uploadedCount > 0) {
-        setJsonText("");
-        setIsUploadOpen(false);
-        toast.success(`${result.uploadedCount} pack(s) uploaded`);
-      }
-      if (result.failed.length > 0) {
-        setUploadError(`${result.failed.length} pack(s) failed`);
-      }
-    } catch (err) {
-      if (err instanceof SyntaxError) {
-        setUploadError("Invalid JSON syntax");
-      } else {
-        setUploadError(err instanceof Error ? err.message : "Upload failed");
-      }
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  const demo = isDemoMode();
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => {
@@ -296,6 +233,7 @@ export const PackList = ({
         <div className="flex items-baseline gap-2 min-w-0">
           <h2 className="text-heading-sm truncate">Packs</h2>
           <span className="text-caption text-muted-foreground tabular-nums" aria-label={`${packs.length} packs`}>{packs.length}</span>
+          {demo && packs.length > 0 && <SampleChip className="self-center" />}
         </div>
         {onOpenTextGen && (
           <Tooltip>
@@ -400,75 +338,42 @@ export const PackList = ({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <AlertDialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className={toolbarIconButtonClass} aria-label="Upload JSON" disabled={!onPacksLoad}>
-                      <Upload strokeWidth={1.5} aria-hidden="true" />
-                    </Button>
-                  </AlertDialogTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Upload JSON</TooltipContent>
-              </Tooltip>
-              <AlertDialogContent className="max-w-lg">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Paste JSON pack</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Paste your JSON pack content below.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-
-                <div className="space-y-3">
-                  <label htmlFor="pack-json-input" className="sr-only">JSON pack content</label>
-                  <textarea
-                    id="pack-json-input"
-                    value={jsonText}
-                    onChange={(e) => {
-                      setJsonText(e.target.value);
-                      setUploadError(null);
-                    }}
-                    placeholder='{"package_meta": {...}, "global_render_settings": {...}, "shots": [...]}'
-                    className="w-full h-48 p-3 text-code font-mono bg-card text-foreground placeholder:text-tertiary-foreground rounded-md border border-border transition-colors duration-fast ease-standard hover:border-border-strong focus-visible:outline-none focus-visible:border-ring aria-[invalid=true]:border-destructive disabled:cursor-not-allowed disabled:text-tertiary-foreground resize-none"
-                    disabled={isUploading}
-                    aria-invalid={uploadError ? true : undefined}
-                    aria-describedby={uploadError ? "pack-json-error" : undefined}
-                  />
-                  {uploadError && (
-                    <div id="pack-json-error" role="alert" className="flex items-center gap-2 text-destructive text-body-sm">
-                      <XCircle className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
-                      <span>{uploadError}</span>
-                    </div>
-                  )}
-                </div>
-
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isUploading}>Cancel</AlertDialogCancel>
-                  <Button
-                    variant="primary"
-                    onClick={handleJsonUpload}
-                    disabled={isUploading || !jsonText.trim()}
-                    loading={isUploading}
-                  >
-                    {isUploading ? "Uploading..." : "Upload"}
-                  </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className={toolbarIconButtonClass} aria-label="Upload JSON" disabled={!onPacksLoad} onClick={() => setIsUploadOpen(true)}>
+                  <Upload strokeWidth={1.5} aria-hidden="true" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Upload JSON</TooltipContent>
+            </Tooltip>
           </>}
       </div>
+
+      <PackUploadDialog open={isUploadOpen} onOpenChange={setIsUploadOpen} onPacksLoad={onPacksLoad} />
 
       {/* Pack List */}
       <ScrollArea className="flex-1 min-h-0 overscroll-contain">
         <div className="px-2 pb-3 space-y-4">
+          {packs.length === 0 ? (
+            <div className="mx-1 mt-1 flex flex-col items-center gap-1.5 rounded-md bg-app px-4 py-8 text-center">
+              <Layers className="size-5 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+              <p className="text-label-md text-foreground">No packs yet</p>
+              <p className="text-caption text-muted-foreground">Upload a pack JSON or build one in Pack Creator.</p>
+            </div>
+          ) : filteredPacks.length === 0 ? (
+            <p className="px-2 py-6 text-center text-caption text-muted-foreground" role="status">
+              No {genderFilter} packs.
+            </p>
+          ) : null}
           {categoryOrder.map(category => {
           const categoryPacks = groupedPacks[category];
           if (!categoryPacks || categoryPacks.length === 0) return null;
           return <section key={category} aria-labelledby={`pack-category-${category}`}>
-                <h3 id={`pack-category-${category}`} className="text-overline text-muted-foreground mb-1 px-2">
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                <h3 id={`pack-category-${category}`} className="flex items-center justify-between text-overline text-muted-foreground mb-1 px-2">
+                  <span>{category.charAt(0).toUpperCase() + category.slice(1)}</span>
+                  <span className="tabular-nums text-tertiary-foreground">{categoryPacks.length}</span>
                 </h3>
-                <ul className="space-y-px" role="list">
+                <ul className="space-y-0.5" role="list">
                   {categoryPacks.map(pack => <PackItem key={pack.packId} pack={pack} isSelected={selectedPackId === pack.packId} onSelect={() => onSelectPack(pack.packId)} isSelectionMode={isSelectionMode} isChecked={selectedIds.has(pack.packId)} onToggleCheck={() => toggleSelection(pack.packId)} />)}
                 </ul>
               </section>;
@@ -478,5 +383,4 @@ export const PackList = ({
     </div>;
 };
 
-// TODO(magnific): PackItem row is a clickable div (role="button" tabIndex=0) — adding keyboard Enter/Space activation requires a new handler, left for a logic pass.
 // TODO(magnific): "Generate all" is an icon button in a toolbar; the Magnific pattern would prefer one visible primary button, but promoting it changes toolbar structure semantics beyond presentation.

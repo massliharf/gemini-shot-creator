@@ -11,7 +11,10 @@ import {
   getScenes,
 } from "@/types/pack";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { isDemoMode, DEMO_MESSAGE } from "@/lib/demo";
+import { samplePacks } from "@/data/mock";
 
 export interface PackData {
   pack: PackFile;
@@ -176,9 +179,26 @@ const mergeQueueRowsIntoScenes = (packFile: PackFile, rows: QueueRow[] | undefin
   });
 };
 
+/** Demo workspace: seed the Packs page with sample packs instead of reading the DB. */
+const buildDemoPacks = (): Map<string, PackData> =>
+  new Map(
+    samplePacks.map((sample) => [
+      sample.id,
+      {
+        pack: sample.pack,
+        packId: sample.id,
+        scenes: sample.scenes.map((scene) => ({ ...scene })),
+        isGenerating: false,
+        progress: 0,
+      },
+    ]),
+  );
+
 export const usePacks = (user: User | null) => {
-  const [packs, setPacks] = useState<Map<string, PackData>>(new Map());
-  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const [packs, setPacks] = useState<Map<string, PackData>>(() => (isDemoMode() ? buildDemoPacks() : new Map()));
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(() =>
+    isDemoMode() ? samplePacks[0]?.id ?? null : null,
+  );
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
 
   const selectedPack = selectedPackId ? packs.get(selectedPackId) : null;
@@ -187,7 +207,8 @@ export const usePacks = (user: User | null) => {
 
   // Load packs from database (fast path: 1 query for packs + 1 query for all queue rows)
   useEffect(() => {
-    if (!user) return;
+    // Demo mode keeps the seeded sample packs — there is nothing to load.
+    if (!user || isDemoMode()) return;
     let cancelled = false;
 
     const loadPacks = async () => {
@@ -265,7 +286,7 @@ export const usePacks = (user: User | null) => {
 
   // Realtime: keep scene statuses/image URLs "anlık" up to date
   useEffect(() => {
-    if (!user) return;
+    if (!user || isDemoMode()) return;
 
     const channel = supabase
       .channel(`generation_queue_${user.id}`)
@@ -279,7 +300,7 @@ export const usePacks = (user: User | null) => {
         },
         (payload) => {
           // Never let deletes wipe UI state (users report "göründü sonra kayboldu")
-          if ((payload as any).eventType === "DELETE") return;
+          if ((payload as { eventType?: string }).eventType === "DELETE") return;
 
           const row = (payload.new || payload.old) as QueueRow | undefined;
           if (!row?.pack_id) return;
@@ -362,6 +383,14 @@ export const usePacks = (user: User | null) => {
         };
       }
 
+      if (isDemoMode()) {
+        toast.info(DEMO_MESSAGE);
+        return {
+          uploadedCount: 0,
+          failed: newPacks.map((_, index) => ({ index, message: DEMO_MESSAGE })),
+        };
+      }
+
       const validPacks = newPacks
         .map((pack, index) => {
           const packId = getPackId(pack);
@@ -398,7 +427,7 @@ export const usePacks = (user: User | null) => {
             .insert({
               pack_name: item.displayName,
               pack_id: item.packId,
-              pack_data: item.pack as any,
+              pack_data: item.pack as unknown as Json,
               user_id: user.id,
             })
             .select()
@@ -419,13 +448,13 @@ export const usePacks = (user: User | null) => {
                 upsert: true,
                 contentType: "application/json",
               });
-          } catch (e: any) {
+          } catch (e) {
             console.warn("Failed to upload pack.json to storage:", e);
           }
 
           inserted.push({ dbId: insertedPack.id, pack: item.pack });
-        } catch (err: any) {
-          failed.push({ index: item.index, message: err?.message || "Upload failed" });
+        } catch (err) {
+          failed.push({ index: item.index, message: err instanceof Error ? err.message : "Upload failed" });
         }
       }
 
@@ -469,6 +498,10 @@ export const usePacks = (user: User | null) => {
   const deletePack = useCallback(
     async (packId: string) => {
       if (!user) return;
+      if (isDemoMode()) {
+        toast.info(DEMO_MESSAGE);
+        return;
+      }
 
       try {
         const { error: packError } = await supabase.from("packs").delete().eq("id", packId).eq("user_id", user.id);
@@ -497,6 +530,10 @@ export const usePacks = (user: User | null) => {
 
   const deleteAllPacks = useCallback(async () => {
     if (!user) return;
+    if (isDemoMode()) {
+      toast.info(DEMO_MESSAGE);
+      return;
+    }
 
     const packIds = Array.from(packs.keys());
 
@@ -518,6 +555,10 @@ export const usePacks = (user: User | null) => {
   const deleteMultiplePacks = useCallback(
     async (packIds: string[]) => {
       if (!user || packIds.length === 0) return;
+      if (isDemoMode()) {
+        toast.info(DEMO_MESSAGE);
+        return;
+      }
 
       try {
         for (const packId of packIds) {

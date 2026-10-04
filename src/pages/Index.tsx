@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2, MousePointerClick } from "lucide-react";
+import { toast } from "sonner";
 import { getPackGender } from "@/types/pack";
+import { isDemoMode, DEMO_MESSAGE } from "@/lib/demo";
 
 // Components
 import { AppLayout } from "@/components/AppLayout";
@@ -13,6 +15,10 @@ import { ScenesGrid } from "@/components/ScenesGrid";
 import { BottomBar } from "@/components/BottomBar";
 import { CloudOperationProgress } from "@/components/CloudOperationProgress";
 import { TextImageChat } from "@/components/TextImageChat";
+import { SampleNotice } from "@/components/SampleNotice";
+import { PacksStartView } from "@/components/packs/PacksStartView";
+import { PackUploadDialog } from "@/components/packs/PackUploadDialog";
+import { PackSwitcher } from "@/components/packs/PackSwitcher";
 
 // Hooks
 import { usePacks } from "@/hooks/usePacks";
@@ -29,7 +35,9 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [generationGender, setGenerationGender] = useState<GenerationGender>("female");
   const [textGenOpen, setTextGenOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const navigate = useNavigate();
+  const demo = isDemoMode();
 
   // Custom Hooks
   const {
@@ -126,7 +134,20 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  /** Demo workspace can browse sample packs but not generate — explain instead of failing. */
+  const blockedInDemo = () => {
+    if (!isDemoMode()) return false;
+    toast.info(DEMO_MESSAGE);
+    return true;
+  };
+
+  const handleGeneratePack = () => {
+    if (blockedInDemo() || !selectedPackId) return;
+    generatePackScenes(selectedPackId);
+  };
+
   const handleGenerateAllPacks = async () => {
+    if (blockedInDemo()) return;
     setIsGeneratingAll(true);
     await generateAllPacks();
     setIsGeneratingAll(false);
@@ -180,58 +201,85 @@ const Index = () => {
       >
         <main className="flex-1 overflow-hidden flex flex-col min-w-0 bg-background">
           {selectedPack ? (
-            <>
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-28">
+              {demo && (
+                <div className="px-4 md:px-8 pt-4">
+                  <SampleNotice>
+                    <span className="sm:hidden">Sign in to make your own.</span>
+                    <span className="hidden sm:inline">Sample packs — sign in to upload your own and generate.</span>
+                  </SampleNotice>
+                </div>
+              )}
+
+              <PackSwitcher
+                className="lg:hidden pt-4"
+                packs={packInfos}
+                selectedPackId={selectedPackId}
+                onSelectPack={setSelectedPackId}
+              />
+
               <PackHeader
                 pack={selectedPack.pack}
                 completedCount={selectedPack.scenes.filter((s) => s.status === "success").length}
-                onRegenerate={() => selectedPackId && generatePackScenes(selectedPackId)}
+                onRegenerate={handleGeneratePack}
                 onDelete={() => selectedPackId && deletePack(selectedPackId)}
                 onDownload={() => selectedPackId && downloadPackAsZip(selectedPackId)}
                 isGenerating={selectedPack.isGenerating}
               />
 
-              <div className="flex-1 min-h-0 overflow-hidden px-4 md:px-8 pb-24">
+              <div className="px-4 md:px-8">
                 <ScenesGrid
                   scenes={selectedPack.scenes}
-                  onGenerateScene={(sceneId) => generateSingleScene(selectedPackId!, sceneId)}
+                  onGenerateScene={(sceneId) => {
+                    if (blockedInDemo()) return;
+                    generateSingleScene(selectedPackId!, sceneId);
+                  }}
                   onDownloadScene={downloadScene}
                 />
               </div>
-            </>
+            </div>
+          ) : packs.size === 0 ? (
+            <PacksStartView
+              onUpload={() => setUploadOpen(true)}
+              onCreate={() => navigate("/pack-creator")}
+              onBrowse={() => navigate("/explore")}
+            />
           ) : (
             <div className="h-full flex items-center justify-center px-4 md:px-8">
               <div className="flex flex-col items-center text-center max-w-sm">
-                <Sparkles className="size-5 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
-                <h2 className="text-heading-md text-foreground mb-1">
-                  {packs.size === 0 ? "Upload a pack to start" : "Select a pack"}
-                </h2>
-                <p className="text-body-sm text-muted-foreground">AI-powered image generation</p>
+                <MousePointerClick className="size-5 text-muted-foreground mb-3" strokeWidth={1.5} aria-hidden="true" />
+                <h2 className="text-heading-md text-foreground mb-1">Select a pack</h2>
+                <p className="text-body-sm text-muted-foreground">Pick a pack from the list to see its scenes.</p>
               </div>
             </div>
           )}
         </main>
 
-        <BottomBar
-          aspectRatio={aspectRatio}
-          onAspectRatioChange={setAspectRatio}
-          resolution={resolution}
-          onResolutionChange={setResolution}
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
-          images={images}
-          onImageUpload={handleImageUpload}
-          onImageClear={handleImageClear}
-          onAddImageSlot={addImageSlot}
-          maxImages={maxImages}
-          onGenerate={() => selectedPackId && generatePackScenes(selectedPackId)}
-          isGenerating={selectedPack?.isGenerating || false}
-          canGenerate={canGenerate}
-          isUnisexPack={isUnisexPack}
-          generationGender={generationGender}
-          onGenerationGenderChange={setGenerationGender}
-          generationMode={generationMode}
-          onGenerationModeChange={setGenerationMode}
-        />
+        <PackUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} onPacksLoad={handlePacksLoad} />
+
+        {packs.size > 0 && (
+          <BottomBar
+            aspectRatio={aspectRatio}
+            onAspectRatioChange={setAspectRatio}
+            resolution={resolution}
+            onResolutionChange={setResolution}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            images={images}
+            onImageUpload={handleImageUpload}
+            onImageClear={handleImageClear}
+            onAddImageSlot={addImageSlot}
+            maxImages={maxImages}
+            onGenerate={handleGeneratePack}
+            isGenerating={selectedPack?.isGenerating || false}
+            canGenerate={canGenerate}
+            isUnisexPack={isUnisexPack}
+            generationGender={generationGender}
+            onGenerationGenderChange={setGenerationGender}
+            generationMode={generationMode}
+            onGenerationModeChange={setGenerationMode}
+          />
+        )}
       </AppLayout>
     </>
   );
