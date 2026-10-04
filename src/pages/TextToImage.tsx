@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JSZip from "jszip";
-import { triggerDownload, mapLimit } from "@/lib/download-utils";
+import { triggerDownload, mapLimit, chunkArray } from "@/lib/download-utils";
 import { AppLayout } from "@/components/AppLayout";
 import { FullscreenImageView } from "@/components/FullscreenImageView";
 import { User } from "@supabase/supabase-js";
